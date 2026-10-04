@@ -48,6 +48,10 @@ jobs:
           set -euo pipefail
           mkdir -p build-handoff/signing-tools
           cp app/build/outputs/apk/release/*-unsigned.apk build-handoff/
+          mkdir -p apk-transfer
+          split -b 24M -d build-handoff/*-unsigned.apk apk-transfer/opennomi-apk.part
+          sha256sum build-handoff/*-unsigned.apk > build-handoff/unsigned-sha256.txt
+          rm build-handoff/*-unsigned.apk
           cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" build-handoff/signing-tools/
           cp "$ANDROID_HOME/build-tools/35.0.0/zipalign" build-handoff/signing-tools/
           if [ -d "$ANDROID_HOME/build-tools/35.0.0/lib64" ]; then
@@ -58,6 +62,24 @@ jobs:
         with:
           name: opennomi-041-unsigned-and-signing-tools
           path: build-handoff/
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: opennomi-041-apk-part-00
+          path: apk-transfer/opennomi-apk.part00
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: opennomi-041-apk-part-01
+          path: apk-transfer/opennomi-apk.part01
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: opennomi-041-apk-part-02
+          path: apk-transfer/opennomi-apk.part02
+          if-no-files-found: error
           retention-days: 7
       - uses: actions/upload-artifact@v4
         if: always()
