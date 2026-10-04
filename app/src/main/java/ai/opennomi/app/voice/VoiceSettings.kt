@@ -9,7 +9,11 @@ class VoiceSettings(context: Context) {
     var realtimeConversation: Boolean
         get() = prefs.getBoolean("offline_duplex", true)
         set(value) = prefs.edit().putBoolean("offline_duplex", value).apply()
+    var systemSpeechFallback: Boolean
+        get() = prefs.getBoolean("system_speech_fallback", false)
+        set(value) = prefs.edit().putBoolean("system_speech_fallback", value).apply()
     var reduceMotion: Boolean
         get() = prefs.getBoolean("reduce_motion", false)
         set(value) = prefs.edit().putBoolean("reduce_motion", value).apply()
 }
+

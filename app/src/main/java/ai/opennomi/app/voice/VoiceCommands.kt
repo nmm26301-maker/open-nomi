@@ -8,14 +8,19 @@ object VoiceCommands {
         return when {
             s in setOf("暂停语音", "停止聊天", "暂停聊天", "停止聆听", "关闭麦克风") -> VoiceCommand("stop")
             s in setOf("确认执行", "确认", "执行确认") -> VoiceCommand("confirm")
-            s in setOf("取消", "取消执行", "不要执行") -> VoiceCommand("cancel")
+            s in setOf("取消", "取消执行", "不要执行", "取消任务", "停止任务", "停止操作") -> VoiceCommand("cancel")
+            s in setOf("暂停任务", "暂停操作") -> VoiceCommand("pause_task")
+            s in setOf("继续任务", "继续操作") -> VoiceCommand("resume_task")
             s in setOf("打开手电筒", "开启手电筒", "打开闪光灯") -> VoiceCommand("torch", "on")
             s in setOf("关闭手电筒", "关掉手电筒", "关闭闪光灯") -> VoiceCommand("torch", "off")
             s in setOf("返回", "返回上一页", "退回上一页") -> VoiceCommand("back")
             s in setOf("回到桌面", "返回桌面", "回到主页") -> VoiceCommand("home")
+            s in setOf("退出应用", "退出这个应用", "退出当前应用", "关闭应用", "关闭这个应用", "关闭当前应用", "退出软件") -> VoiceCommand("exit_app")
             s in setOf("打开通知栏", "展开通知栏") -> VoiceCommand("notifications")
             s in setOf("向下滚动", "往下翻", "下一页", "下滑") -> VoiceCommand("scroll", "down")
             s in setOf("向上滚动", "往上翻", "上一页", "上滑") -> VoiceCommand("scroll", "up")
+            s in setOf("保存这页", "保存页面文字", "保存屏幕文字", "保存碎片") -> VoiceCommand("save_page")
+            s.startsWith("记住") && s.length>2 -> VoiceCommand("remember",s.removePrefix("记住").trim())
             s in setOf("点赞", "点个赞", "点一个赞", "给它点赞", "给这个点个赞") -> VoiceCommand("like")
             Regex("(?:点击|点)第([一二三四五六七八九]|[1-9])个?点赞(?:按钮)?").matches(s) -> {
                 val value=Regex("第(.)").find(s)!!.groupValues[1]
@@ -31,7 +36,7 @@ object VoiceCommands {
             }
             Regex("(?:打开|启动)(.+)").matches(s) && !Regex("怎么|如何|为什么|吗|然后|之后|，|,").containsMatchIn(s) -> VoiceCommand("open_app",s.removePrefix("打开").removePrefix("启动").trim())
             s.startsWith("点击") && s.length > 2 -> VoiceCommand("click", s.removePrefix("点击").trim().removeSuffix("按钮"))
-            s.startsWith("输入") && s.length > 2 -> VoiceCommand("type", s.removePrefix("输入").trim())
+            s.startsWith("输入") && s.length > 2 -> VoiceCommand("type", s.removePrefix("输入").trim().let { if((it.startsWith("“") && it.endsWith("”")) || (it.startsWith("\"") && it.endsWith("\"")))it.substring(1,it.length-1) else it })
             else -> null
         }
     }

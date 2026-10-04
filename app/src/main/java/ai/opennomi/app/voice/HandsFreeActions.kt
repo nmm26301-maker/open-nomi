@@ -18,23 +18,31 @@ class HandsFreeActions(private val context: Context) {
     private data class Pending(val step: Step, val page: Page, val label: String, val expires: Long)
     private var pending: Pending? = null
     fun clear() { pending = null }
-    suspend fun execute(command: VoiceCommand): String {
-        if(command.action == "cancel") { pending=null; return "已取消，我继续听你说。" }
-        if(command.action == "torch") { pending=null; return torch(command.target == "on") }
-        val service = ScreenAccessService.instance ?: return "请先在系统设置中开启 OpenNomi 无障碍服务，我才能替你操作。"
-        if(command.action == "open_app") { pending=null;return openApp(service,command) }
-        if(command.action in setOf("home", "back", "notifications")) {
-            pending=null
-            val action=when(command.action) { "home" -> AccessibilityService.GLOBAL_ACTION_HOME; "back" -> AccessibilityService.GLOBAL_ACTION_BACK; else -> AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS }
-            return if(service.performGlobalAction(action)) "已${when(command.action){"home"->"回到桌面";"back"->"返回";else->"展开通知栏"}}。" else "系统没有接受这次操作，请稍后再说一次。"
+    suspend fun execute(command: VoiceCommand): String = executeResult(command).message
+    suspend fun executeResult(command: VoiceCommand): ActionResult {
+        if(command.action == "cancel") { pending=null; return done("已取消，我继续听你说。") }
+        if(command.action=="remember") {pending=null;MemoryStore(context).use{it.add("memory",command.target,"语音记录")};return done("已记住你说的这件事。")}
+        if(command.action=="save_page") {
+            val state=ScreenState.state.value
+            if(!state.active || state.page.sensitive || state.page.text.isBlank())return failed("当前没有可保存的屏幕文字。")
+            MemoryStore(context).use{it.add("text",state.page.text,state.page.app+" · 语音保存")}
+            return done("已保存页面文字到碎片本。")
         }
-        if(!ScreenState.state.value.active)return "请先开启屏幕共享，我才能定位页面按钮。"
-        val page=service.readPage()
-        if(page.sensitive)return "当前页面包含密码框，请先切换页面。"
-        if(command.action == "confirm") {
-            val p=pending ?: return "目前没有等待确认的操作。"
+        if(command.action == "torch") { pending=null; return torch(command.target == "on") }
+        val service = ScreenAccessService.instance ?: return failed("请先在系统设置中开启 OpenNomi 无障碍服务，我才能替你操作。")
+        if(command.action == "open_app") { pending=null;return openApp(service,command) }
+        if(command.action in setOf("home", "exit_app", "back", "notifications")) {
             pending=null
-            if(SystemClock.elapsedRealtime()>p.expires)return "确认已过期，请重新说要执行的操作。"
+            val action=when(command.action) { "home", "exit_app" -> AccessibilityService.GLOBAL_ACTION_HOME; "back" -> AccessibilityService.GLOBAL_ACTION_BACK; else -> AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS }
+            return if(service.performGlobalAction(action)) done("已${when(command.action){"home"->"回到桌面";"exit_app"->"退出当前页面，回到桌面";"back"->"返回";else->"展开通知栏"}}。") else failed("系统没有接受这次操作，请稍后再说一次。")
+        }
+        if(!ScreenState.state.value.active)return failed("请先开启屏幕共享，我才能定位页面按钮。")
+        val page=service.readPage()
+        if(page.sensitive)return failed("当前页面包含密码框，请先切换页面。")
+        if(command.action == "confirm") {
+            val p=pending ?: return failed("目前没有等待确认的操作。")
+            pending=null
+            if(SystemClock.elapsedRealtime()>p.expires)return failed("确认已过期，请重新说要执行的操作。")
             return apply(service,p.step,p.page,p.label)
         }
         pending=null
@@ -43,57 +51,73 @@ class HandsFreeActions(private val context: Context) {
             "scroll" -> { step=Step("scroll",text=command.target);label=if(command.target=="up")"向上滚动" else "向下滚动" }
             "like", "click" -> {
                 val nodes=page.nodes.filter { it.clickable && if(command.action=="like")!it.selected && VoiceCommands.likeLabel(it.text) else it.text.trim()==command.target }
-                if(nodes.isEmpty())return if(command.action=="like")"没有找到未点赞的按钮，我没有点击。" else "没有找到${command.target}按钮，我没有点击。"
+                if(nodes.isEmpty())return failed(if(command.action=="like")"没有找到未点赞的按钮，我没有点击。" else "没有找到${command.target}按钮，我没有点击。")
                 val ordinal=(command.ordinal ?: if(command.action=="like")command.target.toIntOrNull() else null)?.minus(1)
-                if(nodes.size>1 && ordinal==null)return if(command.action=="like")"看到了${nodes.size}个点赞按钮，请说点击第一个点赞按钮，或指定第几个。" else "看到了${nodes.size}个${command.target}按钮，请说点击第一个${command.target}按钮，或指定第几个。"
-                val node=if(ordinal!=null)nodes.getOrNull(ordinal) ?: return "没有找到你指定的第${ordinal+1}个按钮。" else nodes.single()
+                if(nodes.size>1 && ordinal==null)return ActionResult(if(command.action=="like")"看到了${nodes.size}个点赞按钮，请说点击第一个点赞按钮，或指定第几个。" else "看到了${nodes.size}个${command.target}按钮，请说点击第一个${command.target}按钮，或指定第几个。",ActionState.CHOICE)
+                val node=if(ordinal!=null)nodes.getOrNull(ordinal) ?: return failed("没有找到你指定的第${ordinal+1}个按钮。") else nodes.single()
                 step=Step("click",node.id);label=if(command.action=="like")"点击点赞按钮" else "点击${node.text}"
-                if(VoiceCommands.sensitive(node.text)) { pending=Pending(step,page,label,SystemClock.elapsedRealtime()+90000); return "准备${label}。请在九十秒内说确认执行，或说取消。" }
+                if(VoiceCommands.sensitive(node.text)) { pending=Pending(step,page,label,SystemClock.elapsedRealtime()+90000); return ActionResult("准备${label}。请在九十秒内说确认执行，或说取消。",ActionState.CONFIRM) }
             }
             "type" -> {
+                if(command.target.length>2000)return failed("输入文字超过两千字，请分段输入。")
                 val nodes=page.nodes.filter{it.editable}
-                if(nodes.size!=1)return "请切到只有一个输入框的页面，我才能确定输入位置。"
+                if(nodes.size!=1)return failed("请切到只有一个输入框的页面，我才能确定输入位置。")
                 step=Step("type",nodes.single().id,command.target);label="输入文字"
             }
-            else -> return "这条操作暂时不支持。"
+            else -> return failed("这条操作暂时不支持。")
         }
         return apply(service,step,page,label)
     }
-    private fun apply(service: ScreenAccessService, step: Step, page: Page, label: String): String = try {
-        if(service.execute(step,page)) "已${label}。" else "${label}未成功，当前控件没有响应。"
-    } catch(e:Exception) { "没有执行：${e.message}。请重新说一次。" }
+    private fun done(text:String)=ActionResult(text,ActionState.DONE)
+    private fun failed(text:String)=ActionResult(text,ActionState.FAILED)
+    suspend fun executePlanned(step:Step,page:Page):ActionResult {
+        val service=ScreenAccessService.instance ?: return failed("无障碍服务未连接，任务已停止。")
+        if(step.kind=="open_app")return openApp(service,VoiceCommand("open_app",step.text))
+        if(page.sensitive)return failed("当前有密码框，任务已停止。")
+        val node=page.nodes.firstOrNull{it.id==step.node}
+        if(step.kind in setOf("click","type") && node==null)return failed("模型指定的控件不存在，任务已停止。")
+        if(step.kind=="click" && (node!!.text.isBlank() || VoiceCommands.sensitive(node.text))) {
+            pending=Pending(step,page,step.describe(),SystemClock.elapsedRealtime()+90000)
+            return ActionResult("准备${step.describe()}：${node.text.ifBlank{"无名称按钮"}}。请说确认执行，或取消任务。",ActionState.CONFIRM)
+        }
+        if(step.kind !in setOf("click","type","scroll","back","home"))return failed("模型动作不支持，任务已停止。")
+        return apply(service,step,page,step.describe())
+    }
+    private fun apply(service: ScreenAccessService, step: Step, page: Page, label: String): ActionResult = try {
+        if(service.execute(step,page)) done("已${label}。") else failed("${label}未成功，当前控件没有响应。")
+    } catch(e:Exception) { failed("没有执行：${e.message}。请重新说一次。") }
     @Suppress("DEPRECATION")
-    private suspend fun openApp(service:ScreenAccessService, command:VoiceCommand):String {
+    private suspend fun openApp(service:ScreenAccessService, command:VoiceCommand):ActionResult {
         val pm=context.packageManager
         val entries=pm.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER),0)
             .filter { it.activityInfo.exported && it.activityInfo.enabled }
             .map { LauncherTarget(it.loadLabel(pm).toString(),it.activityInfo.packageName) }
         val matches=LauncherTargets.matching(command.target,entries)
-        if(matches.isEmpty())return "没有找到${command.target}，请说手机上显示的完整应用名称。"
-        if(matches.size>1 && command.ordinal==null)return "找到了${matches.size}个${command.target}，请说打开第一个${command.target}，或指定第几个。"
-        val target=matches.getOrNull((command.ordinal ?: 1)-1) ?: return "没有找到你指定的应用。"
-        val launch=pm.getLaunchIntentForPackage(target.packageName) ?: return "这个应用没有可打开的首页。"
+        if(matches.isEmpty())return failed("没有找到${command.target}，请说手机上显示的完整应用名称。")
+        if(matches.size>1 && command.ordinal==null)return ActionResult("找到了${matches.size}个${command.target}，请说打开第一个${command.target}，或指定第几个。",ActionState.CHOICE)
+        val target=matches.getOrNull((command.ordinal ?: 1)-1) ?: return failed("没有找到你指定的应用。")
+        val launch=pm.getLaunchIntentForPackage(target.packageName) ?: return failed("这个应用没有可打开的首页。")
         service.startActivity(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         val opened=withTimeoutOrNull(4000) {
             while(isActive) { if(service.currentPackage()==target.packageName)return@withTimeoutOrNull true;delay(100) }
             false
         }==true
-        return if(opened)"已打开${target.label}。" else "还没有确认打开${target.label}，系统可能在等待选择或阻止了切换。"
+        return if(opened)done("已打开${target.label}。") else failed("还没有确认打开${target.label}，系统可能在等待选择或阻止了切换。")
     }
-    private suspend fun torch(on: Boolean): String {
-        if(ContextCompat.checkSelfPermission(context,Manifest.permission.CAMERA)!=PackageManager.PERMISSION_GRANTED)return "请回到首页重新开启语音，并允许相机权限，才能控制手电筒。"
+    private suspend fun torch(on: Boolean): ActionResult {
+        if(ContextCompat.checkSelfPermission(context,Manifest.permission.CAMERA)!=PackageManager.PERMISSION_GRANTED)return failed("请回到首页重新开启语音，并允许相机权限，才能控制手电筒。")
         val manager=context.getSystemService(CameraManager::class.java)
         return try {
-            val id=manager.cameraIdList.firstOrNull { manager.getCameraCharacteristics(it).let { c -> c.get(CameraCharacteristics.FLASH_INFO_AVAILABLE)==true && c.get(CameraCharacteristics.LENS_FACING)==CameraCharacteristics.LENS_FACING_BACK } } ?: return "这台设备没有可用的手电筒。"
-            val done=CompletableDeferred<Unit>()
+            val id=manager.cameraIdList.firstOrNull { manager.getCameraCharacteristics(it).let { c -> c.get(CameraCharacteristics.FLASH_INFO_AVAILABLE)==true && c.get(CameraCharacteristics.LENS_FACING)==CameraCharacteristics.LENS_FACING_BACK } } ?: return failed("这台设备没有可用的手电筒。")
+            val confirmed=CompletableDeferred<Unit>()
             var requested=false
             val callback=object:CameraManager.TorchCallback() {
-                override fun onTorchModeChanged(cameraId:String, enabled:Boolean) { if(requested && cameraId==id && enabled==on)done.complete(Unit) }
+                override fun onTorchModeChanged(cameraId:String, enabled:Boolean) { if(requested && cameraId==id && enabled==on)confirmed.complete(Unit) }
             }
             manager.registerTorchCallback(callback,Handler(Looper.getMainLooper()))
-            try { requested=true;manager.setTorchMode(id,on);withTimeout(3000){done.await()};if(on)"手电筒已打开。" else "手电筒已关闭。" }
+            try { requested=true;manager.setTorchMode(id,on);withTimeout(3000){confirmed.await()};done(if(on)"手电筒已打开。" else "手电筒已关闭。") }
             finally { manager.unregisterTorchCallback(callback) }
-        } catch(e:CancellationException) { if(e is TimeoutCancellationException)"系统还没有确认手电筒状态，请检查手电筒。" else  throw e }
-        catch(e:Exception) { "手电筒操作失败：${e.message}。" }
+        } catch(e:CancellationException) { if(e is TimeoutCancellationException)failed("系统还没有确认手电筒状态，请检查手电筒。") else  throw e }
+        catch(e:Exception) { failed("手电筒操作失败：${e.message}。") }
     }
 }

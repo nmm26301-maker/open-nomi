@@ -16,6 +16,7 @@ class XiaozhiProtocolClient(
     private val boardUuid: String,
     private val listener: Listener,
     private val aecAvailable: Boolean = false,
+    private val protocolVersion:Int = 3,
 ) {
     interface Listener {
         fun onOpen()
@@ -50,7 +51,7 @@ class XiaozhiProtocolClient(
     fun connect() {
         val request = Request.Builder()
             .url(url)
-            .header("Protocol-Version", "3")
+            .header("Protocol-Version", protocolVersion.toString())
             .header("Device-Id", deviceId)
             .header("Client-Id", boardUuid)
             .header("User-Agent", "ESP32-S3-BOX-3/2.2.4")
@@ -76,23 +77,19 @@ class XiaozhiProtocolClient(
     }
 
     fun sendText(text: String) {
-        sendJson(JSONObject().put("session_id", sessionId).put("type", "listen").put("state", "detect").put("text", text))
+        if(ready)sendJson(JSONObject().put("session_id", sessionId).put("type", "listen").put("state", "detect").put("mode","manual").put("source","text").put("text", text))
     }
 
     fun sendAudio(opus: ByteArray) {
         if (!ready) return
-        val buffer = ByteBuffer.allocate(4 + opus.size).order(ByteOrder.BIG_ENDIAN)
-        buffer.put(0)
-        buffer.put(0)
-        buffer.putShort(opus.size.toShort())
-        buffer.put(opus)
-        if (socket?.send(ByteString.of(*buffer.array())) != true) fail(IllegalStateException("网络发送失败"))
+        val packet=XiaozhiAudioWire.encode(opus,protocolVersion)
+        if (socket?.send(ByteString.of(*packet)) != true) fail(IllegalStateException("网络发送失败"))
     }
 
     private fun sendHello() {
         val hello = JSONObject()
             .put("type", "hello")
-            .put("version", 3)
+            .put("version", protocolVersion)
             .put("transport", "websocket")
             .put("features", JSONObject().put("aec", aecAvailable))
             .put("audio_params", JSONObject()
@@ -122,7 +119,7 @@ class XiaozhiProtocolClient(
                 "hello" -> {
                     sessionId = json.optString("session_id", "")
                     val params = json.optJSONObject("audio_params")
-                    if (sessionId.isBlank() || (params != null && (params.optInt("sample_rate", 16000) !in setOf(8000, 12000, 16000, 24000, 48000) || params.optInt("channels", 1) != 1 || params.optString("format", "opus") != "opus"))) {
+                    if (sessionId.isBlank() || json.optString("transport","websocket")!="websocket" || (params != null && (params.optInt("sample_rate", 16000) !in setOf(8000, 12000, 16000, 24000, 48000) || params.optInt("channels", 1) != 1 || params.optString("format", "opus") != "opus"))) {
                         fail(IllegalStateException("服务端语音格式不兼容")); return
                     }
                     if (!ready) { listener.onAudioFormat(params?.optInt("sample_rate", 16000) ?: 16000); ready = true; handshake?.cancel(false); listener.onOpen() }
@@ -144,13 +141,11 @@ class XiaozhiProtocolClient(
         override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
             if (!ready || closed) return
             val data = bytes.toByteArray()
-            if (data.size >= 4 && data[0].toInt() == 0) {
-                val size = ((data[2].toInt() and 255) shl 8) or (data[3].toInt() and 255)
-                if (size > 0 && size == data.size - 4) listener.onAudio(data.copyOfRange(4, data.size))
-            }
+            XiaozhiAudioWire.decode(data,protocolVersion)?.let(listener::onAudio)
         }
 
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) = fail(t)
         override fun onClosed(webSocket: WebSocket, code: Int, reason: String) = fail(null)
     }
 }
+

@@ -60,32 +60,33 @@ jobs:
           echo 'Unsigned verification output. It must be signed with the original key before installation.' > build-handoff/README.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: opennomi-044-unsigned-and-signing-tools
+          name: opennomi-045-unsigned-and-signing-tools
           path: build-handoff/
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
-          name: opennomi-044-apk-part-00
+          name: opennomi-045-apk-part-00
           path: apk-transfer/opennomi-apk.part00
           if-no-files-found: error
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
-          name: opennomi-044-apk-part-01
+          name: opennomi-045-apk-part-01
           path: apk-transfer/opennomi-apk.part01
           if-no-files-found: error
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
-          name: opennomi-044-apk-part-02
+          name: opennomi-045-apk-part-02
           path: apk-transfer/opennomi-apk.part02
           if-no-files-found: error
           retention-days: 7
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: opennomi-044-check-reports
+          name: opennomi-045-check-reports
           path: |
             app/build/reports/
             app/build/test-results/
           retention-days: 7
+

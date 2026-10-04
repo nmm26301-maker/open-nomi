@@ -15,6 +15,34 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
 class ProtocolRegressionTest {
+    @Test fun registeredVersionControlsHandshakeAndBothDirectionsOfAudio() {
+        for(version in 1..3) {
+            val server=MockWebServer();val listener=Listener()
+            val messages=LinkedBlockingQueue<String>();val uploads=LinkedBlockingQueue<ByteArray>()
+            server.enqueue(MockResponse().withWebSocketUpgrade(object:WebSocketListener(){
+                override fun onMessage(ws:WebSocket,text:String) {
+                    messages.add(text)
+                    if(JSONObject(text).optString("type")=="hello") {
+                        ws.send("""{"type":"hello","transport":"websocket","session_id":"wire","audio_params":{"sample_rate":24000}}""")
+                        ws.send(ByteString.of(*ai.opennomi.app.network.XiaozhiAudioWire.encode(byteArrayOf(21,22),version)))
+                    }
+                }
+                override fun onMessage(ws:WebSocket,bytes:ByteString){uploads.add(bytes.toByteArray())}
+                override fun onClosing(ws:WebSocket,code:Int,reason:String){ws.close(code,reason)}
+            }))
+            server.start()
+            val client=XiaozhiProtocolClient(server.url("/").toString().replace("http","ws"),"","device","client",listener,false,version)
+            try {
+                client.connect();assertEquals("rate:24000",listener.events.poll(5,TimeUnit.SECONDS));assertEquals("open",listener.events.poll(5,TimeUnit.SECONDS))
+                assertEquals(version.toString(),server.takeRequest(5,TimeUnit.SECONDS)!!.getHeader("Protocol-Version"))
+                assertEquals(version,JSONObject(messages.poll(5,TimeUnit.SECONDS)!!).getInt("version"))
+                assertArrayEquals(byteArrayOf(21,22),listener.audio.poll(5,TimeUnit.SECONDS))
+                client.sendAudio(byteArrayOf(31,32));assertArrayEquals(ai.opennomi.app.network.XiaozhiAudioWire.encode(byteArrayOf(31,32),version),uploads.poll(5,TimeUnit.SECONDS))
+                client.sendText("用小智原声回答");val request=JSONObject(messages.poll(5,TimeUnit.SECONDS)!!)
+                assertEquals("text",request.getString("source"));assertEquals("manual",request.getString("mode"));assertEquals("detect",request.getString("state"))
+            } finally {client.disconnect();server.shutdown()}
+        }
+    }
     private class Listener : XiaozhiProtocolClient.Listener {
         val events = LinkedBlockingQueue<String>()
         val audio = LinkedBlockingQueue<ByteArray>()

@@ -18,7 +18,7 @@ class HandsFreeRegressionTest {
         assertTrue(VoiceSessionPolicy.canHandleRecognition(true,false,false,false,false))
     }
     @Test fun firstAudioPacketExtendsTheMissingAudioDeadlineForLongReplies() {
-        assertEquals(8000L,VoiceSessionPolicy.playbackTimeout(0))
+        assertEquals(30000L,VoiceSessionPolicy.playbackTimeout(0))
         assertEquals(120000L,VoiceSessionPolicy.playbackTimeout(1))
         assertEquals(120000L,VoiceSessionPolicy.playbackTimeout(180))
     }
@@ -84,3 +84,4 @@ class HandsFreeRegressionTest {
         assertEquals(VoiceCommand("scroll","up"),VoiceCommands.parse("向上滚动"))
     }
 }
+

@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit
 
 class XiaozhiBootstrap(private val context: Context) {
     data class Identity(val deviceId: String, val boardUuid: String)
-    data class Result(val websocketUrl: String, val token: String, val activationCode: String?)
+    data class Result(val websocketUrl: String, val token: String, val activationCode: String?, val protocolVersion:Int=1)
 
     private val prefs = context.getSharedPreferences("open_nomi_identity", Context.MODE_PRIVATE)
     private val http = OkHttpClient.Builder().connectTimeout(15, TimeUnit.SECONDS).build()
@@ -41,7 +41,7 @@ class XiaozhiBootstrap(private val context: Context) {
         val endpoint = old.getString("url", "").orEmpty().trim()
         if (endpoint.isNotBlank() && endpoint != "wss://api.tenclass.net/xiaozhi/v1/") {
             require(endpoint.startsWith("wss://") || endpoint.startsWith("ws://")) { "保存的语音服务地址无效" }
-            return@withContext Result(endpoint, old.getString("token", "").orEmpty(), null)
+            return@withContext Result(endpoint, old.getString("token", "").orEmpty(), null, old.getInt("protocol_version",1).takeIf{it in 1..3} ?: 1)
         }
         val body = JSONObject().apply {
             put("version", 2)
@@ -68,8 +68,10 @@ class XiaozhiBootstrap(private val context: Context) {
             Result(
                 websocketUrl = ws.getString("url"),
                 token = ws.optString("token", ""),
-                activationCode = json.optJSONObject("activation")?.optString("code")?.takeIf { it.isNotBlank() }
+                activationCode = json.optJSONObject("activation")?.optString("code")?.takeIf { it.isNotBlank() },
+                protocolVersion = ws.optInt("version",1).also{require(it in 1..3){"服务端指定了不支持的语音协议"}}
             )
         }
     }
 }
+

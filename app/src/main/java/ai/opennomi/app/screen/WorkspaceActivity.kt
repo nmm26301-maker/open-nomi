@@ -53,7 +53,7 @@ class WorkspaceActivity:ComponentActivity() {
     override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);window.addFlags(WindowManager.LayoutParams.FLAG_SECURE);ScreenAssistant.init(this);tab.value=intent.getStringExtra("tab") ?: "vision";handleShare(intent);setContent{Workspace()}}
     override fun onResume(){super.onResume();refresh.intValue++;ScreenShareService.instance?.refreshOverlay()}
     override fun onNewIntent(intent:Intent){super.onNewIntent(intent);setIntent(intent);intent.getStringExtra("tab")?.let{tab.value=it};handleShare(intent)}
-    private fun handleShare(intent:Intent){if(intent.action!=Intent.ACTION_SEND)return;val text=intent.getStringExtra(Intent.EXTRA_TEXT).orEmpty();if(intent.type?.startsWith("image/")==true){val uri=if(android.os.Build.VERSION.SDK_INT>=33)intent.getParcelableExtra(Intent.EXTRA_STREAM,Uri::class.java) else  @Suppress("DEPRECATION") (intent.getParcelableExtra(Intent.EXTRA_STREAM) as? Uri);if(uri!=null)import(uri,text)}else if(text.isNotBlank()){MemoryStore(this).use{it.add("text",text,"系统分享")};tab.value="fragments";refresh.intValue++};intent.action=null}
+    private fun handleShare(intent:Intent){if(intent.action!=Intent.ACTION_SEND)return;val text=intent.getStringExtra(Intent.EXTRA_TEXT).orEmpty();if(intent.type?.startsWith("image/")==true){val uri=if(android.os.Build.VERSION.SDK_INT>=33)intent.getParcelableExtra(Intent.EXTRA_STREAM,Uri::class.java) else  @Suppress("DEPRECATION") (intent.getParcelableExtra(Intent.EXTRA_STREAM) as? Uri);if(uri!=null)import(uri,text)}else if(text.isNotBlank()){MemoryStore(this).use{it.add(if(Regex("https?://").containsMatchIn(text))"link" else "text",text,"系统分享")};tab.value="fragments";refresh.intValue++};intent.action=null}
     private fun import(uri:Uri,text:String){lifecycleScope.launch{try{withContext(Dispatchers.IO){MemoryStore(this@WorkspaceActivity).use{it.importImage(uri,text)}};tab.value="fragments";refresh.intValue++;ScreenState.event("已保存原图，图片字节保持原样")}catch(t:Throwable){ScreenState.event(t.message ?: "图片导入失败")}}}
     private fun startShare(){
         if(android.os.Build.VERSION.SDK_INT>=33 && ContextCompat.checkSelfPermission(this,Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED) notifications.launch(Manifest.permission.POST_NOTIFICATIONS) else launchShareGrant()
@@ -130,19 +130,25 @@ class WorkspaceActivity:ComponentActivity() {
         var task by remember{mutableStateOf(state.task)};var typed by remember{mutableStateOf("")}
         CardBlock("Agent · 当前任务"){
             OutlinedTextField(task,{task=it},label={Text("你想在当前页面做什么")},modifier=Modifier.fillMaxWidth(),minLines=2)
-            WideButton("规划下一步"){
+            WideButton("开始连续执行任务"){
                 when {
                     !state.active -> ScreenState.event("请先在看屏幕页开启屏幕共享")
                     ScreenAccessService.instance==null -> ScreenState.event("请先开启 OpenNomi 无障碍服务")
                     !ScreenAssistant.settings().modelReady() -> {tab.value="settings";ScreenState.event("请先连接视觉模型")}
                     task.isBlank() -> ScreenState.event("请填写任务")
                     state.busy -> ScreenState.event("请等待当前请求完成")
-                    else -> {moveTaskToBack(true);ScreenAssistant.askAfterReturning(task,true)}
+                    else -> {
+                        if(ContextCompat.checkSelfPermission(this@WorkspaceActivity,Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED && !(application as ai.opennomi.app.NomiApplication).cloudModel.backgroundConversation.value)
+                            ai.opennomi.app.voice.NomiVoiceService.start(this@WorkspaceActivity,true)
+                        moveTaskToBack(true)
+                        lifecycleScope.launch{delay(500);(application as ai.opennomi.app.NomiApplication).cloudModel.runAgentTask(task)}
+                    }
                 }
             }
-            Text("每一步显示实际建议，由你确认执行。支付、发送、提交也不会自动越过确认。",fontSize=12.sp)
-            state.proposed?.let{step->Text(step.describe(),color=MaterialTheme.colorScheme.primary);WideButton("确认这一步，回到目标 App 执行"){confirmStep()};TextButton(onClick={ScreenState.update{it.copy(proposed=null,proposedPage=null,agentRunning=false)}}){Text("取消这一步")}}
-            if(state.busy || state.agentRunning)TextButton(onClick={ScreenAssistant.stop();ScreenState.update{it.copy(busy=false,status="任务已暂停")}}){Text("暂停任务")}
+            Text("普通步骤会连续执行，每步重新看屏幕。可说暂停任务、继续任务或取消任务；发送、支付、提交等需单独说确认执行。一次最多二十步。",fontSize=12.sp)
+            state.proposed?.let{step->Text(step.describe(),color=MaterialTheme.colorScheme.primary);WideButton("确认这一步，回到目标 App 执行"){if(state.voiceTaskConfirmation){moveTaskToBack(true);lifecycleScope.launch{delay(500);(application as ai.opennomi.app.NomiApplication).cloudModel.confirmVoiceTask()}}else confirmStep()};TextButton(onClick={(application as ai.opennomi.app.NomiApplication).cloudModel.controlTask("cancel")}){Text("取消任务")}}
+            if(state.busy || state.agentRunning)TextButton(onClick={(application as ai.opennomi.app.NomiApplication).cloudModel.controlTask("pause_task")}){Text("暂停任务")}
+            if(state.task.isNotBlank() && !state.busy && !state.agentRunning)TextButton(onClick={moveTaskToBack(true);lifecycleScope.launch{delay(500);(application as ai.opennomi.app.NomiApplication).cloudModel.resumeVoiceTask()}}){Text("继续任务")}
         }
         CardBlock("本地控件操作"){
             Text("无模型也能操作已识别的控件。页面变化后，需要重新选择。",fontSize=12.sp)
@@ -170,19 +176,23 @@ class WorkspaceActivity:ComponentActivity() {
         if(state.caption.isNotBlank())Text(state.caption)
     };CardBlock("最近译文"){val rows=remember(refresh.intValue,state.caption){MemoryStore(this@WorkspaceActivity).use{it.list("translation")}};if(rows.isEmpty())Text("尚无译文");rows.take(10).forEach{Text(it.text,fontSize=13.sp);HorizontalDivider()}}}
     @Composable private fun Fragments(){
-        var filter by remember{mutableStateOf("")};var note by remember{mutableStateOf("")}
+        var filter by remember{mutableStateOf("")};var note by remember{mutableStateOf("")};var search by remember{mutableStateOf("")}
         CardBlock("碎片本"){
             Text("在其他 App 分享图片到 OpenNomi，或在这里选图，会保存原始文件。悬浮球双击保存的是页面文字。",fontSize=13.sp)
             WideButton("添加原图"){image.launch("image/*")}
             OutlinedTextField(note,{note=it},label={Text("记录一个想法")},modifier=Modifier.fillMaxWidth(),minLines=2)
-            TextButton(onClick={if(note.isNotBlank()){MemoryStore(this@WorkspaceActivity).use{it.add("text",note)};note="";refresh.intValue++}}){Text("保存想法")}
-            Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){listOf("" to "全部","image" to "图片","text" to "文字","insight" to "问答").forEach{(k,n)->FilterChip(filter==k,{filter=k},label={Text(n)})}}
+            TextButton(onClick={if(note.isNotBlank()){MemoryStore(this@WorkspaceActivity).use{it.add(if(Regex("https?://").containsMatchIn(note))"link" else "text",note)};note="";refresh.intValue++}}){Text("保存想法")}
+            OutlinedTextField(search,{search=it},label={Text("搜索标题、内容或标签")},modifier=Modifier.fillMaxWidth())
+            Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){listOf("" to "全部","image" to "图片","text" to "文字","link" to "链接","insight" to "问答").forEach{(k,n)->FilterChip(filter==k,{filter=k},label={Text(n)})}}
         }
-        val rows=remember(refresh.intValue,filter){MemoryStore(this@WorkspaceActivity).use{it.list(filter)}.filter{it.kind in setOf("image","text","insight")}}
+        val rows=remember(refresh.intValue,filter,search){MemoryStore(this@WorkspaceActivity).use{it.list(filter)}.filter{it.kind in setOf("image","text","link","insight") && listOf(it.title,it.text,it.tags,it.summary).any{v->v.contains(search,true)}}}
         if(rows.isEmpty())CardBlock("从一张喜欢的图片开始"){Text("这里不会预填示例图片或虚构记录。你保存的内容才会出现在这里。")}
-        rows.forEach{item->CardBlock(item.source){
+        rows.forEach{item->CardBlock(item.title.ifBlank{item.source}){
             if(item.image.isNotBlank())AndroidView(factory={ImageView(it).apply{scaleType=ImageView.ScaleType.CENTER_CROP}},update={view->val opts=BitmapFactory.Options().apply{inJustDecodeBounds=true};BitmapFactory.decodeFile(item.image,opts);opts.inSampleSize=maxOf(1,opts.outWidth/800,opts.outHeight/800);opts.inJustDecodeBounds=false;view.setImageBitmap(BitmapFactory.decodeFile(item.image,opts))},modifier=Modifier.fillMaxWidth().height(200.dp))
             Text(item.text,fontSize=14.sp)
+            if(item.summary.isNotBlank())Text("AI 已整理：${item.summary}",fontSize=13.sp)
+            if(item.tags.isNotBlank())Text(item.tags,color=MaterialTheme.colorScheme.primary,fontSize=12.sp)
+            SavedItemEditor(item)
             if(item.image.isNotBlank()) PictureQuestion(item)
             TextButton(onClick={MemoryStore(this@WorkspaceActivity).use{it.delete(item)};refresh.intValue++}){Text("删除",color=Color(0xFFF87171))}
         }}
@@ -207,11 +217,46 @@ class WorkspaceActivity:ComponentActivity() {
         if(reply.isNotBlank())Text(reply)
         if(succeeded)TextButton(onClick={MemoryStore(this@WorkspaceActivity).use{it.add("insight",reply,"图片问答")};refresh.intValue++}){Text("保存回答")}
     }
-    @Composable private fun Memories(){var note by remember{mutableStateOf("")};CardBlock("我的记忆"){
-        Text("把你希望 NOMI 记住的项目、偏好或下一步写下来。记忆存放在本机，可随时删除。",fontSize=14.sp)
-        OutlinedTextField(note,{note=it},label={Text("希望记住的事")},minLines=3,modifier=Modifier.fillMaxWidth())
-        WideButton("记住这件事"){if(note.isNotBlank()){MemoryStore(this@WorkspaceActivity).use{it.add("memory",note)};note="";refresh.intValue++}}
-    };val rows=remember(refresh.intValue){MemoryStore(this@WorkspaceActivity).use{it.list("memory")}};rows.forEach{item->CardBlock("记忆 · ${java.text.SimpleDateFormat("MM-dd HH:mm",java.util.Locale.CHINA).format(java.util.Date(item.time))}"){Text(item.text);TextButton(onClick={MemoryStore(this@WorkspaceActivity).use{it.delete(item)};refresh.intValue++}){Text("删除")}}}}
+    @Composable private fun Memories(){
+        var note by remember{mutableStateOf("")};var category by remember{mutableStateOf("项目")};var filter by remember{mutableStateOf("")}
+        CardBlock("我的记忆"){
+            Text("记忆存放在本机，可编辑分类或删除。开启连接页的记忆使用后，屏幕问答会引用最近记忆。",fontSize=14.sp)
+            OutlinedTextField(note,{note=it},label={Text("希望记住的事")},minLines=3,modifier=Modifier.fillMaxWidth())
+            Row(Modifier.horizontalScroll(rememberScrollState())){listOf("项目","兴趣","生活").forEach{c->FilterChip(category==c,{category=c},label={Text(c)})}}
+            WideButton("记住这件事"){if(note.isNotBlank()){MemoryStore(this@WorkspaceActivity).use{it.add("memory",note,category=category)};note="";refresh.intValue++}}
+            Row(Modifier.horizontalScroll(rememberScrollState())){listOf("","项目","兴趣","生活").forEach{c->FilterChip(filter==c,{filter=c},label={Text(c.ifBlank{"近期"})})}}
+        }
+        val rows=remember(refresh.intValue,filter){MemoryStore(this@WorkspaceActivity).use{it.list("memory")}.filter{filter.isBlank() || it.category==filter}}
+        rows.forEach{item->CardBlock(item.title.ifBlank{"记忆 · ${item.category.ifBlank{"未分类"}}"}){Text(item.text);SavedItemEditor(item);TextButton(onClick={MemoryStore(this@WorkspaceActivity).use{it.delete(item)};refresh.intValue++}){Text("删除")}}}
+    }
+    @Composable private fun SavedItemEditor(item:SavedItem) {
+        var editing by remember(item.id){mutableStateOf(false)}
+        var body by remember(item.id,item.text){mutableStateOf(item.text)}
+        var title by remember(item.id,item.title){mutableStateOf(item.title)}
+        var tags by remember(item.id,item.tags){mutableStateOf(item.tags)}
+        var category by remember(item.id,item.category){mutableStateOf(item.category)}
+        var organizing by remember(item.id){mutableStateOf(false)}
+        val scope=rememberCoroutineScope()
+        Row {
+            TextButton(onClick={editing=!editing}){Text(if(editing)"收起编辑" else "编辑")}
+            TextButton(enabled=!organizing,onClick={organizing=true;scope.launch {
+                try {
+                    val result=FragmentOrganizer.organize(item)
+                    MemoryStore(this@WorkspaceActivity).use{it.edit(item,title=result.title,category=result.category,tags=result.tags,summary=result.summary)}
+                    refresh.intValue++;ScreenState.event("这条记录已整理，原图保留")
+                } catch(e:CancellationException){throw e}
+                catch(e:Exception){ScreenState.event("整理未完成：${e.message}")}
+                finally{organizing=false}
+            }}){Text(if(organizing)"正在整理…" else "AI 整理")}
+        }
+        if(editing) {
+            OutlinedTextField(title,{title=it},label={Text("标题")},modifier=Modifier.fillMaxWidth())
+            OutlinedTextField(body,{body=it},label={Text("内容")},modifier=Modifier.fillMaxWidth(),minLines=2)
+            OutlinedTextField(category,{category=it},label={Text("分类 · 项目 / 兴趣 / 生活")},modifier=Modifier.fillMaxWidth())
+            OutlinedTextField(tags,{tags=it},label={Text("标签")},modifier=Modifier.fillMaxWidth())
+            TextButton(onClick={MemoryStore(this@WorkspaceActivity).use{it.edit(item,text=body,title=title,category=category,tags=tags)};editing=false;refresh.intValue++}){Text("保存修改")}
+        }
+    }
     private fun openOfficial(url:String) {
         runCatching {startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(url)))}.onFailure {ScreenState.event("无法打开浏览器，请通过申请指南中的官方地址访问")}
     }
@@ -327,3 +372,4 @@ class WorkspaceActivity:ComponentActivity() {
         }
     }
 }
+

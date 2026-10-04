@@ -64,6 +64,7 @@ class ScreenAccessService: AccessibilityService() {
         check(ScreenState.state.value.active) { "屏幕共享已停止" }
         val now=readPage(); check(now.app==expected.app && now.version==expected.version && !now.sensitive) { "页面已变化，请重新规划" }
         if(step.kind=="back")return performGlobalAction(GLOBAL_ACTION_BACK)
+        if(step.kind=="home")return performGlobalAction(GLOBAL_ACTION_HOME)
         val root=rootInActiveWindow ?: return false
         try {
             check(root.packageName?.toString()==expected.app) { "请回到目标应用再执行" }

@@ -17,3 +17,12 @@ LibreTranslate 仅通过 HTTP 服务接口连接，并未复制其 AGPL 服务�
 旧版 Emotion Ball 许可仍位于 app/src/main/assets/emotion-ball/。其他已有依赖维持 0.39 的 Gradle 声明。
 
 新增 AAR 与 OCR 数据 SHA-256 见 checksums.json。发布 APK 的 ABI 默认是 arm64-v8a。
+
+
+## 0.45 连续任务和语音协议
+
+采用 78/xiaozhi-esp32 websocket_protocol.cc 中 BinaryProtocol1/2/3 和 OTA websocket.version 选择流程；本项目以 Kotlin 重新实现并校验长度。MIT 许可保存到 APK open-source-notices/xiaozhi-esp32-LICENSE。
+
+HandsFreeTasks 根据 Open-AutoGLM phone_agent/agent.py 的 observe/plan/execute loop 适配 Android 无障碍，保留 Apache-2.0 许可；实际循环现在能自动执行普通步骤、重新观察、停止无效循环，并等待敏感动作的语音确认。
+
+调研 xiaoniu/xiaozhi-ai-android 的 WebSocketManager 文字 source=text 与 Opus 播放，未复制其源码和完整 App。

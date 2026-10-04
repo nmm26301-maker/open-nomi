@@ -12,8 +12,8 @@ android {
         applicationId = providers.gradleProperty("OPENNOMI_APPLICATION_ID").orElse("com.opennomi.android.voicetest").get()
         minSdk = 26
         targetSdk = 35
-        versionCode = providers.gradleProperty("OPENNOMI_VERSION_CODE").orElse("44").get().toInt()
-        versionName = providers.gradleProperty("OPENNOMI_VERSION_NAME").orElse("0.44.0").get()
+        versionCode = providers.gradleProperty("OPENNOMI_VERSION_CODE").orElse("45").get().toInt()
+        versionName = providers.gradleProperty("OPENNOMI_VERSION_NAME").orElse("0.45.0").get()
 
         ndk { abiFilters += providers.gradleProperty("OPENNOMI_ABIS").orElse("arm64-v8a").get().split(",") }
         vectorDrawables { useSupportLibrary = true }
@@ -85,3 +85,4 @@ dependencies {
     testImplementation("org.json:json:20240303")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 }
+
