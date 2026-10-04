@@ -13,13 +13,14 @@ class HandsFreeTasks(private val context:Context) {
     private var goal=""
     private var agentSteps=0
     private var agentWaiting=false
+    private var agentChoice:VoiceCommand?=null
     private val history=mutableListOf<String>()
     private var lastObservation=""
     private var repeated=0
     private var session=0L
     var paused=false;private set
     val hasTask get()=queue.hasTask || goal.isNotBlank()
-    fun clear() {queue.clear();actions.clear();goal="";agentWaiting=false;paused=false;ScreenState.update{it.copy(agentRunning=false,busy=false,proposed=null,proposedPage=null,voiceTaskConfirmation=false)}}
+    fun clear() {queue.clear();actions.clear();goal="";agentWaiting=false;agentChoice=null;paused=false;ScreenState.update{it.copy(agentRunning=false,busy=false,proposed=null,proposedPage=null,voiceTaskConfirmation=false)}}
     fun pause() {paused=true;ScreenState.update{it.copy(agentRunning=false,busy=false,status="任务已暂停，可说继续任务")}}
     suspend fun startAgent(task:String):String {
         clear();goal=task;agentSteps=0;history.clear();repeated=0;lastObservation="";session=ScreenState.state.value.session
@@ -38,6 +39,12 @@ class HandsFreeTasks(private val context:Context) {
             ScreenState.update{it.copy(proposed=null,proposedPage=null,voiceTaskConfirmation=false)}
             if(result.state!=ActionState.DONE){clear();return result.message}
             history.add(result.message);delay(600);return runAgent()
+        }
+        if(agentChoice!=null && command?.action=="open_app" && command.ordinal!=null && command.target==agentChoice?.target) {
+            val result=actions.executeResult(command)
+            if(result.state==ActionState.DONE){agentChoice=null;history.add(result.message);delay(600);return runAgent()}
+            if(result.state==ActionState.FAILED)clear()
+            return result.message
         }
         if(command!=null && queue.acceptsFollowup(command)) {
             val result=actions.executeResult(command);queue.result(result);ScreenState.event(result.message)
@@ -80,6 +87,8 @@ class HandsFreeTasks(private val context:Context) {
         return pair ?: error("页面仍在切换，请回到目标 App 后说继续任务")
     }
     private suspend fun runAgent():String {
+        if(agentWaiting)return "当前步骤仍在等待确认，请单独说确认执行或取消任务。"
+        agentChoice?.let{return "有多个${it.target}，请说打开第一个${it.target}，或指定第几个。"}
         val cfg=ScreenAssistant.settings()
         check(cfg.modelReady()){clear();"请先在连接页配置视觉模型，或直接说明确的操作指令"}
         check(ScreenState.valid(session)){clear();"屏幕共享已停止，请重新开启后再说任务"}
@@ -101,6 +110,7 @@ class HandsFreeTasks(private val context:Context) {
             ScreenState.event(history.last())
             when(result.state) {
                 ActionState.CONFIRM->{agentWaiting=true;ScreenState.update{it.copy(agentRunning=false,proposed=step,proposedPage=page,voiceTaskConfirmation=true)};return result.message}
+                ActionState.CHOICE->{agentChoice=VoiceCommand("open_app",step.text);ScreenState.update{it.copy(agentRunning=false,busy=false)};return result.message}
                 ActionState.DONE->delay(700)
                 else->{clear();return result.message}
             }

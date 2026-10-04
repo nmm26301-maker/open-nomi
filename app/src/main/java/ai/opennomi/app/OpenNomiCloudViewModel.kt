@@ -51,6 +51,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
     private val speechDelegate = lazy { LocalSpeech(app) }
     private val actions = HandsFreeTasks(app)
     private var taskControlListening=false
+    private var taskCaptureWatchdog:Job?=null
     private var voiceRetry=0
     private var fallbackText = ""
     private var textSubmitted = false
@@ -169,6 +170,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
     }
     /** Reset one turn without toggling the foreground service's lifetime. */
     private fun resetTurn() {
+        taskCaptureWatchdog?.cancel();taskCaptureWatchdog=null
         recoveryJob?.cancel();recoveryJob=null
         screenContextJob?.cancel(); screenContextJob = null; screenRouting = false;taskControlListening=false
         answerWatchdog?.cancel(); answerWatchdog = null
@@ -207,6 +209,17 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
         if (!active || realtime || _state.value != ConversationState.LISTENING) return
         audio.stopRecording(); client?.sendListen("stop", "manual")
         _state.value = ConversationState.THINKING; _emotion.value = "thinking"; _status.value = "让我想一想"
+        if(screenRouting && taskControlListening) {
+            taskCaptureWatchdog?.cancel();val generation=turn
+            taskCaptureWatchdog=viewModelScope.launch {
+                delay(10000)
+                if(VoiceSessionPolicy.restartTaskCapture(generation,turn,active,screenRouting,taskControlListening,audio.isRecording())) {
+                    client?.sendAbort();client?.sendListen("start","manual")
+                    _state.value=ConversationState.LISTENING;audio.startRecording(false)
+                }
+            }
+            return
+        }
         watchAnswer()
     }
     override fun onOpen() {
@@ -241,6 +254,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
     }
     override fun onStt(text: String) {
         if(screenRouting && taskControlListening) {
+            taskCaptureWatchdog?.cancel();taskCaptureWatchdog=null
             val control=VoiceCommands.parse(text)
             if(control?.action in setOf("cancel","pause_task","stop")) {
                 if(control?.action=="stop"){pauseConversation();return}
@@ -325,6 +339,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
                 }
                 val reply=if(goal!=null)actions.startAgent(goal) else actions.execute(commands)
                 if(generation!=turn || !active)return@launch
+                taskCaptureWatchdog?.cancel();taskCaptureWatchdog=null
                 taskControlListening=false;audio.stopRecording();client?.sendAbort()
                 delay(200)
                 if(generation==turn && active) {
@@ -334,7 +349,8 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
             } catch(e:CancellationException){throw e}
             catch(e:Exception) {
                 if(generation==turn && active) {
-                    actions.pause();taskControlListening=false;audio.stopRecording();client?.sendAbort()
+                    actions.pause();taskCaptureWatchdog?.cancel();taskCaptureWatchdog=null
+                    taskControlListening=false;audio.stopRecording();client?.sendAbort()
                     screenRouting=false;screenContextJob=null
                     requestSpokenReply("任务已暂停：${e.message}。请说继续任务或取消任务。")
                 }
@@ -418,6 +434,12 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
                     ai.opennomi.app.screen.ScreenState.event("小智原声未播放：${if(forceLocal)"手机音轨失败" else "服务端没有返回音频"}。文字已保留，继续聆听；可在小智后台检查语音合成。")
                 }
                 finishingReply=false;systemSpeaking=false;finishJob=null
+                if(!_connected.value) {
+                    active=false;realtime=false;audio.stopRecording();audio.restoreAudioMode()
+                    _state.value=ConversationState.IDLE
+                    if(_backgroundConversation.value)scheduleReconnect()
+                    return@launch
+                }
                 if (screenTextTurn) {
                     screenTextTurn = false
                     _state.value = ConversationState.IDLE; _emotion.value = "happy"; _status.value = "我在这儿"

@@ -5,7 +5,7 @@ object VoiceSessionPolicy {
     fun playbackTimeout(audioPackets: Int): Long = if(audioPackets==0)30000L else 120000L
     fun staleRecovery(scheduledTurn: Int, currentTurn: Int, backgroundRequested: Boolean) = scheduledTurn!=currentTurn || !backgroundRequested
     fun keepListening(backgroundRequested: Boolean, continuous: Boolean) = backgroundRequested || continuous
+    fun restartTaskCapture(scheduledTurn:Int,currentTurn:Int,active:Boolean,routing:Boolean,controls:Boolean,recording:Boolean) = scheduledTurn==currentTurn && active && routing && controls && !recording
     fun fallbackReply(modelReply: String, screenReply: String): String = modelReply.trim().ifBlank { screenReply.trim() }
         .ifBlank { "这次没有收到小智的回答，请检查网络和小智后台语音合成设置。" }
 }
-

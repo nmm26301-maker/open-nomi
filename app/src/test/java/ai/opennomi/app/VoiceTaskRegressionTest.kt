@@ -7,6 +7,14 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class VoiceTaskRegressionTest {
+    @Test fun missingTaskControlRecognitionRestartsOnlyItsOwnCapture() {
+        assertTrue(VoiceSessionPolicy.restartTaskCapture(2,2,true,true,true,false))
+        assertFalse(VoiceSessionPolicy.restartTaskCapture(2,3,true,true,true,false))
+        assertFalse(VoiceSessionPolicy.restartTaskCapture(2,2,false,true,true,false))
+        assertFalse(VoiceSessionPolicy.restartTaskCapture(2,2,true,false,true,false))
+        assertFalse(VoiceSessionPolicy.restartTaskCapture(2,2,true,true,false,false))
+        assertFalse(VoiceSessionPolicy.restartTaskCapture(2,2,true,true,true,true))
+    }
     @Test fun openThenExitAndNextUtteranceBothParse() {
         assertEquals(listOf(VoiceCommand("open_app","微信"),VoiceCommand("exit_app")),VoiceTasks.parse("打开微信，然后退出应用")!!.commands)
         assertEquals(VoiceCommand("exit_app"),VoiceCommands.parse("退出应用"))
