@@ -275,7 +275,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
                     goal!=null -> ControlRequest(goal=goal)
                     sequence!=null && sequence.error.isBlank() -> ControlRequest(sequence.commands)
                     sequence==null && control!=null -> ControlRequest(listOf(control))
-                    PhoneIntent.goal(text)!=null -> ControlRequest(goal=text)
+                    PhoneIntent.goal(text)!=null || voiceSettings.phoneControl -> ControlRequest(goal=text)
                     else -> null
                 }
                 if(request!=null) {
