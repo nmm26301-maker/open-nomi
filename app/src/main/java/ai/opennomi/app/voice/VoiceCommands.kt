@@ -1,7 +1,7 @@
 package ai.opennomi.app.voice
 
 /** Only the user's recognized utterance is parsed. Screen/model text is never an authority. */
-data class VoiceCommand(val action: String, val target: String = "")
+data class VoiceCommand(val action: String, val target: String = "", val ordinal: Int? = null)
 object VoiceCommands {
     fun parse(raw: String): VoiceCommand? {
         val s = raw.trim().trim('。','！','!','？','?').replace(Regex("^(小智[，, ]*|请|帮我|给我|麻烦你)+"), "").trim()
@@ -21,12 +21,22 @@ object VoiceCommands {
                 val value=Regex("第(.)").find(s)!!.groupValues[1]
                 VoiceCommand("like",if(value[0].isDigit())value else ("一二三四五六七八九".indexOf(value)+1).toString())
             }
+            Regex("(?:打开|启动)第([一二三四五六七八九]|[1-9])个(.+)").matches(s) -> {
+                val m=Regex("(?:打开|启动)第(.)个(.+)").find(s)!!
+                VoiceCommand("open_app",m.groupValues[2].trim(),ordinal(m.groupValues[1]))
+            }
+            Regex("点击第([一二三四五六七八九]|[1-9])个(.+)").matches(s) -> {
+                val m=Regex("点击第(.)个(.+)").find(s)!!
+                VoiceCommand("click",m.groupValues[2].trim().removeSuffix("按钮"),ordinal(m.groupValues[1]))
+            }
+            Regex("(?:打开|启动)(.+)").matches(s) && !Regex("怎么|如何|为什么|吗|然后|之后|，|,").containsMatchIn(s) -> VoiceCommand("open_app",s.removePrefix("打开").removePrefix("启动").trim())
             s.startsWith("点击") && s.length > 2 -> VoiceCommand("click", s.removePrefix("点击").trim().removeSuffix("按钮"))
             s.startsWith("输入") && s.length > 2 -> VoiceCommand("type", s.removePrefix("输入").trim())
             else -> null
         }
     }
+    private fun ordinal(value:String) = value.toIntOrNull() ?: ("一二三四五六七八九".indexOf(value)+1)
     fun sensitive(label: String): Boolean = Regex("支付|付款|转账|购买|下单|发送|发布|删除|清空|卸载|授权|允许|确认订单|提交|send|publish|pay|delete|buy|allow", RegexOption.IGNORE_CASE).containsMatchIn(label)
-    fun likeLabel(label: String): Boolean = !Regex("已点赞|取消赞|取消点赞|unlike|liked", RegexOption.IGNORE_CASE).containsMatchIn(label) &&
+    fun likeLabel(label: String): Boolean = !Regex("已赞|已点赞|已喜欢|取消喜欢|取消赞|取消点赞|unlike|liked", RegexOption.IGNORE_CASE).containsMatchIn(label) &&
         (label.trim() in setOf("赞", "点赞", "喜欢") || Regex("未点赞|点赞|(?<![A-Za-z])like(?![A-Za-z])", RegexOption.IGNORE_CASE).containsMatchIn(label))
 }

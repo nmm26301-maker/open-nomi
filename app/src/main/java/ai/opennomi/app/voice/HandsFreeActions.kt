@@ -2,6 +2,7 @@ package ai.opennomi.app.voice
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
@@ -21,6 +22,7 @@ class HandsFreeActions(private val context: Context) {
         if(command.action == "cancel") { pending=null; return "已取消，我继续听你说。" }
         if(command.action == "torch") { pending=null; return torch(command.target == "on") }
         val service = ScreenAccessService.instance ?: return "请先在系统设置中开启 OpenNomi 无障碍服务，我才能替你操作。"
+        if(command.action == "open_app") { pending=null;return openApp(service,command) }
         if(command.action in setOf("home", "back", "notifications")) {
             pending=null
             val action=when(command.action) { "home" -> AccessibilityService.GLOBAL_ACTION_HOME; "back" -> AccessibilityService.GLOBAL_ACTION_BACK; else -> AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS }
@@ -42,10 +44,10 @@ class HandsFreeActions(private val context: Context) {
             "like", "click" -> {
                 val nodes=page.nodes.filter { it.clickable && if(command.action=="like")!it.selected && VoiceCommands.likeLabel(it.text) else it.text.trim()==command.target }
                 if(nodes.isEmpty())return if(command.action=="like")"没有找到未点赞的按钮，我没有点击。" else "没有找到${command.target}按钮，我没有点击。"
-                val ordinal=command.target.toIntOrNull()?.minus(1)
-                if(nodes.size>1 && ordinal==null)return if(command.action=="like")"看到了${nodes.size}个点赞按钮，请说点击第一个点赞按钮，或指定第几个。" else "看到了${nodes.size}个同名按钮，请说点击加上按钮的完整名称。"
-                val node=if(ordinal!=null)nodes.getOrNull(ordinal) ?: return "没有找到你指定的第${ordinal+1}个点赞按钮。" else  nodes.single()
-                step=Step("click",node.id);label=if(command.action=="like")"点赞" else  "点击${node.text}"
+                val ordinal=(command.ordinal ?: if(command.action=="like")command.target.toIntOrNull() else null)?.minus(1)
+                if(nodes.size>1 && ordinal==null)return if(command.action=="like")"看到了${nodes.size}个点赞按钮，请说点击第一个点赞按钮，或指定第几个。" else "看到了${nodes.size}个${command.target}按钮，请说点击第一个${command.target}按钮，或指定第几个。"
+                val node=if(ordinal!=null)nodes.getOrNull(ordinal) ?: return "没有找到你指定的第${ordinal+1}个按钮。" else nodes.single()
+                step=Step("click",node.id);label=if(command.action=="like")"点击点赞按钮" else "点击${node.text}"
                 if(VoiceCommands.sensitive(node.text)) { pending=Pending(step,page,label,SystemClock.elapsedRealtime()+90000); return "准备${label}。请在九十秒内说确认执行，或说取消。" }
             }
             "type" -> {
@@ -60,6 +62,24 @@ class HandsFreeActions(private val context: Context) {
     private fun apply(service: ScreenAccessService, step: Step, page: Page, label: String): String = try {
         if(service.execute(step,page)) "已${label}。" else "${label}未成功，当前控件没有响应。"
     } catch(e:Exception) { "没有执行：${e.message}。请重新说一次。" }
+    @Suppress("DEPRECATION")
+    private suspend fun openApp(service:ScreenAccessService, command:VoiceCommand):String {
+        val pm=context.packageManager
+        val entries=pm.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER),0)
+            .filter { it.activityInfo.exported && it.activityInfo.enabled }
+            .map { LauncherTarget(it.loadLabel(pm).toString(),it.activityInfo.packageName) }
+        val matches=LauncherTargets.matching(command.target,entries)
+        if(matches.isEmpty())return "没有找到${command.target}，请说手机上显示的完整应用名称。"
+        if(matches.size>1 && command.ordinal==null)return "找到了${matches.size}个${command.target}，请说打开第一个${command.target}，或指定第几个。"
+        val target=matches.getOrNull((command.ordinal ?: 1)-1) ?: return "没有找到你指定的应用。"
+        val launch=pm.getLaunchIntentForPackage(target.packageName) ?: return "这个应用没有可打开的首页。"
+        service.startActivity(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        val opened=withTimeoutOrNull(4000) {
+            while(isActive) { if(service.currentPackage()==target.packageName)return@withTimeoutOrNull true;delay(100) }
+            false
+        }==true
+        return if(opened)"已打开${target.label}。" else "还没有确认打开${target.label}，系统可能在等待选择或阻止了切换。"
+    }
     private suspend fun torch(on: Boolean): String {
         if(ContextCompat.checkSelfPermission(context,Manifest.permission.CAMERA)!=PackageManager.PERMISSION_GRANTED)return "请回到首页重新开启语音，并允许相机权限，才能控制手电筒。"
         val manager=context.getSystemService(CameraManager::class.java)

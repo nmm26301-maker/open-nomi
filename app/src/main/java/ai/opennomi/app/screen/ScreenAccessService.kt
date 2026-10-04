@@ -20,6 +20,11 @@ class ScreenAccessService: AccessibilityService() {
     override fun onInterrupt() { ScreenState.event("无障碍读取已中断") }
     override fun onDestroy() { if(instance===this)instance=null;main.removeCallbacksAndMessages(null);super.onDestroy() }
     @Suppress("DEPRECATION")
+    fun currentPackage(): String {
+        val root=rootInActiveWindow ?: return ""
+        return try { root.packageName?.toString().orEmpty() } finally { root.recycle() }
+    }
+    @Suppress("DEPRECATION")
     fun readPage(): Page {
         if(!ScreenState.state.value.active) return Page()
         val root=rootInActiveWindow ?: run {

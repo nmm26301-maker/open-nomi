@@ -3,10 +3,46 @@ package ai.opennomi.app
 import ai.opennomi.app.voice.VoiceCommand
 import ai.opennomi.app.voice.VoiceCommands
 import ai.opennomi.app.voice.VoiceSessionPolicy
+import ai.opennomi.app.voice.LauncherTarget
+import ai.opennomi.app.voice.LauncherTargets
 import org.junit.Assert.*
 import org.junit.Test
 
 class HandsFreeRegressionTest {
+    @Test fun duplicateRecognitionDuringExecutionIsIgnoredButTheNextUtteranceIsAccepted() {
+        assertFalse(VoiceSessionPolicy.canHandleRecognition(true,false,false,false,true))
+        assertFalse(VoiceSessionPolicy.canHandleRecognition(true,true,false,false,false))
+        assertFalse(VoiceSessionPolicy.canHandleRecognition(true,false,false,true,false))
+        assertFalse(VoiceSessionPolicy.canHandleRecognition(true,false,true,false,false))
+        assertFalse(VoiceSessionPolicy.canHandleRecognition(false,false,false,false,false))
+        assertTrue(VoiceSessionPolicy.canHandleRecognition(true,false,false,false,false))
+    }
+    @Test fun firstAudioPacketExtendsTheMissingAudioDeadlineForLongReplies() {
+        assertEquals(8000L,VoiceSessionPolicy.playbackTimeout(0))
+        assertEquals(120000L,VoiceSessionPolicy.playbackTimeout(1))
+        assertEquals(120000L,VoiceSessionPolicy.playbackTimeout(180))
+    }
+    @Test fun recoveryCannotRestartListeningOverANewerReplyOrAfterPause() {
+        assertFalse(VoiceSessionPolicy.staleRecovery(5,5,true))
+        assertTrue(VoiceSessionPolicy.staleRecovery(5,6,true))
+        assertTrue(VoiceSessionPolicy.staleRecovery(5,5,false))
+    }
+    @Test fun applicationsOpenByNameAndSpokenOrdinalsDoNotBecomeButtonClicks() {
+        assertEquals(VoiceCommand("open_app","微信"),VoiceCommands.parse("小智，打开微信。"))
+        assertEquals(VoiceCommand("open_app","微信",2),VoiceCommands.parse("打开第二个微信"))
+        assertEquals(VoiceCommand("click","搜索",2),VoiceCommands.parse("点击第二个搜索按钮"))
+        assertNull(VoiceCommands.parse("打开微信怎么用"))
+        assertNull(VoiceCommands.parse("打开微信然后发送消息"))
+        assertNull(VoiceCommands.parse("不要打开微信"))
+    }
+    @Test fun appMatchingUsesOnlyInstalledExactNamesAndPreservesDuplicateChoices() {
+        val apps=listOf(LauncherTarget("微信","wechat.original"),LauncherTarget("微信","wechat.clone"),LauncherTarget("微信","wechat.original"),LauncherTarget("微信助手","helper"),LauncherTarget("哔哩哔哩","video"))
+        val matches=LauncherTargets.matching("WeChat",apps)
+        assertEquals(listOf("wechat.clone","wechat.original"),matches.map{it.packageName})
+        assertEquals(listOf("video"),LauncherTargets.matching("B站",apps).map{it.packageName})
+        assertTrue(LauncherTargets.matching("微信支付",apps).isEmpty())
+        assertTrue(LauncherTargets.matching("",apps).isEmpty())
+    }
     @Test fun backgroundConversationSurvivesReplyEvenWhenSingleTurnPreferenceWasSaved() {
         assertTrue(VoiceSessionPolicy.keepListening(true,false))
         assertTrue(VoiceSessionPolicy.keepListening(true,true))
@@ -36,7 +72,7 @@ class HandsFreeRegressionTest {
     @Test fun alreadyLikedButtonsAreNotToggledOff() {
         assertTrue(VoiceCommands.likeLabel("点赞，28"))
         assertTrue(VoiceCommands.likeLabel("Like"))
-        listOf("已点赞", "取消点赞", "Unlike", "Liked", "不像", "我不喜欢").forEach { assertFalse(it,VoiceCommands.likeLabel(it)) }
+        listOf("已点赞", "已赞", "已喜欢", "取消喜欢", "取消点赞", "Unlike", "Liked", "不像", "我不喜欢").forEach { assertFalse(it,VoiceCommands.likeLabel(it)) }
     }
     @Test fun riskyButtonsRequireAnExplicitVoiceConfirmation() {
         listOf("发送", "确认订单", "付款", "删除照片", "Publish", "Allow").forEach { assertTrue(it,VoiceCommands.sensitive(it)) }
