@@ -3,6 +3,9 @@ import android.content.Context
 /** Original preferences are retained across cover installs. */
 class VoiceSettings(context: Context) {
     private val prefs = context.getSharedPreferences("open_nomi_voice", Context.MODE_PRIVATE)
+    var phoneControl: Boolean
+        get() = prefs.getBoolean("phone_control", true)
+        set(value) = prefs.edit().putBoolean("phone_control", value).apply()
     var continuousConversation: Boolean
         get() = prefs.getBoolean("continuous", true)
         set(value) = prefs.edit().putBoolean("continuous", value).apply()
@@ -16,4 +19,3 @@ class VoiceSettings(context: Context) {
         get() = prefs.getBoolean("reduce_motion", false)
         set(value) = prefs.edit().putBoolean("reduce_motion", value).apply()
 }
-

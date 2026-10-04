@@ -49,6 +49,14 @@ class WorkspaceActivity:ComponentActivity() {
     }
     private val notifications=registerForActivityResult(ActivityResultContracts.RequestPermission()){launchShareGrant()}
     private val microphone=registerForActivityResult(ActivityResultContracts.RequestPermission()){ok->if(ok)activateAudio() else ScreenState.event("未允许音频权限，仍可翻译屏幕文字")}
+    private val handsFreePermissions=registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()){grants->
+        if(grants[Manifest.permission.RECORD_AUDIO]==true) {
+            (application as ai.opennomi.app.NomiApplication).cloudModel.voiceSettings.phoneControl=true
+            ai.opennomi.app.voice.NomiVoiceService.start(this,ScreenState.state.value.active)
+            ScreenState.event(if(grants[Manifest.permission.CAMERA]==true)"语音和相机权限已允许，可直接说打开手电筒或打开相机。" else "语音已开启；相机权限未允许，手电筒和拍照暂不可用。")
+        } else ScreenState.event("未允许麦克风权限，无法接收语音指令。")
+        refresh.intValue++
+    }
     private val image=registerForActivityResult(ActivityResultContracts.GetContent()){uri->if(uri!=null)import(uri,"")}
     override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);window.addFlags(WindowManager.LayoutParams.FLAG_SECURE);ScreenAssistant.init(this);tab.value=intent.getStringExtra("tab") ?: "vision";handleShare(intent);setContent{Workspace()}}
     override fun onResume(){super.onResume();refresh.intValue++;ScreenShareService.instance?.refreshOverlay()}
@@ -120,6 +128,8 @@ class WorkspaceActivity:ComponentActivity() {
     @Composable private fun Permissions(){
         val tick=refresh.intValue
         CardBlock("手机权限"){
+            WideButton("允许麦克风和相机，开启免手操作") { handsFreePermissions.launch(arrayOf(Manifest.permission.RECORD_AUDIO,Manifest.permission.CAMERA)) }
+            Text("操作结果直接显示，跳过播报；下一句可以继续控制。可以说打开相机、拍照、退出相机，或打开手电筒、关掉手电筒。",fontSize=12.sp)
             Text("悬浮球：${if(Settings.canDrawOverlays(this@WorkspaceActivity))"已允许" else "未允许"} · 页面控件：${if(ScreenAccessService.instance!=null)"已连接" else "未连接"}",fontSize=13.sp)
             TextButton(onClick={startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,Uri.parse("package:$packageName")))}){Text("允许悬浮窗")}
             TextButton(onClick={startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))}){Text("开启 OpenNomi 无障碍读取")}
@@ -372,4 +382,3 @@ class WorkspaceActivity:ComponentActivity() {
         }
     }
 }
-

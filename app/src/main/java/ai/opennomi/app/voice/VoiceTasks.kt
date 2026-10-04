@@ -6,8 +6,10 @@ data class VoiceSequence(val commands: List<VoiceCommand> = emptyList(), val err
 
 /** Explicit user-authored chains only. Quoted input is kept as data. */
 object VoiceTasks {
-    private val separator = Regex("(?:[，,。;；]\\s*)?(?:然后|接着|之后|再(?=打开|关闭|退出|点击|输入|返回|回到|向|点))\\s*|[，,;；]\\s*(?=打开|启动|关闭|退出|点击|输入|返回|回到|向|点)")
+    private val separator = Regex("(?:[，,。;；]\\s*)?(?:然后|接着|之后|再(?=打开|关闭|关掉|退出|点击|输入|返回|回到|向|点|拍|自拍|切换))\\s*|[，,;；]\\s*(?=打开|启动|关闭|关掉|退出|点击|输入|返回|回到|向|点|拍|自拍|切换)")
     fun parse(raw: String): VoiceSequence? {
+        val compact=raw.trim().replace(Regex("^(小智[，, ]*|请|帮我|给我|麻烦你)+"), "")
+        if(compact in setOf("打开相机拍照", "打开相机拍张照", "打开相机拍一张照片"))return VoiceSequence(listOf(VoiceCommand("camera","open"),VoiceCommand("camera","capture")))
         val chunks=mutableListOf<String>();var start=0;var quote:Char?=null;var i=0
         while(i<raw.length) {
             val ch=raw[i]

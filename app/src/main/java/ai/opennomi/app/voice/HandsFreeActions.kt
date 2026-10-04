@@ -15,6 +15,10 @@ import ai.opennomi.app.screen.*
 import kotlinx.coroutines.*
 
 class HandsFreeActions(private val context: Context) {
+    private var torchManager:CameraManager?=null
+    private var torchCallback:CameraManager.TorchCallback?=null
+    private var torchSwitch:AcknowledgedSwitch?=null
+    fun release() { torchCallback?.let { torchManager?.unregisterTorchCallback(it) };torchCallback=null;torchManager=null;torchSwitch=null }
     private data class Pending(val step: Step, val page: Page, val label: String, val expires: Long)
     private var pending: Pending? = null
     fun clear() { pending = null }
@@ -29,10 +33,16 @@ class HandsFreeActions(private val context: Context) {
             return done("已保存页面文字到碎片本。")
         }
         if(command.action == "torch") { pending=null; return torch(command.target == "on") }
+        if(command.action == "camera") { pending=null;return camera(command.target) }
+        if(command.action == "diagnostics") {
+            fun granted(permission:String)=ContextCompat.checkSelfPermission(context,permission)==PackageManager.PERMISSION_GRANTED
+            return done("麦克风${if(granted(Manifest.permission.RECORD_AUDIO))"已允许" else "未允许"}；相机和手电筒${if(granted(Manifest.permission.CAMERA))"已允许" else "未允许"}；无障碍${if(ScreenAccessService.instance!=null)"已连接" else "未连接"}；屏幕共享${if(ScreenState.state.value.active)"已开启" else "未开启"}。控制结果跳过播报，执行后继续收音。")
+        }
         val service = ScreenAccessService.instance ?: return failed("请先在系统设置中开启 OpenNomi 无障碍服务，我才能替你操作。")
         if(command.action == "open_app") { pending=null;return openApp(service,command) }
         if(command.action in setOf("home", "exit_app", "back", "notifications")) {
             pending=null
+            if(command.action in setOf("home","exit_app","back"))VoiceCamera.close()
             val action=when(command.action) { "home", "exit_app" -> AccessibilityService.GLOBAL_ACTION_HOME; "back" -> AccessibilityService.GLOBAL_ACTION_BACK; else -> AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS }
             return if(service.performGlobalAction(action)) done("已${when(command.action){"home"->"回到桌面";"exit_app"->"退出当前页面，回到桌面";"back"->"返回";else->"展开通知栏"}}。") else failed("系统没有接受这次操作，请稍后再说一次。")
         }
@@ -108,16 +118,41 @@ class HandsFreeActions(private val context: Context) {
         if(ContextCompat.checkSelfPermission(context,Manifest.permission.CAMERA)!=PackageManager.PERMISSION_GRANTED)return failed("请回到首页重新开启语音，并允许相机权限，才能控制手电筒。")
         val manager=context.getSystemService(CameraManager::class.java)
         return try {
-            val id=manager.cameraIdList.firstOrNull { manager.getCameraCharacteristics(it).let { c -> c.get(CameraCharacteristics.FLASH_INFO_AVAILABLE)==true && c.get(CameraCharacteristics.LENS_FACING)==CameraCharacteristics.LENS_FACING_BACK } } ?: return failed("这台设备没有可用的手电筒。")
-            val confirmed=CompletableDeferred<Unit>()
-            var requested=false
-            val callback=object:CameraManager.TorchCallback() {
-                override fun onTorchModeChanged(cameraId:String, enabled:Boolean) { if(requested && cameraId==id && enabled==on)confirmed.complete(Unit) }
+            VoiceCamera.activity?.let { it.torch(on);return done(if(on)"手电筒已打开。" else "手电筒已关闭。") }
+            if(torchSwitch==null) {
+                val id=manager.cameraIdList.firstOrNull { manager.getCameraCharacteristics(it).let { c -> c.get(CameraCharacteristics.FLASH_INFO_AVAILABLE)==true && c.get(CameraCharacteristics.LENS_FACING)==CameraCharacteristics.LENS_FACING_BACK } } ?: return failed("这台设备没有可用的手电筒。")
+                val control=AcknowledgedSwitch { enabled -> manager.setTorchMode(id,enabled) }
+                val callback=object:CameraManager.TorchCallback() {
+                    override fun onTorchModeChanged(cameraId:String, enabled:Boolean) { if(cameraId==id)control.observed(enabled) }
+                    override fun onTorchModeUnavailable(cameraId:String) { if(cameraId==id)control.unavailable() }
+                }
+                manager.registerTorchCallback(callback,Handler(Looper.getMainLooper()))
+                torchManager=manager;torchCallback=callback;torchSwitch=control
             }
-            manager.registerTorchCallback(callback,Handler(Looper.getMainLooper()))
-            try { requested=true;manager.setTorchMode(id,on);withTimeout(3000){confirmed.await()};done(if(on)"手电筒已打开。" else "手电筒已关闭。") }
-            finally { manager.unregisterTorchCallback(callback) }
+            torchSwitch!!.set(on)
+            done(if(on)"手电筒已打开。" else "手电筒已关闭。")
         } catch(e:CancellationException) { if(e is TimeoutCancellationException)failed("系统还没有确认手电筒状态，请检查手电筒。") else  throw e }
         catch(e:Exception) { failed("手电筒操作失败：${e.message}。") }
     }
+    private suspend fun camera(action:String):ActionResult = try {
+        when(action) {
+            "open" -> {VoiceCamera.open(context);done("已打开 OpenNomi 语音相机，可以直接说拍照、自拍或退出相机。")}
+            "capture", "selfie" -> {
+                val camera=VoiceCamera.open(context)
+                if(action=="selfie") {camera.switchCamera(true);delay(700)}
+                done(camera.takePhoto())
+            }
+            "switch" -> {VoiceCamera.open(context).switchCamera();done("已切换摄像头。")}
+            "close" -> {
+                if(VoiceCamera.close())done("已退出语音相机。")
+                else {
+                    val service=ScreenAccessService.instance
+                    if(service!=null && service.currentPackage().contains("camera",true) && service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME))done("已退出相机，回到桌面。")
+                    else failed("当前没有打开语音相机；如需退出其他应用，可以说退出应用。")
+                }
+            }
+            else -> failed("相机指令不支持。")
+        }
+    } catch(e:CancellationException) { if(e is TimeoutCancellationException)failed("相机操作超时，请检查相机权限或是否被其他应用占用。") else throw e }
+    catch(e:Exception) {failed("相机操作未完成：${e.message}。")}
 }

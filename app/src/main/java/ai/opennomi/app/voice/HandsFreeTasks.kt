@@ -20,6 +20,7 @@ class HandsFreeTasks(private val context:Context) {
     private var session=0L
     var paused=false;private set
     val hasTask get()=queue.hasTask || goal.isNotBlank()
+    fun release() { clear();actions.release() }
     fun clear() {queue.clear();actions.clear();goal="";agentWaiting=false;agentChoice=null;paused=false;ScreenState.update{it.copy(agentRunning=false,busy=false,proposed=null,proposedPage=null,voiceTaskConfirmation=false)}}
     fun pause() {paused=true;ScreenState.update{it.copy(agentRunning=false,busy=false,status="任务已暂停，可说继续任务")}}
     suspend fun startAgent(task:String):String {

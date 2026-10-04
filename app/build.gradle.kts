@@ -12,8 +12,8 @@ android {
         applicationId = providers.gradleProperty("OPENNOMI_APPLICATION_ID").orElse("com.opennomi.android.voicetest").get()
         minSdk = 26
         targetSdk = 35
-        versionCode = providers.gradleProperty("OPENNOMI_VERSION_CODE").orElse("45").get().toInt()
-        versionName = providers.gradleProperty("OPENNOMI_VERSION_NAME").orElse("0.45.0").get()
+        versionCode = providers.gradleProperty("OPENNOMI_VERSION_CODE").orElse("46").get().toInt()
+        versionName = providers.gradleProperty("OPENNOMI_VERSION_NAME").orElse("0.46.0").get()
 
         ndk { abiFilters += providers.gradleProperty("OPENNOMI_ABIS").orElse("arm64-v8a").get().split(",") }
         vectorDrawables { useSupportLibrary = true }
@@ -60,6 +60,9 @@ android {
 }
 
 dependencies {
+    implementation("androidx.camera:camera-camera2:1.4.2")
+    implementation("androidx.camera:camera-lifecycle:1.4.2")
+    implementation("androidx.camera:camera-view:1.4.2")
     implementation(files("libs/tesseract4android-4.9.0.aar"))
     implementation(files("libs/vosk-android-0.3.75.aar", "libs/jna-5.18.1.aar"))
     val composeBom = platform("androidx.compose:compose-bom:2024.06.00")
@@ -85,4 +88,3 @@ dependencies {
     testImplementation("org.json:json:20240303")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 }
-

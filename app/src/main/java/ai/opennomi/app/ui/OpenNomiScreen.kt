@@ -211,11 +211,13 @@ private fun TalkButton(state: ConversationState, connecting: Boolean, pendingSta
 
 @Composable
 private fun SettingsDialog(vm: OpenNomiCloudViewModel, reduceMotion: Boolean, onMotion: (Boolean) -> Unit, onClose: () -> Unit, onAccount: () -> Unit) {
+    var phoneControl by remember { mutableStateOf(vm.voiceSettings.phoneControl) }
     var continuous by remember { mutableStateOf(vm.voiceSettings.continuousConversation) }
     var realtime by remember { mutableStateOf(vm.voiceSettings.realtimeConversation) }
     var systemSpeech by remember { mutableStateOf(vm.voiceSettings.systemSpeechFallback) }
     AlertDialog(onDismissRequest = onClose, title = { Text("NOMI 设置") }, text = {
         Column(Modifier.verticalScroll(rememberScrollState())) {
+            SettingSwitch("语音控制优先", "默认开启：目标直接交给手机任务模型，操作跳过播报", phoneControl) { phoneControl=it;vm.voiceSettings.phoneControl=it;vm.pauseConversation() }
             SettingSwitch("连续对话", "回复后继续听你说话", continuous) { continuous = it; vm.voiceSettings.continuousConversation = it; vm.pauseConversation() }
             SettingSwitch("允许打断", "手机支持回声消除时，可开口打断", realtime) { realtime = it; vm.voiceSettings.realtimeConversation = it; vm.pauseConversation() }
             SettingSwitch("系统朗读回退", "默认关闭；小智原声失败时才使用", systemSpeech) { systemSpeech=it;vm.voiceSettings.systemSpeechFallback=it }
@@ -252,4 +254,3 @@ private fun AccountDialog(onClose: () -> Unit, onBound: () -> Unit) {
         }
     }
 }
-

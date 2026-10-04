@@ -1,6 +1,7 @@
 package ai.opennomi.app.voice
 
 object VoiceSessionPolicy {
+    fun allowCloudReply(phoneControl:Boolean, explicitTextRequest:Boolean)=!phoneControl || explicitTextRequest
     fun canHandleRecognition(active: Boolean, submitted: Boolean, finishing: Boolean, speaking: Boolean, routing: Boolean) = active && !submitted && !finishing && !speaking && !routing
     fun playbackTimeout(audioPackets: Int): Long = if(audioPackets==0)30000L else 120000L
     fun staleRecovery(scheduledTurn: Int, currentTurn: Int, backgroundRequested: Boolean) = scheduledTurn!=currentTurn || !backgroundRequested
