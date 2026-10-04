@@ -226,7 +226,7 @@ private fun SettingsDialog(vm: OpenNomiCloudViewModel, reduceMotion: Boolean, on
             TextButton(onClick = onAccount) { Text("设备绑定与账号") }
             Text("设备：${vm.deviceId()}", fontSize = 11.sp, color = Secondary)
             TextButton(onClick = { vm.disconnect(); vm.connect(); onClose() }) { Text("重新连接") }
-            Text("OpenNomi 0.45 · NOMI 原声", fontSize = 12.sp, color = Secondary)
+            Text("OpenNomi 0.46 · 语音控制优先", fontSize = 12.sp, color = Secondary)
         }
     }, confirmButton = { TextButton(onClick = onClose) { Text("完成") } })
 }

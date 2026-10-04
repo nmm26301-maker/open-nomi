@@ -383,7 +383,6 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
     }
     /** Phone actions never enter the original-voice/TTS pipeline. */
     private fun finishControl(result:String) {
-        check(!PhoneIntent.shouldSpeakControlResult())
         ai.opennomi.app.screen.ScreenState.update { it.copy(reply=result) }
         ai.opennomi.app.screen.ScreenState.event(result)
         screenRouting=false;taskControlListening=false

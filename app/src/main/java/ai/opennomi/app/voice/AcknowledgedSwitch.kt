@@ -13,9 +13,10 @@ class AcknowledgedSwitch(private val request: (Boolean) -> Unit) {
     private val lock = Mutex()
     fun observed(enabled: Boolean) { observed.value = enabled }
     fun unavailable() { observed.value = null }
-    suspend fun set(enabled: Boolean, timeoutMillis: Long = 4000) = lock.withLock {
+    suspend fun set(enabled: Boolean, timeoutMillis: Long = 4000):Unit = lock.withLock {
         if (observed.value == enabled) return@withLock
         request(enabled)
         withTimeout(timeoutMillis) { observed.filterNotNull().first { it == enabled } }
+        Unit
     }
 }
