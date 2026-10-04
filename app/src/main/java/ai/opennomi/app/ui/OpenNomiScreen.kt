@@ -122,7 +122,7 @@ fun OpenNomiApp(vm: OpenNomiCloudViewModel, onTalk: () -> Unit) {
                 }
                 Row(Modifier.fillMaxWidth().padding(horizontal = 22.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf("vision" to "看屏幕", "tasks" to "Agent", "fragments" to "碎片本").forEach { (key, label) ->
-                        OutlinedButton(onClick = { vm.pauseConversation(); context.startActivity(Intent(context, ai.opennomi.app.screen.WorkspaceActivity::class.java).putExtra("tab", key)) }, modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 4.dp)) { Text(label, fontSize = 13.sp, maxLines = 1) }
+                        OutlinedButton(onClick = { context.startActivity(Intent(context, ai.opennomi.app.screen.WorkspaceActivity::class.java).putExtra("tab", key)) }, modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 4.dp)) { Text(label, fontSize = 13.sp, maxLines = 1) }
                     }
                 }
                 TalkButton(state, connecting, pendingStart, { if (pairing != null) account = true else onTalk() }, Modifier.padding(horizontal = 22.dp).padding(top = 10.dp), reduceMotion)
