@@ -515,22 +515,24 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
                 _state.value = ConversationState.SPEAKING; _emotion.value = "talking"; _status.value = "FishAudio 正在合成并播报"
                 fishSpeechDelegate.value.speak(reply, config)
             } catch (e: TimeoutCancellationException) {
-                playbackError = "FishAudio 播报超时，文字已保留"
-                if (generation == turn) ai.opennomi.app.screen.ScreenState.event(playbackError)
+                val message = "FishAudio 播报超时，文字已保留"
+                playbackError = message
+                if (generation == turn) ai.opennomi.app.screen.ScreenState.event(message)
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) {
-                playbackError = "FishAudio 播报失败：${e.message}。文字已保留"
-                if (generation == turn) ai.opennomi.app.screen.ScreenState.event(playbackError)
+                val message = "FishAudio 播报失败：${e.message}。文字已保留"
+                playbackError = message
+                if (generation == turn) ai.opennomi.app.screen.ScreenState.event(message)
             }
             if (generation == turn && active) {
                 ai.opennomi.app.screen.ScreenState.update { it.copy(reply = reply) }
-                resumeAfterPlayback(generation)
-                if (active && playbackError != null) _status.value = "$playbackError。我继续听你说"
+                resumeAfterPlayback(generation, playbackError)
             }
         }
     }
     private var receivedReplyText = false
-    private suspend fun resumeAfterPlayback(generation: Int) {
+    private suspend fun resumeAfterPlayback(generation: Int, failure: String? = null) {
+        if (generation != turn || !active) return
         finishingReply=false;systemSpeaking=false;finishJob=null
         if(!_connected.value) {
             active=false;realtime=false;audio.stopRecording();audio.restoreAudioMode()
@@ -542,15 +544,19 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
             screenTextTurn = false
             _state.value = ConversationState.IDLE; _emotion.value = "happy"; _status.value = "我在这儿"
             if (ai.opennomi.app.screen.ScreenState.valid(screenSession)) ai.opennomi.app.screen.ScreenState.update { it.copy(busy=false, status="NOMI 已完成屏幕文字问答") }
-            if(!_backgroundConversation.value) { active=false;audio.restoreAudioMode();return }
+            if(!_backgroundConversation.value) { active=false;audio.restoreAudioMode(); if (failure != null) _status.value = failure; return }
         }
         if (realtime && VoiceSessionPolicy.keepListening(_backgroundConversation.value,voiceSettings.continuousConversation)) {
             prepareTurn(); _state.value = ConversationState.LISTENING; _emotion.value = "listening"; _status.value = "我在听，可以继续说"
         } else if (!realtime && VoiceSessionPolicy.keepListening(_backgroundConversation.value,voiceSettings.continuousConversation)) {
-            delay(120); if (generation == turn && active) startListening()
+            delay(120)
+            if (generation == turn && active) {
+                startListening()
+                if (failure != null) _status.value = "$failure。我继续听你说"
+            }
         } else {
             _backgroundConversation.value = false; active = false; realtime = false; audio.stopRecording(); audio.restoreAudioMode()
-            _state.value = ConversationState.IDLE; _status.value = "我在这儿"; _emotion.value = "happy"
+            _state.value = ConversationState.IDLE; _status.value = failure ?: "我在这儿"; _emotion.value = "happy"
         }
     }
     /** Phone controls finish silently; conversational screen answers use the selected voice. */
