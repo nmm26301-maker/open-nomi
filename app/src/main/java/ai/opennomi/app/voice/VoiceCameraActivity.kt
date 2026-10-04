@@ -27,20 +27,23 @@ import androidx.lifecycle.lifecycleScope
 import ai.opennomi.app.screen.ScreenAccessService
 import kotlinx.coroutines.*
 import java.io.File
+import java.lang.ref.WeakReference
 
 /** CameraX (Apache-2.0): preview and actual capture, without a manual camera-app shutter. */
 object VoiceCamera {
-    var activity: VoiceCameraActivity? = null; private set
-    private var ready = CompletableDeferred<VoiceCameraActivity>()
-    fun attach(value: VoiceCameraActivity) { activity=value; if(!ready.isCompleted)ready.complete(value) }
-    fun detach(value: VoiceCameraActivity) { if(activity===value)activity=null; if(!ready.isCompleted)ready.completeExceptionally(IllegalStateException("相机已退出")) }
+    private var activityRef:WeakReference<VoiceCameraActivity>?=null
+    val activity:VoiceCameraActivity? get()=activityRef?.get()
+    private var ready = CompletableDeferred<Unit>()
+    fun attach(value: VoiceCameraActivity) { activityRef=WeakReference(value); if(!ready.isCompleted)ready.complete(Unit) }
+    fun detach(value: VoiceCameraActivity) { if(activity===value)activityRef=null; if(!ready.isCompleted)ready.completeExceptionally(IllegalStateException("相机已退出")) }
     suspend fun open(context: Context): VoiceCameraActivity {
         check(ContextCompat.checkSelfPermission(context,Manifest.permission.CAMERA)==PackageManager.PERMISSION_GRANTED) { "相机权限未开启，请在首页允许相机权限" }
         activity?.let { return it }
         ready=CompletableDeferred()
         val intent=Intent(context,VoiceCameraActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
         (ScreenAccessService.instance ?: context).startActivity(intent)
-        return withTimeout(10000) { ready.await() }
+        withTimeout(10000) { ready.await() }
+        return checkNotNull(activity) { "相机已退出" }
     }
     fun close(): Boolean { val current=activity ?: return false; current.finish(); return true }
 }
