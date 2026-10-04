@@ -35,7 +35,7 @@ class CaptionGate {
     fun tick(now: Long): String? {
         if(now < until || pending.isBlank()) return null
         current=pending; pending=""
-        until=now + (current.length * 110L).coerceIn(5000L, 14000L)
+        until=now + (current.length * 80L).coerceIn(2500L, 10000L)
         return current
     }
 }

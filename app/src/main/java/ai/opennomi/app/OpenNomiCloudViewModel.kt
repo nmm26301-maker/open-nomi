@@ -8,6 +8,7 @@ import ai.opennomi.app.model.ConversationState
 import ai.opennomi.app.network.XiaozhiBootstrap
 import ai.opennomi.app.network.XiaozhiProtocolClient
 import ai.opennomi.app.voice.ResponseAccumulator
+import ai.opennomi.app.voice.VoiceReplyGate
 import ai.opennomi.app.voice.VoiceSettings
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -56,6 +57,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
     private var silentRequest: CompletableDeferred<String>? = null
     private var screenTextTurn = false
     private var screenSession = 0L
+    private var finishingReply=false
     private var finishJob: Job? = null
     private val accumulator = ResponseAccumulator()
     private val audioDelegate = lazy { RealtimeAudioEngine(app,
@@ -165,12 +167,13 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
         if (!_connected.value) return
         if (!audio.hasRecordPermission()) { _status.value = "请允许麦克风权限"; return }
         client?.sendAbort(); clearSpeech(); audio.stopAllPlayback()
-        active = true; realtime = !screenAware && !ai.opennomi.app.screen.ScreenState.state.value.active && voiceSettings.realtimeConversation && audio.supportsRealtime()
+        active = true; realtime = !screenAware && voiceSettings.realtimeConversation && audio.supportsRealtime()
         _state.value = ConversationState.LISTENING; _emotion.value = "listening"
         _status.value = if (realtime) "我在听，可以随时开口" else "我在听，说完自动回复"
         client?.sendListen("start", if (realtime) "realtime" else "manual")
         if (!audio.startRecording(realtime)) { _backgroundConversation.value = false; active = false; _state.value = ConversationState.IDLE; _emotion.value = "sleep" }
     }
+    fun cancelScreenRequest() { if(screenTextTurn)pauseConversation() }
     fun deviceId() = bootstrap.identity().deviceId
     private fun stopListening() {
         if (!active || realtime || _state.value != ConversationState.LISTENING) return
@@ -198,11 +201,10 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
         }
     }
     override fun onStt(text: String) {
-        if (!active) return
+        if (!active || finishingReply || _state.value == ConversationState.SPEAKING) return
         if (realtime && _state.value == ConversationState.LISTENING) prepareTurn()
         _heard.value = text; _state.value = ConversationState.THINKING; _emotion.value = "thinking"; _status.value = "让我想一想"
-        if ((screenAware || _backgroundConversation.value) && ai.opennomi.app.screen.ScreenState.state.value.active && ai.opennomi.app.voice.ScreenVoiceContext.referencesScreen(text)) {
-            realtime = false; answerWatchdog?.cancel()
+        if (screenAware && ai.opennomi.app.screen.ScreenState.state.value.active && ai.opennomi.app.voice.ScreenVoiceContext.referencesScreen(text)) {
             audio.stopRecording(); client?.sendAbort(); audio.stopAllPlayback()
             accumulator.reset(); _response.value = ""; screenRouting = true
             val generation = turn
@@ -210,12 +212,12 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
             screenContextJob = viewModelScope.launch {
                 try {
                     _status.value = "我在看你当前的屏幕"
-                    val prompt = withTimeout(35000) { ai.opennomi.app.screen.ScreenAssistant.voicePrompt(text) }
+                    val prompt = ai.opennomi.app.screen.ScreenAssistant.voicePrompt(text)
                     if (generation != turn || !active) return@launch
                     screenRouting = false; client?.sendText(prompt)
                     watchAnswer()
-                } catch (e: Exception) {
-                    if (e is CancellationException && e !is TimeoutCancellationException) throw e
+                } catch (e: CancellationException) { throw e }
+                catch (e: Exception) {
                     if (generation == turn && active) {
                         screenRouting = false
                         client?.sendText("用户问：$text。屏幕理解暂不可用，请用简短中文告诉用户：${e.message}。不要猜测画面。")
@@ -226,12 +228,12 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
         } else watchAnswer()
     }
     override fun onResponseText(text: String) {
-        if (!active || screenRouting || _state.value == ConversationState.LISTENING) return
+        if (!active || screenRouting || finishingReply) return
         _response.value += accumulator.accept(text)
         if (screenTextTurn && !screenSilent && ai.opennomi.app.screen.ScreenState.valid(screenSession)) ai.opennomi.app.screen.ScreenState.update { it.copy(reply=_response.value, status="NOMI 正在回应屏幕问题") }
     }
     override fun onTtsState(state: String) {
-        if (!active || screenRouting) return
+        if (!active || screenRouting || finishingReply) return
         if (state == "stop" && screenSilent) {
             val result = _response.value.trim()
             if (result.isBlank()) silentRequest?.completeExceptionally(IllegalStateException("NOMI 未返回译文")) else silentRequest?.complete(result)
@@ -243,25 +245,30 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
                 _emotion.value = "talking"; _status.value = "我在回应你"
                 if (!realtime) audio.stopRecording()
             }
-            "stop" -> if (_state.value == ConversationState.SPEAKING) finishPlayback()
+            "stop" -> if (_state.value == ConversationState.SPEAKING || _state.value == ConversationState.THINKING) finishPlayback()
         }
     }
     override fun onEmotion(emotion: String) { if (active) _emotion.value = emotion }
     override fun onAudioFormat(sampleRate: Int) { audio.configureServerAudio(sampleRate) }
     override fun onAudio(opus: ByteArray) {
-        if (active && !screenSilent && !screenRouting && _state.value == ConversationState.SPEAKING) {
-            audioPackets++; audio.playServerOpus(opus)
+        if(VoiceReplyGate.acceptsReply(active,screenSilent,finishingReply) && !screenRouting) {
+            if(_state.value!=ConversationState.SPEAKING) {
+                if(_state.value==ConversationState.LISTENING)prepareTurn()
+                answerWatchdog?.cancel();_state.value=ConversationState.SPEAKING;_emotion.value="talking";_status.value="我在回应你"
+                if(!realtime)audio.stopRecording()
+            }
+            audioPackets++;audio.playServerOpus(opus)
         }
     }
     private fun finishPlayback() {
-        finishJob?.cancel(); val generation = turn
+        finishJob?.cancel();finishingReply=true; val generation = turn
         finishJob = viewModelScope.launch {
             try {
                 // Protocol stop follows its audio packets. The FIFO drain waits for
                 // those packets and the actual playback head, without a fixed 150ms delay.
                 audio.awaitServerPlayback()
                 if (generation != turn || !active) return@launch
-                audio.stopAllPlayback()
+                audio.stopAllPlayback();finishingReply=false
                 if (audioPackets == 0 && !screenSilent) {
                     _status.value = "小智没有返回语音，请检查后台的语音合成设置"
                     ai.opennomi.app.screen.ScreenState.event(_status.value)
@@ -301,7 +308,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
             }
         }
     }
-    private fun clearSpeech() { turn++; answerWatchdog?.cancel(); finishJob?.cancel(); finishJob = null; prepareTurn() }
+    private fun clearSpeech() { finishingReply=false;turn++; answerWatchdog?.cancel(); finishJob?.cancel(); finishJob = null; prepareTurn() }
     override fun onCleared() {
         active = false; ++connectionGeneration; clearSpeech(); client?.disconnect()
         if (audioDelegate.isInitialized()) audio.release()

@@ -40,7 +40,7 @@ class NomiVoiceService : Service() {
             val open=PendingIntent.getActivity(this,44,Intent(this,MainActivity::class.java),PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
             val notification=NotificationCompat.Builder(this,"nomi-voice").setSmallIcon(R.drawable.ic_nomi).setContentTitle("小智正在陪你聊天")
                 .setContentText("麦克风已开启 · 切到其他 App 也可以说话").setContentIntent(open).setOngoing(true).addAction(0,"暂停语音",stop).build()
-            if(Build.VERSION.SDK_INT>=29)startForeground(403,notification,ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)else startForeground(403,notification)
+            if(Build.VERSION.SDK_INT>=29)startForeground(403,notification,ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE or ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)else startForeground(403,notification)
             if(ScreenState.state.value.audio)error("请先关闭视频声音识别，再开启语音聊天")
             model.startBackgroundConversation(intent.getBooleanExtra("screen",false))
             if(!started) {

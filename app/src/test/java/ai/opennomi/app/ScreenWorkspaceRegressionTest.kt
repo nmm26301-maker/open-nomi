@@ -10,13 +10,13 @@ class ScreenWorkspaceRegressionTest {
         assertEquals("first",gate.offer("first",0))
         assertNull(gate.offer("second",1000))
         assertNull(gate.offer("third",1200))
-        assertNull(gate.tick(4999))
-        assertEquals("third",gate.tick(5000))
+        assertNull(gate.tick(2499))
+        assertEquals("third",gate.tick(2500))
         assertNull(gate.offer("third",6000))
     }
     @Test fun longSubtitlesHaveEnoughDwell() {
         val gate=CaptionGate();val long="字幕".repeat(100)
-        assertEquals(long,gate.offer(long,0));assertNull(gate.offer("next",5000));assertNull(gate.tick(13999));assertEquals("next",gate.tick(14000))
+        assertEquals(long,gate.offer(long,0));assertNull(gate.offer("next",5000));assertNull(gate.tick(9999));assertEquals("next",gate.tick(10000))
     }
     @Test fun genericModelActionMustBeSupported() {
         assertEquals(Step("type",2,"Ashley"),StepParser.parse("```json\n{\"action\":\"type\",\"node\":2,\"text\":\"Ashley\"}\n```"))

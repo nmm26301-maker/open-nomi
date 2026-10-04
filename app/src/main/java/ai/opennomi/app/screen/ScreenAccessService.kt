@@ -44,7 +44,7 @@ class ScreenAccessService: AccessibilityService() {
             visit(root)
             val old=ScreenState.state.value.page; val text=lines.distinct().joinToString("\n").take(16000)
             val p=Page(app,text,nodes,sensitive,if(old.app==app && old.text==text && old.nodes==nodes && old.sensitive==sensitive)old.version else old.version+1)
-            ScreenState.update { it.copy(page=p) }; return p
+            ScreenState.update { it.copy(page=p) }; if(!sensitive && ScreenState.state.value.translation && !ScreenState.state.value.audio)ScreenShareService.instance?.translateLine(TranslationText.foreignLines(text)); return p
         } finally { root.recycle() }
     }
     @Suppress("DEPRECATION")

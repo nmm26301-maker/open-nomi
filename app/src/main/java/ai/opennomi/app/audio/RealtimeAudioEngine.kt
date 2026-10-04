@@ -154,14 +154,18 @@ class RealtimeAudioEngine(
     }
     suspend fun awaitServerPlayback() {
         val done = CompletableDeferred<Unit>()
-        serverFrames.send(Command.Drain(serverGeneration.get(), done)); withTimeout(12000) { done.await() }
+        serverFrames.send(Command.Drain(serverGeneration.get(), done)); withTimeout(120000) { done.await() }
     }
     private suspend fun waitTrack(track: AudioTrack?, written: () -> Long, valid: () -> Boolean) {
         if (track == null) return
-        val drained = withTimeoutOrNull(10000) {
-            while (valid() && (track.playbackHeadPosition.toLong() and 0xffffffffL) < written()) delay(20)
+        var head=track.playbackHeadPosition.toLong() and 0xffffffffL
+        var progressAt=SystemClock.elapsedRealtime()
+        while(valid() && head<written()) {
+            delay(20)
+            val next=track.playbackHeadPosition.toLong() and 0xffffffffL
+            if(next!=head){head=next;progressAt=SystemClock.elapsedRealtime()}
+            check(SystemClock.elapsedRealtime()-progressAt<10000){"音轨未继续播放，请检查输出设备"}
         }
-        if (drained == null && valid()) error("音轨未按时播放完，请检查输出设备")
     }
     fun stopServerVoice() = synchronized(trackLock) { serverGeneration.incrementAndGet(); val old = serverTrack; serverTrack = null; releaseTrack(old); serverWritten = 0; serverStarted = false }
     private fun releaseTrack(track: AudioTrack?) { runCatching { track?.pause(); track?.flush() }; runCatching { track?.release() } }

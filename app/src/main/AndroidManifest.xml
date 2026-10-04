@@ -10,8 +10,9 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <queries><intent><action android:name="android.speech.RecognitionService" /></intent></queries>
 
     <application
@@ -21,7 +22,7 @@
         android:icon="@drawable/ic_nomi"
         android:theme="@style/Theme.OpenNomi"
         android:usesCleartextTraffic="true">
-        <service android:name=".voice.NomiVoiceService" android:exported="false" android:foregroundServiceType="microphone" />
+        <service android:name=".voice.NomiVoiceService" android:exported="false" android:foregroundServiceType="microphone|mediaPlayback" />
         <service android:name=".screen.ScreenShareService" android:exported="false" android:foregroundServiceType="mediaProjection" />
         <service android:name=".screen.ScreenAccessService" android:exported="true" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter><action android:name="android.accessibilityservice.AccessibilityService" /></intent-filter>

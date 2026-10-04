@@ -37,11 +37,11 @@ class PlaybackHearing(private val context:Context,private val projection:MediaPr
                     val n=capture.read(buffer,0,buffer.size);if(n<0){if(running.get())error("声音读取中断，请重新启动");break};if(n==0)continue
                     val now=System.currentTimeMillis();var energy=0L;for(i in 0 until n-1 step 2){val sample=((buffer[i+1].toInt() shl 8) or (buffer[i].toInt() and 255)).toShort().toInt();energy+=kotlin.math.abs(sample)}
                     if(energy>n*8)quietSince=now
-                    if(now-quietSince>14000){error("未捕获视频声音：播放应用可能禁止录音，可切回屏幕字幕翻译");break}
+                    if(now-quietSince>30000){error("未捕获视频声音，仍在等待；播放应用可能禁止录音，可手动切回屏幕字幕翻译");quietSince=now}
                     val final=recognizer.acceptWaveForm(buffer,n);val text=JSONObject(if(final)recognizer.result else recognizer.partialResult).optString(if(final)"text" else "partial")
-                    if(text.isNotBlank() && text!=lastPartial && (final || now-lastEmit>6000)){result(text);lastPartial=text;lastEmit=now}
+                    if(text.isNotBlank() && text!=lastPartial && (final || now-lastEmit>1800)){result(text);lastPartial=text;lastEmit=now}
                 }
-            }catch(t:Throwable){if(running.get())error("视频声音识别未完成：${t.message}")}
+            }catch(t:Throwable){if(running.get()){error("视频声音识别未完成：${t.message}");android.os.Handler(android.os.Looper.getMainLooper()).post{ScreenState.update{it.copy(audio=false)}}}}
             finally{running.set(false);runCatching{recorder?.stop()};recorder?.release();recorder=null;recognizer?.close();model?.close()}
         },"nomi-playback-vosk").start()
     }

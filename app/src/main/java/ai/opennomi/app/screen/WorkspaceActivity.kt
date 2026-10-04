@@ -90,16 +90,9 @@ class WorkspaceActivity:ComponentActivity() {
     @Composable private fun Vision(state:WorkspaceState){
         CardBlock("我在这里，陪你看屏幕"){
             AndroidView(factory={EmotionBallView(it)},onRelease={it.dispose()},update={it.setMood(if(state.busy)"thinking" else "happy");it.setMotionEnabled(true);it.resumeAnimation()},modifier=Modifier.fillMaxWidth().height(180.dp))
-            Text("开启后切到其他 App，球球会留在屏幕上。点球球问这页，双击保存文字，长按或右滑开启小智语音聊天；上滑翻译、下滑历史。",fontSize=14.sp)
+            Text("开启后切到其他 App，球球会留在屏幕上。点球球问这页，双击保存文字，长按输入问题；上滑翻译、右滑语音、下滑历史。",fontSize=14.sp)
             if(!state.active)WideButton("开启屏幕共享"){startShare()}else WideButton("回到正在看的 App"){moveTaskToBack(true)}
             Text("共享内容先在本机识别。问视觉模型或开启翻译时，所需页面内容会发送到你填写的服务；系统保护的页面可能显示黑屏。",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        CardBlock("后台小智语音") {
-            Text(if(state.voiceOn)state.voiceStatus else "开启后切到其他 App，小智会用原声跟你聊天；问屏幕时结合当前文字或视觉模型回答。")
-            WideButton(if(state.voiceOn)"暂停语音聊天" else "开启小智语音聊天") {
-                if(!state.active)ScreenState.event("请先开启屏幕共享")
-                else startActivity(Intent(this@WorkspaceActivity,ScreenPromptActivity::class.java).putExtra("voice",true))
-            }
         }
         CardBlock("视觉模型") {
             val verified = ScreenAssistant.settings().visionVerified()
@@ -165,14 +158,14 @@ class WorkspaceActivity:ComponentActivity() {
             val service=ScreenShareService.instance
             val cfg=ScreenAssistant.settings()
             if(service==null)ScreenState.event("请先在看屏幕页开启共享")
-            else if(!state.translation && !cfg.modelReady() && cfg.libre.isBlank() && !(application as ai.opennomi.app.NomiApplication).cloudModel.connected.value){tab.value="settings";ScreenState.event("翻译需要先连接视觉模型、NOMI 或翻译服务")}
+            else if(!state.translation && !cfg.modelReady() && cfg.libre.isBlank()){tab.value="settings";ScreenState.event("翻译需要先连接模型或翻译服务")}
             else {service.toggleTranslation();if(ScreenState.state.value.translation)moveTaskToBack(true)}
         }
         WideButton(if(state.audio)"切回屏幕文字" else "翻译视频声音（英语）"){
             if(ContextCompat.checkSelfPermission(this@WorkspaceActivity,Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED)activateAudio() else microphone.launch(Manifest.permission.RECORD_AUDIO)
         }
         Text("开启后会回到目标 App；翻译失败原因显示在浮条上，修复连接后可重新开启。",fontSize=12.sp)
-        Text("英语语音识别模型已内置。声音能否捕获取决于播放 App 的系统录音许可。译文可使用已连接的 NOMI、翻译服务或语言模型。",fontSize=12.sp)
+        Text("英语语音识别模型已内置。声音能否捕获取决于播放 App 的系统录音许可。译文使用已连接的翻译服务或语言模型。",fontSize=12.sp)
         if(state.notice.isNotBlank())Text(state.notice,color=MaterialTheme.colorScheme.error)
         if(state.caption.isNotBlank())Text(state.caption)
     };CardBlock("最近译文"){val rows=remember(refresh.intValue,state.caption){MemoryStore(this@WorkspaceActivity).use{it.list("translation")}};if(rows.isEmpty())Text("尚无译文");rows.take(10).forEach{Text(it.text,fontSize=13.sp);HorizontalDivider()}}}
@@ -244,13 +237,14 @@ class WorkspaceActivity:ComponentActivity() {
             if(runCatching{VisionApi.endpoint(config.base).host}.getOrNull()=="open.bigmodel.cn" && config.apiKey.isBlank())Text("智谱 API Key：尚未填写",color=MaterialTheme.colorScheme.error)
             Text("NOMI 原声：${if(pairing!=null) "需要在小智后台绑定设备" else if(connected) "已连接" else "尚未连接"}")
             Text("屏幕共享：${if(state.active) "已开启" else "未开启"} · 无障碍：${if(ScreenAccessService.instance!=null) "已连接" else "未开启"}")
-            Text("翻译来源：${if(config.libre.isNotBlank()) "LibreTranslate（优先）" else if(modelConfigured) "已保存的模型" else "原声 NOMI"}")
+            Text("翻译来源：${if(config.libre.isNotBlank()) "LibreTranslate（优先）" else if(modelConfigured) "已保存的模型" else "尚未配置翻译服务"}")
             Text("连接设置和图片测试不会替你开启系统权限。Agent 需要共享和无障碍；翻译浮条需要共享。",fontSize=12.sp)
             TextButton(onClick={tab.value="help"}){Text("看申请与开启步骤")}
         }
     }
     @Composable private fun Connection(cfg:WorkspaceSettings){
         var base by remember{mutableStateOf(cfg.base)};var model by remember{mutableStateOf(cfg.model)};var secret by remember{mutableStateOf("")};var libre by remember{mutableStateOf(cfg.libre)};var libreSecret by remember{mutableStateOf("")};var includeImage by remember{mutableStateOf(cfg.includeImage)};var autoglm by remember{mutableStateOf(cfg.autoGlm)}
+        var translationModel by remember{mutableStateOf(cfg.translationModel)}
         var testing by remember{mutableStateOf(false)}
         var translating by remember{mutableStateOf(false)}
         var translationResult by remember{mutableStateOf("")}
@@ -263,7 +257,7 @@ class WorkspaceActivity:ComponentActivity() {
             val previous=runCatching {VisionApi.endpoint(cfg.base)}.getOrNull()
             if((previous==null || previous.host!=endpoint.host || previous.port!=endpoint.port || previous.scheme!=endpoint.scheme) && secret.isBlank())cfg.apiKey=""
             cfg.base=base;cfg.model=model;if(secret.isNotBlank())cfg.apiKey=secret.trim()
-            cfg.includeImage=includeImage;cfg.autoGlm=autoglm;secret="";cfg.clearVerification()
+            cfg.includeImage=includeImage;cfg.autoGlm=autoglm;cfg.translationModel=translationModel;secret="";cfg.clearVerification()
             return cfg.connection()
         }
         CardBlock("连接视觉模型 · 手机就能完成"){
@@ -276,6 +270,7 @@ class WorkspaceActivity:ComponentActivity() {
             TextButton(onClick={startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(VisionApi.MODEL_DOC)))}){Text("查看官方模型说明与规则")}
             OutlinedTextField(base,{base=it},label={Text("服务地址 · 基础地址或完整对话地址")},modifier=Modifier.fillMaxWidth(),keyboardOptions=KeyboardOptions(autoCorrect=false,keyboardType=KeyboardType.Uri),enabled=!locked)
             OutlinedTextField(model,{model=it},label={Text("视觉模型名")},modifier=Modifier.fillMaxWidth(),enabled=!locked)
+            OutlinedTextField(translationModel,{translationModel=it},label={Text("文字翻译模型 · 留空自动选择")},supportingText={Text("智谱默认 glm-4.7-flash，与视觉共用密钥；其他服务默认使用已有模型")},modifier=Modifier.fillMaxWidth(),enabled=!locked)
             OutlinedTextField(secret,{secret=it},label={Text("3 · 粘贴 API Key")},supportingText={Text("同一服务留空保留已有密钥；换服务时需重新填写")},visualTransformation=PasswordVisualTransformation(),keyboardOptions=KeyboardOptions(autoCorrect=false,keyboardType=KeyboardType.Password),modifier=Modifier.fillMaxWidth(),enabled=!locked)
             Row(verticalAlignment=Alignment.CenterVertically){Text("问屏幕时发送当前画面",Modifier.weight(1f),fontSize=13.sp);Switch(includeImage,{includeImage=it},enabled=!locked)}
             Row(verticalAlignment=Alignment.CenterVertically){Text("AutoGLM 专用动作格式",Modifier.weight(1f),fontSize=13.sp);Switch(autoglm,{autoglm=it},enabled=!locked)}
@@ -299,7 +294,7 @@ class WorkspaceActivity:ComponentActivity() {
             Text("开启后，问屏幕时会把最近保存的记忆一并发送给当前 NOMI 或模型服务。", fontSize=12.sp)
         }
         CardBlock("开源翻译服务 · 可选"){
-            Text("有可用的 LibreTranslate 服务才填写。此项有地址时优先使用它，留空则用模型或 NOMI；托管服务可能需要单独的密钥。",fontSize=13.sp)
+            Text("有可用的 LibreTranslate 服务才填写。此项有地址时优先使用它，留空则用已连接的模型；托管服务可能需要单独的密钥。",fontSize=13.sp)
             OutlinedTextField(libre,{libre=it},label={Text("LibreTranslate 服务地址")},modifier=Modifier.fillMaxWidth(),enabled=!locked)
             OutlinedTextField(libreSecret,{libreSecret=it},label={Text("LibreTranslate API Key · 可选")},visualTransformation=PasswordVisualTransformation(),keyboardOptions=KeyboardOptions(autoCorrect=false,keyboardType=KeyboardType.Password),modifier=Modifier.fillMaxWidth(),enabled=!locked)
             Button(onClick={
@@ -312,7 +307,7 @@ class WorkspaceActivity:ComponentActivity() {
                     cfg.libre=libre;if(libreSecret.isNotBlank())cfg.libreKey=libreSecret.trim();libreSecret=""
                 }.onSuccess{translationResult="翻译地址已保存；可以测试一句"}.onFailure{translationResult=it.message ?: "翻译配置有误"}
             },enabled=!locked,modifier=Modifier.fillMaxWidth()){Text("保存翻译地址")}
-            TextButton(onClick={cfg.libre="";cfg.libreKey="";libre="";libreSecret="";translationResult="已切回模型 / NOMI 翻译"},enabled=!locked){Text("清除翻译地址和密钥")}
+            TextButton(onClick={cfg.libre="";cfg.libreKey="";libre="";libreSecret="";translationResult="已切回模型翻译"},enabled=!locked){Text("清除翻译地址和密钥")}
             TextButton(onClick={openOfficial("https://docs.libretranslate.com/guides/api_usage/")}){Text("查看可选服务申请说明")}
         }
         CardBlock("先测试一句翻译") {

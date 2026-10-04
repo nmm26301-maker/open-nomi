@@ -47,7 +47,7 @@ class VisionApi(private val client: OkHttpClient = OkHttpClient.Builder()
             require(cfg.model.isNotBlank()) { "请填写模型名称" }
             return JSONObject().put("model", cfg.model.trim()).put("messages", messages)
                 .put("stream", false).put("temperature", 0.1).put("max_tokens", maxTokens).apply {
-                    if (endpoint(cfg.base).host == "open.bigmodel.cn" && cfg.model.startsWith("glm-4.6v"))
+                    if (endpoint(cfg.base).host == "open.bigmodel.cn" && (cfg.model.startsWith("glm-4.6v") || cfg.model.startsWith("glm-4.7")))
                         put("thinking", JSONObject().put("type", "disabled"))
                 }
         }
