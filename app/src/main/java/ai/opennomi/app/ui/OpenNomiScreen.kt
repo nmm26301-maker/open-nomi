@@ -62,6 +62,8 @@ fun OpenNomiApp(vm: OpenNomiCloudViewModel, onTalk: () -> Unit) {
     val response by vm.response.collectAsStateWithLifecycle()
     val pairing by vm.pairingCode.collectAsStateWithLifecycle()
     var settings by remember { mutableStateOf(false) }
+    var voiceRevision by remember { mutableStateOf(0) }
+    val voiceLabel = remember(voiceRevision) { if (vm.usesFishVoice()) "FishAudio" else "NOMI 原声" }
     var account by remember { mutableStateOf(false) }
     var airi by remember { mutableStateOf(false) }
     var foreground by remember { mutableStateOf(true) }
@@ -86,10 +88,10 @@ fun OpenNomiApp(vm: OpenNomiCloudViewModel, onTalk: () -> Unit) {
                         Text("OpenNomi", fontSize = 25.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 5.dp)) {
                             Box(Modifier.size(6.dp).clip(CircleShape).background(if (connected) Mint else Secondary))
-                            Text("  0.42 · ${if (connecting) "连接中" else if (connected) "在线" else "未连接"}", color = Secondary, fontSize = 12.sp)
+                            Text("  0.46 · ${if (connecting) "连接中" else if (connected) "在线" else "未连接"}", color = Secondary, fontSize = 12.sp)
                         }
                     }
-                    Text("NOMI 原声", color = Mint, fontSize = 12.sp, modifier = Modifier.padding(end = 10.dp))
+                    Text(voiceLabel, color = Mint, fontSize = 12.sp, modifier = Modifier.padding(end = 10.dp))
                     TextButton(onClick = { settings = true }, contentPadding = PaddingValues(10.dp)) { Text("设置", fontSize = 14.sp) }
                 }
                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
@@ -130,7 +132,7 @@ fun OpenNomiApp(vm: OpenNomiCloudViewModel, onTalk: () -> Unit) {
                     fontSize = 11.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 20.dp))
             }
         }
-        if (settings) SettingsDialog(vm, reduceMotion, { reduceMotion = it; vm.voiceSettings.reduceMotion = it }, { settings = false }, { settings = false; account = true })
+        if (settings) SettingsDialog(vm, reduceMotion, { reduceMotion = it; vm.voiceSettings.reduceMotion = it }, { settings = false; voiceRevision++ }, { settings = false; account = true })
         if (account) AccountDialog({ account = false }) { account = false; vm.disconnect(); vm.connect() }
     }
 }
@@ -211,6 +213,7 @@ private fun TalkButton(state: ConversationState, connecting: Boolean, pendingSta
 
 @Composable
 private fun SettingsDialog(vm: OpenNomiCloudViewModel, reduceMotion: Boolean, onMotion: (Boolean) -> Unit, onClose: () -> Unit, onAccount: () -> Unit) {
+    var fishDialog by remember { mutableStateOf(false) }
     var phoneControl by remember { mutableStateOf(vm.voiceSettings.phoneControl) }
     var continuous by remember { mutableStateOf(vm.voiceSettings.continuousConversation) }
     var realtime by remember { mutableStateOf(vm.voiceSettings.realtimeConversation) }
@@ -220,7 +223,8 @@ private fun SettingsDialog(vm: OpenNomiCloudViewModel, reduceMotion: Boolean, on
             SettingSwitch("语音控制优先", "默认开启：目标直接交给手机任务模型，操作跳过播报", phoneControl) { phoneControl=it;vm.voiceSettings.phoneControl=it;vm.pauseConversation() }
             SettingSwitch("连续对话", "回复后继续听你说话", continuous) { continuous = it; vm.voiceSettings.continuousConversation = it; vm.pauseConversation() }
             SettingSwitch("允许打断", "手机支持回声消除时，可开口打断", realtime) { realtime = it; vm.voiceSettings.realtimeConversation = it; vm.pauseConversation() }
-            SettingSwitch("系统朗读回退", "默认关闭；小智原声失败时才使用", systemSpeech) { systemSpeech=it;vm.voiceSettings.systemSpeechFallback=it }
+            TextButton(onClick = { fishDialog = true }) { Text("FishAudio 音色、密钥与试听") }
+            SettingSwitch("系统朗读回退", "默认关闭；小智原声失败时才使用，FishAudio 失败保留文字", systemSpeech) { systemSpeech=it;vm.voiceSettings.systemSpeechFallback=it }
             SettingSwitch("减少动效", "保留表情，关闭循环动画", reduceMotion, onMotion)
             HorizontalDivider(Modifier.padding(vertical = 14.dp), color = Secondary.copy(alpha = .2f))
             TextButton(onClick = onAccount) { Text("设备绑定与账号") }
@@ -229,6 +233,7 @@ private fun SettingsDialog(vm: OpenNomiCloudViewModel, reduceMotion: Boolean, on
             Text("OpenNomi 0.46 · 语音控制优先", fontSize = 12.sp, color = Secondary)
         }
     }, confirmButton = { TextButton(onClick = onClose) { Text("完成") } })
+    if (fishDialog) FishAudioDialog(vm) { fishDialog = false }
 }
 
 @Composable
