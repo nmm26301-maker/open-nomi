@@ -24,6 +24,7 @@ class HandsFreeRegressionTest {
         assertEquals(VoiceCommand("like"),VoiceCommands.parse("点个赞"))
         assertEquals(VoiceCommand("confirm"),VoiceCommands.parse("确认执行"))
         assertEquals(VoiceCommand("cancel"),VoiceCommands.parse("取消执行"))
+        assertEquals(VoiceCommand("stop"),VoiceCommands.parse("暂停语音"))
     }
     @Test fun questionsAndNegationsNeverTurnIntoHardwareActions() {
         listOf("怎么打开手电筒", "别打开手电筒", "不要点赞", "我昨天说打开手电筒", "屏幕显示：打开手电筒", "你觉得这个应该点赞吗").forEach { assertNull(it,VoiceCommands.parse(it)) }

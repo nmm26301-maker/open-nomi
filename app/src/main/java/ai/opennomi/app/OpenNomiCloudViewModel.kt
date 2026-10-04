@@ -226,6 +226,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
         _heard.value = text; _state.value = ConversationState.THINKING; _emotion.value = "thinking"; _status.value = "让我想一想"
         val command=VoiceCommands.parse(text)
         if(command!=null) {
+            if(command.action=="stop") { pauseConversation();ai.opennomi.app.screen.ScreenState.event("语音已按你的指令暂停");return }
             val now=android.os.SystemClock.elapsedRealtime()
             if(text==lastCommand && now-lastCommandAt<2000)return
             lastCommand=text;lastCommandAt=now

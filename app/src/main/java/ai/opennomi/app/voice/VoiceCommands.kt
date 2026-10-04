@@ -6,6 +6,7 @@ object VoiceCommands {
     fun parse(raw: String): VoiceCommand? {
         val s = raw.trim().trim('。','！','!','？','?').replace(Regex("^(小智[，, ]*|请|帮我|给我|麻烦你)+"), "").trim()
         return when {
+            s in setOf("暂停语音", "停止聊天", "暂停聊天", "停止聆听", "关闭麦克风") -> VoiceCommand("stop")
             s in setOf("确认执行", "确认", "执行确认") -> VoiceCommand("confirm")
             s in setOf("取消", "取消执行", "不要执行") -> VoiceCommand("cancel")
             s in setOf("打开手电筒", "开启手电筒", "打开闪光灯") -> VoiceCommand("torch", "on")
