@@ -221,6 +221,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
     }
     override fun onStt(text: String) {
         if (!active || textSubmitted || finishingReply || _state.value == ConversationState.SPEAKING) return
+        if(!realtime && audio.isRecording()) { audio.stopRecording();client?.sendListen("stop","manual") }
         if (realtime && _state.value == ConversationState.LISTENING) prepareTurn()
         _heard.value = text; _state.value = ConversationState.THINKING; _emotion.value = "thinking"; _status.value = "让我想一想"
         val command=VoiceCommands.parse(text)
@@ -285,7 +286,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
                 answerWatchdog?.cancel(); finishJob?.cancel(); _state.value = ConversationState.SPEAKING
                 _emotion.value = "talking"; _status.value = "我在回应你"
                 if (!realtime) audio.stopRecording()
-                watchAnswer(120000)
+                watchAnswer(if(audioPackets==0)8000 else 120000)
             }
             "stop" -> if (_state.value == ConversationState.SPEAKING || _state.value == ConversationState.THINKING) finishPlayback()
         }
@@ -353,7 +354,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
         _state.value=ConversationState.THINKING;_status.value="正在播报结果"
         if(_connected.value && _pairingCode.value==null) {
             client?.sendText("请直接用中文朗读以下结果，不再执行任何操作，不添加说明：\n${text.take(10000)}")
-            watchAnswer(20000)
+            watchAnswer(8000)
         } else finishPlayback()
     }
     private fun recoverVoice(message: String) {
