@@ -173,10 +173,11 @@ class RealtimeAudioEngine(
     fun restoreAudioMode() { if (record == null) audioManager.mode = AudioManager.MODE_NORMAL }
     fun release() { stopRecording(); stopAllPlayback(); serverFrames.close(); scope.cancel(); audioManager.mode = AudioManager.MODE_NORMAL }
     private fun createTrack(rate: Int): AudioTrack {
-        communicationAudio()
+        val duplex=isRecording()
+        if(duplex)communicationAudio()else audioManager.mode=AudioManager.MODE_NORMAL
         val minimum = AudioTrack.getMinBufferSize(rate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT)
         check(minimum > 0) { "声音输出设备不可用" }
-        return AudioTrack.Builder().setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
+        return AudioTrack.Builder().setAudioAttributes(AudioAttributes.Builder().setUsage(if(duplex)AudioAttributes.USAGE_VOICE_COMMUNICATION else AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
             .setAudioFormat(AudioFormat.Builder().setSampleRate(rate).setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
             .setTransferMode(AudioTrack.MODE_STREAM).setBufferSizeInBytes(maxOf(minimum * 3, rate)).build().apply {
                 check(state == AudioTrack.STATE_INITIALIZED) { "声音音轨初始化失败" }

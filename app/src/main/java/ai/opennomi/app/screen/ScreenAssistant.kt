@@ -112,6 +112,7 @@ object ScreenAssistant {
                 }
                 ScreenState.update { it.copy(reply=result, busy=false, agentRunning=plan && step!=null && step.kind!="finish", proposed=step?.takeUnless { s->s.kind=="finish" }, proposedPage=if(step!=null)page else null, status=if(plan && step==null)"未识别到可执行动作，可查看回复" else if(step?.kind=="finish")"任务结束：${step.text}" else "已完成理解") }
                 if(plan)ScreenState.event(if(step==null)"规划返回文字，尚未执行" else "建议：${step.describe()}")
+                else (context as? ai.opennomi.app.NomiApplication)?.cloudModel?.speakScreenAnswer(result)
             } catch(e:CancellationException){throw e} catch(t:Throwable){if(ScreenState.valid(state.session))ScreenState.update { it.copy(busy=false,agentRunning=false,status=t.message ?: "连接失败，请检查配置",reply="本次请求未完成：${t.message ?: "连接失败"}") }}
         }
     }

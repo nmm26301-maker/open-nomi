@@ -6,7 +6,7 @@ import org.json.JSONObject
 import java.util.concurrent.atomic.AtomicLong
 
 data class ScreenFrame(val jpeg: ByteArray, val width: Int, val height: Int, val time: Long, val session: Long, val pageApp: String = "", val pageVersion: Long = 0)
-data class ScreenNode(val id: Int, val text: String, val editable: Boolean, val clickable: Boolean, val bounds: String)
+data class ScreenNode(val id: Int, val text: String, val editable: Boolean, val clickable: Boolean, val bounds: String, val selected: Boolean = false)
 data class Page(val app: String = "", val text: String = "", val nodes: List<ScreenNode> = emptyList(), val sensitive: Boolean = false, val version: Long = 0)
 data class Step(val kind: String, val node: Int = -1, val text: String = "", val x: Int = -1, val y: Int = -1) {
     fun describe() = when(kind) { "click" -> "点击控件 #$node"; "type" -> "在 #$node 填写：$text"; "back" -> "返回上一页"; "scroll" -> "向下滚动"; "tap" -> "点击位置 ($x, $y)"; "finish" -> text; else -> "不支持的操作" }

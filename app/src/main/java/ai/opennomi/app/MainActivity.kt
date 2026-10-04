@@ -18,14 +18,17 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-                if (it) ai.opennomi.app.voice.NomiVoiceService.toggle(this)
+            val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+                if (it[Manifest.permission.RECORD_AUDIO] == true || androidx.core.content.ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)==android.content.pm.PackageManager.PERMISSION_GRANTED) ai.opennomi.app.voice.NomiVoiceService.toggle(this)
             }
             LaunchedEffect(Unit) { cloudViewModel.connect() }
             OpenNomiApp(cloudViewModel) {
-                if (androidx.core.content.ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
-                    == android.content.pm.PackageManager.PERMISSION_GRANTED) ai.opennomi.app.voice.NomiVoiceService.toggle(this)
-                else permission.launch(Manifest.permission.RECORD_AUDIO)
+                if (cloudViewModel.backgroundConversation.value) ai.opennomi.app.voice.NomiVoiceService.stop(this)
+                else {
+                    val missing=listOf(Manifest.permission.RECORD_AUDIO,Manifest.permission.CAMERA).filter { androidx.core.content.ContextCompat.checkSelfPermission(this,it)!=android.content.pm.PackageManager.PERMISSION_GRANTED }
+                    if(missing.isEmpty())ai.opennomi.app.voice.NomiVoiceService.start(this,ai.opennomi.app.screen.ScreenState.state.value.active)
+                    else permission.launch(missing.toTypedArray())
+                }
             }
         }
     }

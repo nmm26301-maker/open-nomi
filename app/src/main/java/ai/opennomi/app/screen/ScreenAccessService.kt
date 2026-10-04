@@ -37,7 +37,7 @@ class ScreenAccessService: AccessibilityService() {
                 if(n.isVisibleToUser) {
                     val text=(n.text ?: n.contentDescription)?.toString()?.take(500).orEmpty()
                     if(text.isNotBlank())lines+=text
-                    if(n.isEditable || n.isClickable) { val rect=Rect();n.getBoundsInScreen(rect);nodes+=ScreenNode(nodes.size,text,n.isEditable,n.isClickable,rect.flattenToString()) }
+                    if(n.isEditable || n.isClickable) { val rect=Rect();n.getBoundsInScreen(rect);nodes+=ScreenNode(nodes.size,text,n.isEditable,n.isClickable,rect.flattenToString(),n.isSelected || n.isChecked) }
                 }
                 for(i in 0 until n.childCount) n.getChild(i)?.let { child -> try{visit(child)}finally{child.recycle()} }
             }
@@ -60,7 +60,8 @@ class ScreenAccessService: AccessibilityService() {
             visit(root)
             try {
                 if(step.kind=="scroll") {
-                    fun scroll(n: AccessibilityNodeInfo): Boolean { if(n.isScrollable && n.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD))return true; for(i in 0 until n.childCount)n.getChild(i)?.let{ c -> try{if(scroll(c))return true}finally{c.recycle()} };return false };return scroll(root)
+                    val direction=if(step.text=="up")AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD else AccessibilityNodeInfo.ACTION_SCROLL_FORWARD
+                    fun scroll(n: AccessibilityNodeInfo): Boolean { if(n.isScrollable && n.performAction(direction))return true; for(i in 0 until n.childCount)n.getChild(i)?.let{ c -> try{if(scroll(c))return true}finally{c.recycle()} };return false };return scroll(root)
                 }
                 val node=actionable.getOrNull(step.node) ?: return false
                 return when(step.kind){ "click" -> node.performAction(AccessibilityNodeInfo.ACTION_CLICK);"type" -> node.isEditable && node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT,Bundle().apply { putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,step.text.take(2000)) });else->false }

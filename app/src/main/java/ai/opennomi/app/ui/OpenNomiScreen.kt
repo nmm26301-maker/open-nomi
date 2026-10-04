@@ -126,7 +126,7 @@ fun OpenNomiApp(vm: OpenNomiCloudViewModel, onTalk: () -> Unit) {
                     }
                 }
                 TalkButton(state, connecting, pendingStart, { if (pairing != null) account = true else onTalk() }, Modifier.padding(horizontal = 22.dp).padding(top = 10.dp), reduceMotion)
-                Text("${if (state == ConversationState.IDLE) "轻点球球，也可以开始说话" else "轻点球球或按钮暂停对话"}", color = Secondary,
+                Text("${if (state == ConversationState.IDLE) "轻点球球开始 · 首次请允许麦克风与手电筒权限" else "可说：打开手电筒、点个赞、返回 · 轻点暂停"}", color = Secondary,
                     fontSize = 11.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 20.dp))
             }
         }

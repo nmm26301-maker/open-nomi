@@ -4,6 +4,7 @@ import android.app.*
 import android.content.*
 import android.content.pm.ServiceInfo
 import android.os.Build
+import android.os.PowerManager
 import androidx.core.content.ContextCompat
 import androidx.core.app.NotificationCompat
 import ai.opennomi.app.MainActivity
@@ -30,6 +31,7 @@ class NomiVoiceService : Service() {
     private val scope=CoroutineScope(SupervisorJob()+Dispatchers.Main.immediate)
     private val model get()=(application as NomiApplication).cloudModel
     private var started=false
+    private var wake: PowerManager.WakeLock? = null
     override fun onBind(intent: Intent?)=null
     override fun onStartCommand(intent: Intent?,flags:Int,startId:Int):Int {
         if(intent?.action==STOP){stopSelf();return START_NOT_STICKY}
@@ -45,6 +47,8 @@ class NomiVoiceService : Service() {
             model.startBackgroundConversation(intent.getBooleanExtra("screen",false))
             if(!started) {
                 started=true
+                wake=getSystemService(PowerManager::class.java).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"OpenNomi:Voice").apply { setReferenceCounted(false);acquire(35*60*1000L) }
+                scope.launch { while(isActive) { delay(30*60*1000L);wake?.acquire(35*60*1000L) } }
                 scope.launch {
                     combine(model.backgroundConversation,model.status){on,status->on to status}.collect{(on,status)->
                         ScreenState.update{it.copy(voiceOn=on,voiceStatus=status)}
@@ -56,7 +60,7 @@ class NomiVoiceService : Service() {
         return START_NOT_STICKY
     }
     override fun onDestroy() {
-        scope.cancel();model.stopBackgroundConversation()
+        scope.cancel();wake?.let { if(it.isHeld)it.release() };wake=null;model.stopBackgroundConversation()
         ScreenState.update{it.copy(voiceOn=false,voiceStatus="语音已暂停")}
         stopForeground(STOP_FOREGROUND_REMOVE);super.onDestroy()
     }
