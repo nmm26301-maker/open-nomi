@@ -1,6 +1,6 @@
 # OpenNomi Android 0.41
 
-0.41 加入手机视觉接入、真实图片能力测试和 Agent / 翻译无响应修复。**云端编译与测试状态见本仓库 Actions；正式安装包需要原签名。** 见 [0.41 说明与验证边界](docs/0.41-vision-connection.md) 和 [手机申请与配置指南](docs/phone-setup-guide.md)。此前 0.40 已发布功能见 [屏幕工作台说明](docs/0.40-screen-workspace.md)。
+0.41 加入手机视觉接入、真实图片能力测试和 Agent / 翻译无响应修复。**0.41 已完成云编译，17 项单元测试通过，lint 0 错误 / 32 条警告；可安装包已使用原签名校验。真机和用户账号测试待完成。** 见 [0.41 说明与验证边界](docs/0.41-vision-connection.md) 和 [手机申请与配置指南](docs/phone-setup-guide.md)。此前 0.40 已发布功能见 [屏幕工作台说明](docs/0.40-screen-workspace.md)。
 
 原声 NOMI 与 AIRI 保留；英语视频识别、中英文 OCR 数据随包附带。智能看图与 Agent 规划需要视觉模型服务。NOMI 已连接时也可用于文字问答和翻译。
 
@@ -39,4 +39,6 @@ node --test airi-native-voice.test.cjs
 
 ## 手机查看编译
 
-打开 [Actions](https://github.com/nmm26301-maker/open-nomi/actions)，查看 OpenNomi Android checks。每次 main 更新自动编译，也可以 Run workflow 手动运行。产物含未签名 APK 和检查报告；未签名产物不能直接安装。OCR、英语识别和 native AAR 在构建时从官方来源恢复，逐文件核对 SHA-256，安装包仍包含离线数据。
+打开 [Actions](https://github.com/nmm26301-maker/open-nomi/actions)，查看 OpenNomi Android checks。每次 main 更新自动编译，也可以 Run workflow 手动运行。产物含未签名 APK 的三个分片、签名工具和检查报告；未签名产物不能直接安装。下载并解压三个 apk-part 产物后，按 part00、part01、part02 顺序拼接为 APK，核对 unsigned-sha256.txt，再用原签名签名。OCR、英语识别和 native AAR 在构建时从官方来源恢复，逐文件核对 SHA-256，安装包仍包含离线数据。
+
+最近通过的构建：[0.41 云编译和检查](https://github.com/nmm26301-maker/open-nomi/actions/runs/37192741357)。API Key 在手机里填写；屏幕共享、Agent 与实时翻译的完整体验仍需 Android 13 真机测试。
