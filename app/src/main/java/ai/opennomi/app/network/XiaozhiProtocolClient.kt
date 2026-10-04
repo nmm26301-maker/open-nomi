@@ -129,10 +129,13 @@ class XiaozhiProtocolClient(
                 }
                 "error" -> fail(IllegalStateException(json.optString("message", "语音服务出错")))
                 "stt" -> json.optString("text").takeIf { it.isNotBlank() }?.let(listener::onStt)
-                "llm" -> json.optString("emotion").takeIf { it.isNotBlank() }?.let(listener::onEmotion)
+                "llm" -> {
+                    json.optString("text").takeIf { it.isNotBlank() }?.let(listener::onResponseText)
+                    json.optString("emotion").takeIf { it.isNotBlank() }?.let(listener::onEmotion)
+                }
                 "tts" -> {
-                    json.optString("state").takeIf { it.isNotBlank() }?.let(listener::onTtsState)
                     if (json.optString("state") in setOf("sentence_start", "")) json.optString("text").takeIf { it.isNotBlank() }?.let(listener::onResponseText)
+                    json.optString("state").takeIf { it.isNotBlank() }?.let(listener::onTtsState)
                     json.optString("emotion").takeIf { it.isNotBlank() }?.let(listener::onEmotion)
                 }
             }

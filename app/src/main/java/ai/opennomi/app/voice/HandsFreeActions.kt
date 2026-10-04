@@ -38,14 +38,14 @@ class HandsFreeActions(private val context: Context) {
         pending=null
         val step: Step; val label: String
         when(command.action) {
-            "scroll" -> { step=Step("scroll",text=command.target);label=if(command.target=="up")"向上滚动"else"向下滚动" }
+            "scroll" -> { step=Step("scroll",text=command.target);label=if(command.target=="up")"向上滚动" else "向下滚动" }
             "like", "click" -> {
                 val nodes=page.nodes.filter { it.clickable && if(command.action=="like")!it.selected && VoiceCommands.likeLabel(it.text) else it.text.trim()==command.target }
                 if(nodes.isEmpty())return if(command.action=="like")"没有找到未点赞的按钮，我没有点击。" else "没有找到${command.target}按钮，我没有点击。"
                 val ordinal=command.target.toIntOrNull()?.minus(1)
-                if(nodes.size>1 && ordinal==null)return if(command.action=="like")"看到了${nodes.size}个点赞按钮，请说点击第一个点赞按钮，或指定第几个。"else"看到了${nodes.size}个同名按钮，请说点击加上按钮的完整名称。"
-                val node=if(ordinal!=null)nodes.getOrNull(ordinal) ?: return "没有找到你指定的第${ordinal+1}个点赞按钮。"else nodes.single()
-                step=Step("click",node.id);label=if(command.action=="like")"点赞"else "点击${node.text}"
+                if(nodes.size>1 && ordinal==null)return if(command.action=="like")"看到了${nodes.size}个点赞按钮，请说点击第一个点赞按钮，或指定第几个。" else "看到了${nodes.size}个同名按钮，请说点击加上按钮的完整名称。"
+                val node=if(ordinal!=null)nodes.getOrNull(ordinal) ?: return "没有找到你指定的第${ordinal+1}个点赞按钮。" else  nodes.single()
+                step=Step("click",node.id);label=if(command.action=="like")"点赞" else  "点击${node.text}"
                 if(VoiceCommands.sensitive(node.text)) { pending=Pending(step,page,label,SystemClock.elapsedRealtime()+90000); return "准备${label}。请在九十秒内说确认执行，或说取消。" }
             }
             "type" -> {
@@ -71,9 +71,9 @@ class HandsFreeActions(private val context: Context) {
                 override fun onTorchModeChanged(cameraId:String, enabled:Boolean) { if(requested && cameraId==id && enabled==on)done.complete(Unit) }
             }
             manager.registerTorchCallback(callback,Handler(Looper.getMainLooper()))
-            try { requested=true;manager.setTorchMode(id,on);withTimeout(3000){done.await()};if(on)"手电筒已打开。"else"手电筒已关闭。" }
+            try { requested=true;manager.setTorchMode(id,on);withTimeout(3000){done.await()};if(on)"手电筒已打开。" else "手电筒已关闭。" }
             finally { manager.unregisterTorchCallback(callback) }
-        } catch(e:CancellationException) { if(e is TimeoutCancellationException)"系统还没有确认手电筒状态，请检查手电筒。"else throw e }
+        } catch(e:CancellationException) { if(e is TimeoutCancellationException)"系统还没有确认手电筒状态，请检查手电筒。" else  throw e }
         catch(e:Exception) { "手电筒操作失败：${e.message}。" }
     }
 }

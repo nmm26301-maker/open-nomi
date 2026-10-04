@@ -31,11 +31,18 @@ class ScreenAccessService: AccessibilityService() {
             // Keep the observed external page while OpenNomi dialogs are in front.
             if(app == packageName) return ScreenState.state.value.page
             val lines=mutableListOf<String>(); val nodes=mutableListOf<ScreenNode>(); var sensitive=false; var count=0
+            fun label(n:AccessibilityNodeInfo, depth:Int=0):String {
+                if(n.isPassword)return ""
+                val own=n.contentDescription?.toString()?.takeIf { it.isNotBlank() } ?: n.text?.toString()?.takeIf { it.isNotBlank() }
+                if(own!=null)return own.take(500)
+                if(depth>=2)return ""
+                return (0 until minOf(n.childCount,12)).mapNotNull { i -> n.getChild(i)?.let { c -> try { if(c.isVisibleToUser)label(c,depth+1).takeIf{it.isNotBlank()}else null } finally{c.recycle()} } }.distinct().joinToString(" ").take(500)
+            }
             fun visit(n: AccessibilityNodeInfo) {
                 if(count++ >= 300) return
                 if(n.isPassword) { sensitive=true; return }
                 if(n.isVisibleToUser) {
-                    val text=(n.text ?: n.contentDescription)?.toString()?.take(500).orEmpty()
+                    val text=label(n)
                     if(text.isNotBlank())lines+=text
                     if(n.isEditable || n.isClickable) { val rect=Rect();n.getBoundsInScreen(rect);nodes+=ScreenNode(nodes.size,text,n.isEditable,n.isClickable,rect.flattenToString(),n.isSelected || n.isChecked) }
                 }

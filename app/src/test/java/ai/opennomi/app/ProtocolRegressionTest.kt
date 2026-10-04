@@ -114,4 +114,24 @@ class ProtocolRegressionTest {
             assertNull(firstHello.poll(100, TimeUnit.MILLISECONDS))
         } finally { client.disconnect(); server.shutdown() }
     }
+    @Test fun textOnlyModelReplyReachesSpeechFallbackWithoutAnAudioPacket() {
+        val server=MockWebServer();val listener=Listener()
+        server.enqueue(MockResponse().withWebSocketUpgrade(object:WebSocketListener() {
+            override fun onMessage(webSocket:WebSocket,text:String) {
+                if(JSONObject(text).optString("type")!="hello")return
+                webSocket.send("""{"type":"hello","session_id":"text-only"}""")
+                webSocket.send("""{"type":"llm","text":"这是屏幕中的回答"}""")
+                webSocket.send("""{"type":"tts","state":"stop"}""")
+            }
+            override fun onClosing(webSocket:WebSocket,code:Int,reason:String){webSocket.close(code,reason)}
+        }))
+        server.start()
+        val client=XiaozhiProtocolClient(server.url("/").toString().replace("http","ws"),"","device","client",listener)
+        try {
+            client.connect()
+            assertEquals("这是屏幕中的回答",listener.text.poll(5,TimeUnit.SECONDS))
+            assertEquals("tts:stop",listener.playbackOrder.poll(5,TimeUnit.SECONDS))
+            assertNull(listener.audio.poll(100,TimeUnit.MILLISECONDS))
+        } finally { client.disconnect();server.shutdown() }
+    }
 }
