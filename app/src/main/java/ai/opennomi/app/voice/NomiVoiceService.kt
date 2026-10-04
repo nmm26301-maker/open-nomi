@@ -4,7 +4,7 @@ import android.app.*
 import android.content.*
 import android.content.pm.ServiceInfo
 import android.os.Build
-import androidx.core.app.ContextCompat
+import androidx.core.content.ContextCompat
 import androidx.core.app.NotificationCompat
 import ai.opennomi.app.MainActivity
 import ai.opennomi.app.NomiApplication

@@ -165,7 +165,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
         if (!_connected.value) return
         if (!audio.hasRecordPermission()) { _status.value = "请允许麦克风权限"; return }
         client?.sendAbort(); clearSpeech(); audio.stopAllPlayback()
-        active = true; realtime = !screenAware && voiceSettings.realtimeConversation && audio.supportsRealtime()
+        active = true; realtime = !screenAware && !ai.opennomi.app.screen.ScreenState.state.value.active && voiceSettings.realtimeConversation && audio.supportsRealtime()
         _state.value = ConversationState.LISTENING; _emotion.value = "listening"
         _status.value = if (realtime) "我在听，可以随时开口" else "我在听，说完自动回复"
         client?.sendListen("start", if (realtime) "realtime" else "manual")
@@ -201,7 +201,8 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
         if (!active) return
         if (realtime && _state.value == ConversationState.LISTENING) prepareTurn()
         _heard.value = text; _state.value = ConversationState.THINKING; _emotion.value = "thinking"; _status.value = "让我想一想"
-        if (screenAware && ai.opennomi.app.screen.ScreenState.state.value.active && ai.opennomi.app.voice.ScreenVoiceContext.referencesScreen(text)) {
+        if ((screenAware || _backgroundConversation.value) && ai.opennomi.app.screen.ScreenState.state.value.active && ai.opennomi.app.voice.ScreenVoiceContext.referencesScreen(text)) {
+            realtime = false; answerWatchdog?.cancel()
             audio.stopRecording(); client?.sendAbort(); audio.stopAllPlayback()
             accumulator.reset(); _response.value = ""; screenRouting = true
             val generation = turn
@@ -209,12 +210,12 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
             screenContextJob = viewModelScope.launch {
                 try {
                     _status.value = "我在看你当前的屏幕"
-                    val prompt = ai.opennomi.app.screen.ScreenAssistant.voicePrompt(text)
+                    val prompt = withTimeout(35000) { ai.opennomi.app.screen.ScreenAssistant.voicePrompt(text) }
                     if (generation != turn || !active) return@launch
                     screenRouting = false; client?.sendText(prompt)
                     watchAnswer()
-                } catch (e: CancellationException) { throw e }
-                catch (e: Exception) {
+                } catch (e: Exception) {
+                    if (e is CancellationException && e !is TimeoutCancellationException) throw e
                     if (generation == turn && active) {
                         screenRouting = false
                         client?.sendText("用户问：$text。屏幕理解暂不可用，请用简短中文告诉用户：${e.message}。不要猜测画面。")
