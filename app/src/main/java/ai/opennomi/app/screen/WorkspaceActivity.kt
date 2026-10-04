@@ -74,7 +74,7 @@ class WorkspaceActivity:ComponentActivity() {
         val cfg=remember{ScreenAssistant.settings()}
         MaterialTheme(colorScheme=darkColorScheme(primary=Color(0xFF7DD3FC),secondary=Color(0xFFC084FC),background=Color(0xFF070F19),surface=Color(0xFF142131),onSurface=Color(0xFFF0F5FC))){
             Surface(Modifier.fillMaxSize(),color=MaterialTheme.colorScheme.background){Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)){
-                Row(Modifier.fillMaxWidth().padding(18.dp),verticalAlignment=Alignment.CenterVertically){TextButton(onClick={finish()}){Text("‹")};Column(Modifier.weight(1f)){Text("OpenNomi",fontSize=24.sp,fontWeight=FontWeight.SemiBold);Text(if(state.active)"● 屏幕共享中" else "屏幕互动工作台 · 0.41",fontSize=12.sp,color=MaterialTheme.colorScheme.primary)};if(state.active)TextButton(onClick={ScreenShareService.instance?.stopSelf()}){Text("停止",color=Color(0xFFF87171))}}
+                Row(Modifier.fillMaxWidth().padding(18.dp),verticalAlignment=Alignment.CenterVertically){TextButton(onClick={finish()}){Text("‹")};Column(Modifier.weight(1f)){Text("OpenNomi",fontSize=24.sp,fontWeight=FontWeight.SemiBold);Text(if(state.active)"● 屏幕共享中" else "屏幕互动工作台 · 0.42",fontSize=12.sp,color=MaterialTheme.colorScheme.primary)};if(state.active)TextButton(onClick={ScreenShareService.instance?.stopSelf()}){Text("停止",color=Color(0xFFF87171))}}
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal=16.dp),horizontalArrangement=Arrangement.spacedBy(8.dp)){
                     listOf("vision" to "看屏幕","tasks" to "Agent","translation" to "翻译","fragments" to "碎片本","memory" to "记忆","settings" to "连接","help" to "申请指南").forEach{(key,label)->FilterChip(selected=tab.value==key,onClick={tab.value=key},label={Text(label)})}
                 }
@@ -90,9 +90,16 @@ class WorkspaceActivity:ComponentActivity() {
     @Composable private fun Vision(state:WorkspaceState){
         CardBlock("我在这里，陪你看屏幕"){
             AndroidView(factory={EmotionBallView(it)},onRelease={it.dispose()},update={it.setMood(if(state.busy)"thinking" else "happy");it.setMotionEnabled(true);it.resumeAnimation()},modifier=Modifier.fillMaxWidth().height(180.dp))
-            Text("开启后切到其他 App，球球会留在屏幕上。点球球问这页，双击保存文字，长按输入问题；上滑翻译、右滑语音、下滑历史。",fontSize=14.sp)
+            Text("开启后切到其他 App，球球会留在屏幕上。点球球问这页，双击保存文字，长按或右滑开启小智语音聊天；上滑翻译、下滑历史。",fontSize=14.sp)
             if(!state.active)WideButton("开启屏幕共享"){startShare()}else WideButton("回到正在看的 App"){moveTaskToBack(true)}
             Text("共享内容先在本机识别。问视觉模型或开启翻译时，所需页面内容会发送到你填写的服务；系统保护的页面可能显示黑屏。",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        CardBlock("后台小智语音") {
+            Text(if(state.voiceOn)state.voiceStatus else "开启后切到其他 App，小智会用原声跟你聊天；问屏幕时结合当前文字或视觉模型回答。")
+            WideButton(if(state.voiceOn)"暂停语音聊天" else "开启小智语音聊天") {
+                if(!state.active)ScreenState.event("请先开启屏幕共享")
+                else startActivity(Intent(this@WorkspaceActivity,ScreenPromptActivity::class.java).putExtra("voice",true))
+            }
         }
         CardBlock("视觉模型") {
             val verified = ScreenAssistant.settings().visionVerified()

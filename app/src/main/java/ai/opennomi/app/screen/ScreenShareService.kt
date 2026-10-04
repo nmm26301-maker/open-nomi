@@ -21,6 +21,7 @@ class ScreenShareService: Service() {
     private var worker: HandlerThread?=null;private var handler:Handler?=null
     private var projection:MediaProjection?=null;private var reader:ImageReader?=null;private var display:VirtualDisplay?=null
     private var overlay:OrbitOverlay?=null;private var ocr:LocalOcr?=null;private var session=0L;private var lastFrame=0L
+    private var pendingTranslation="";private var retryAt=0L;private var translationFailures=0
     private var lastTranslation="";private var translationJob:Job?=null;private var translationGeneration=0L;private var captions=CaptionGate();private var playback: PlaybackHearing?=null
     private var width=0;private var height=0
     override fun onBind(intent:Intent?)=null
@@ -71,7 +72,7 @@ class ScreenShareService: Service() {
         val image=runCatching{r.acquireLatestImage()}.getOrNull() ?: return
         var bitmap: Bitmap?=null
         try {
-            val now=System.currentTimeMillis();if(ScreenState.ownForeground || !ScreenState.valid(session) || now-lastFrame<2400)return
+            val now=System.currentTimeMillis();if(ScreenState.ownForeground || !ScreenState.valid(session) || now-lastFrame<850)return
             lastFrame=now
             val plane=image.planes[0];val rowWidth=plane.rowStride/plane.pixelStride
             val padded=Bitmap.createBitmap(rowWidth,height,Bitmap.Config.ARGB_8888);padded.copyPixelsFromBuffer(plane.buffer)
@@ -97,29 +98,39 @@ class ScreenShareService: Service() {
         val on=!ScreenState.state.value.translation
         if(on && !ScreenAssistant.settings().modelReady() && ScreenAssistant.settings().libre.isBlank() && (application as ai.opennomi.app.NomiApplication).cloudModel.connected.value.not()){ScreenState.event("先连接首页 NOMI，或在模型连接中填写翻译服务地址");return}
         translationGeneration++;translationJob?.cancel();translationJob=null
-        captions=CaptionGate();lastTranslation=""
+        captions=CaptionGate();lastTranslation="";pendingTranslation="";retryAt=0L;translationFailures=0
         if(!on){playback?.close();playback=null}
         ScreenState.update { it.copy(translation=on,audio=if(on)it.audio else false,caption="",notice="",status=if(on)"屏幕翻译已开启" else "屏幕翻译已暂停") }
     }
     fun translateLine(line:String) {
         if(Looper.myLooper()!=main.looper){main.post{translateLine(line)};return}
         if(line.isBlank() || line==lastTranslation || ScreenState.state.value.busy || !ScreenState.valid(session) || !ScreenState.state.value.translation)return
-        if(translationJob?.isActive==true)return
+        if(translationJob?.isActive==true || System.currentTimeMillis()<retryAt){pendingTranslation=line;return}
+        pendingTranslation=""
         val id=session;val generation=translationGeneration
         translationJob=scope.launch {
-            try{ val text=withContext(Dispatchers.IO){ScreenAssistant.translate(line)};if(ScreenState.valid(id)&&generation==translationGeneration&&ScreenState.state.value.translation){lastTranslation=line;captions.offer("$line\n\n$text",System.currentTimeMillis())?.let{result->ScreenState.update{it.copy(caption=result)}};MemoryStore(this@ScreenShareService).use{it.add("translation","$line\n$text","实时翻译")}} }
+            try{ val text=withContext(Dispatchers.IO){ScreenAssistant.translate(line)};if(ScreenState.valid(id)&&generation==translationGeneration&&ScreenState.state.value.translation){lastTranslation=line;translationFailures=0;retryAt=0L;ScreenState.update{it.copy(notice="")};captions.offer("$line\n\n$text",System.currentTimeMillis())?.let{result->ScreenState.update{it.copy(caption=result)}};MemoryStore(this@ScreenShareService).use{it.add("translation","$line\n$text","实时翻译")}} }
             catch(e:CancellationException){throw e}catch(t:Throwable){
                 if(ScreenState.valid(id) && generation==translationGeneration) {
-                    val error="翻译已暂停：${t.message ?: "连接未完成"}。点球球打开工作台检查连接后重试。"
-                    playback?.close();playback=null;lastTranslation=""
-                    ScreenState.update{it.copy(translation=false,audio=false,notice=error)}
+                    lastTranslation="";translationFailures++
+                    retryAt=System.currentTimeMillis()+(1000L shl translationFailures.coerceAtMost(4))
+                    pendingTranslation=pendingTranslation.ifBlank{line}
+                    val error="翻译暂未完成：${t.message ?: "网络连接失败"}。将自动重试，已有字幕保留。"
+                    ScreenState.update{it.copy(notice=error)}
                     ScreenState.event(error)
                 }
             }
-            finally{if(generation==translationGeneration)translationJob=null}
+            finally{if(generation==translationGeneration){
+                translationJob=null
+                val pending=pendingTranslation
+                if(pending.isNotBlank() && ScreenState.valid(id) && ScreenState.state.value.translation) {
+                    scope.launch{delay((retryAt-System.currentTimeMillis()).coerceAtLeast(0));if(generation==translationGeneration)translateLine(pendingTranslation)}
+                }
+            }}
         }
     }
     fun toggleAudio() {
+        if((application as ai.opennomi.app.NomiApplication).cloudModel.backgroundConversation.value){ScreenState.event("先暂停小智语音聊天，再开启视频声音翻译");return}
         if(ScreenState.state.value.audio){playback?.close();playback=null;ScreenState.update{it.copy(audio=false,status="已切回屏幕文字翻译")};return}
         if(!ScreenState.state.value.translation)toggleTranslation()
         if(!ScreenState.state.value.translation)return

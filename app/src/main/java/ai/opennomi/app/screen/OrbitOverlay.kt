@@ -28,7 +28,7 @@ class OrbitOverlay(private val service:ScreenShareService) {
             override fun onDown(e:MotionEvent)=true
             override fun onSingleTapConfirmed(e:MotionEvent):Boolean{if(!moved)togglePanel();return true}
             override fun onDoubleTap(e:MotionEvent):Boolean{ScreenAssistant.savePage();return true}
-            override fun onLongPress(e:MotionEvent){if(!moved)prompt(false)}
+            override fun onLongPress(e:MotionEvent){if(!moved)prompt(true)}
         })
         orb.setOnTouchListener { _,e ->
             if(e.actionMasked==MotionEvent.ACTION_DOWN){downX=e.rawX;downY=e.rawY;originX=params!!.x;originY=params!!.y;downTime=System.currentTimeMillis();moved=false}
@@ -50,7 +50,8 @@ class OrbitOverlay(private val service:ScreenShareService) {
         root.addView(description)
         fun button(text:String,action:()->Unit){root.addView(TextView(service).apply{this.text=text;setTextColor(color);textSize=14f;setPadding(dp(4),dp(10),dp(4),dp(10));setOnClickListener{action()}})}
         button("确认下一步操作") { closePanel(); main.postDelayed({ ScreenAssistant.confirm() }, 250) }
-        button("问问这页 / 语音互动"){prompt(false)}
+        button("小智语音聊天 · 开始 / 暂停"){prompt(true)}
+        button("输入问题问这页"){prompt(false)}
         button("翻译开关"){service.toggleTranslation()}
         button("关闭浮条提示"){ScreenState.update{it.copy(notice="")}}
         button("保存页面文字"){ScreenAssistant.savePage()}
@@ -60,9 +61,9 @@ class OrbitOverlay(private val service:ScreenShareService) {
     }
     private fun closePanel(){panel?.let{runCatching{wm.removeView(it)}};panel=null;description=null;updateRegions()}
     fun render(state:WorkspaceState){
-        ball?.mode=when{state.busy->2;state.proposed!=null->3;state.audio->1;state.status.contains("完成")->4;else->0}
-        description?.text=state.status+"\n"+state.reply.take(600)
-        val line=state.notice.ifBlank{if(state.translation)state.caption else ""}
+        ball?.mode=when{state.voiceOn->if(state.voiceStatus.contains("回应"))4 else 1;state.busy->2;state.proposed!=null->3;state.audio->1;state.status.contains("完成")->4;else->0}
+        description?.text=(if(state.voiceOn)"小智：${state.voiceStatus}\n" else "")+state.status+"\n"+state.reply.take(600)
+        val line=if(state.notice.isNotBlank()) state.notice+(if(state.translation && state.caption.isNotBlank())"\n\n${state.caption}" else "") else if(state.translation)state.caption else ""
         if(line.isNotBlank()){
             if(caption==null){val text=TextView(service).apply{setTextColor(0xFFE9F3FF.toInt());textSize=14f;maxLines=7;setPadding(dp(18),dp(12),dp(18),dp(12));background=bg();setOnClickListener{runCatching{wm.removeView(this)};caption=null;updateRegions()}}
                 caption=text;runCatching{wm.addView(text,layout(service.resources.displayMetrics.widthPixels-dp(24),WindowManager.LayoutParams.WRAP_CONTENT,Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply{y=dp(14);flags=flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;alpha=.78f})}}

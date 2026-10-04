@@ -11,7 +11,7 @@ data class Page(val app: String = "", val text: String = "", val nodes: List<Scr
 data class Step(val kind: String, val node: Int = -1, val text: String = "", val x: Int = -1, val y: Int = -1) {
     fun describe() = when(kind) { "click" -> "点击控件 #$node"; "type" -> "在 #$node 填写：$text"; "back" -> "返回上一页"; "scroll" -> "向下滚动"; "tap" -> "点击位置 ($x, $y)"; "finish" -> text; else -> "不支持的操作" }
 }
-data class WorkspaceState(val active: Boolean = false, val session: Long = 0, val status: String = "共享尚未开启", val page: Page = Page(), val reply: String = "", val busy: Boolean = false, val translation: Boolean = false, val audio: Boolean = false, val caption: String = "", val proposed: Step? = null, val proposedPage: Page? = null, val task: String = "", val agentRunning: Boolean = false, val history: List<String> = emptyList(), val notice: String = "")
+data class WorkspaceState(val active: Boolean = false, val session: Long = 0, val status: String = "共享尚未开启", val page: Page = Page(), val reply: String = "", val busy: Boolean = false, val translation: Boolean = false, val audio: Boolean = false, val caption: String = "", val proposed: Step? = null, val proposedPage: Page? = null, val task: String = "", val agentRunning: Boolean = false, val history: List<String> = emptyList(), val notice: String = "", val voiceStatus: String = "", val voiceOn: Boolean = false)
 object ScreenState {
     private val generation = AtomicLong(0)
     private val mutable = MutableStateFlow(WorkspaceState())
