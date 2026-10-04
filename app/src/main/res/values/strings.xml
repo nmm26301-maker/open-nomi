@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">OpenNomi 0.39</string>
+<string name="screen_access_description">仅在你主动开启屏幕共享后读取当前页面，辅助解释、翻译及你确认的操作。密码框不读取；停止共享后停止读取。</string>
+</resources>

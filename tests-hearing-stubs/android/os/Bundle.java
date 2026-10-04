@@ -1,0 +1,1 @@
+package android.os; import java.util.*; public class Bundle { private final Map<String,ArrayList<String>> values=new HashMap<>(); public void putStringArrayList(String k,ArrayList<String> v){values.put(k,v);} public ArrayList<String> getStringArrayList(String k){return values.get(k);} }

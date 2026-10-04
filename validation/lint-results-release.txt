@@ -1,0 +1,187 @@
+/workspace/scratch/9551121fd7cf/source/opennomi-mobile/app/src/main/AndroidManifest.xml:35: Warning: Expecting android:screenOrientation="unspecified" or "fullSensor" for this activity so the user can use the application in any orientation and provide a great experience on Chrome OS devices [LockedOrientationActivity]
+        <activity android:name=".web.AiriActivity" android:exported="false" android:screenOrientation="portrait" />
+                                                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/9551121fd7cf/source/opennomi-mobile/app/src/main/AndroidManifest.xml:39: Warning: Expecting android:screenOrientation="unspecified" or "fullSensor" for this activity so the user can use the application in any orientation and provide a great experience on Chrome OS devices [LockedOrientationActivity]
+            android:screenOrientation="portrait">
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "LockedOrientationActivity":
+   The <activity> element should not be locked to any orientation so that
+   users can take advantage of the multi-window environments and larger
+   screens available on Android. To fix the issue, consider declaring the
+   corresponding activity element with `screenOrientation="unspecified"or
+   "fullSensor"` attribute.
+
+   https://developer.android.com/topic/arc/window-management
+
+/workspace/scratch/9551121fd7cf/source/opennomi-mobile/app/src/main/AndroidManifest.xml:35: Warning: Should not restrict activity to fixed orientation. This may not be suitable for different form factors, causing the app to be letterboxed. [DiscouragedApi]
+        <activity android:name=".web.AiriActivity" android:exported="false" android:screenOrientation="portrait" />
+                                                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/9551121fd7cf/source/opennomi-mobile/app/src/main/AndroidManifest.xml:39: Warning: Should not restrict activity to fixed orientation. This may not be suitable for different form factors, causing the app to be letterboxed. [DiscouragedApi]
+            android:screenOrientation="portrait">
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "DiscouragedApi":
+   Discouraged APIs are allowed and are not deprecated, but they may be unfit
+   for common use (e.g. due to slow performance or subtle behavior).
+
+/workspace/scratch/9551121fd7cf/source/opennomi-mobile/app/build.gradle.kts:18: Warning: Missing x86_64 ABI support for ChromeOS [ChromeOsAbiSupport]
+        ndk { abiFilters += providers.gradleProperty("OPENNOMI_ABIS").orElse("arm64-v8a").get().split(",") }
+                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "ChromeOsAbiSupport":
+   To properly support ChromeOS, your Android application should have an x86
+   and/or x86_64 binary as part of the build configuration. To fix the issue,
+   ensure your files are properly optimized for ARM; the binary translator
+   will then ensure compatibility with x86. Alternatively, add an abiSplit for
+   x86 within your build.gradle file and create the required x86
+   dependencies.
+
+   https://developer.android.com/ndk/guides/abis
+
+/workspace/scratch/9551121fd7cf/source/opennomi-mobile/app/src/main/java/ai/opennomi/app/web/AiriActivity.java:289: Warning: Using setJavaScriptEnabled can introduce XSS vulnerabilities into your application, review carefully [SetJavaScriptEnabled]
+        settings.setJavaScriptEnabled(true);
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/9551121fd7cf/source/opennomi-mobile/app/src/main/java/ai/opennomi/app/ui/EmotionBallView.java:49: Warning: Using setJavaScriptEnabled can introduce XSS vulnerabilities into your application, review carefully [SetJavaScriptEnabled]
+            candidate.getSettings().setJavaScriptEnabled(true);
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "SetJavaScriptEnabled":
+   Your code should not invoke setJavaScriptEnabled if you are not sure that
+   your app really requires JavaScript support.
+
+   https://goo.gle/SetJavaScriptEnabled
+   https://developer.android.com/training/articles/security-tips
+
+/workspace/scratch/9551121fd7cf/source/opennomi-mobile/app/src/main/AndroidManifest.xml:18: Warning: The attribute android:allowBackup is deprecated from Android 12 and higher and may be removed in future versions. Consider adding the attribute android:dataExtractionRules specifying an @xml resource which configures cloud backups and device transfers on Android 12 and higher. [DataExtractionRules]
+        android:allowBackup="false"
+                             ~~~~~
+
+   Explanation for issues of type "DataExtractionRules":
+   Before Android 12, the attributes android:allowBackup and
+   android:fullBackupContent were used to configure all forms of backup,
+   including cloud backups, device-to-device transfers and adb backup.
+
+   In Android 12 and higher, these attributes have been deprecated and will
+   only apply to cloud backups. You should instead use the attribute
+   android:dataExtractionRules, specifying an @xml resource that configures
+   which files to back up, for cloud backups and for device-to-device
+   transfers, separately. If your minSdkVersion supports older versions,
+   you'll still want to specify an android:fullBackupContent resource if the
+   default behavior is not right for your app.
+
+   https://developer.android.com/about/versions/12/backup-restore#xml-changes
+   https://goo.gle/DataExtractionRules
+
+/workspace/scratch/9551121fd7cf/source/opennomi-mobile/app/src/main/java/ai/opennomi/app/screen/OrbitOverlay.kt:77: Warning: Avoid object allocations during draw/layout operations (preallocate and reuse instead) [DrawAllocation]
+        paint.shader=RadialGradient(x,y,r*1.35f,intArrayOf(accent and 0xFFFFFF or 0x70000000,Color.TRANSPARENT),floatArrayOf(.55f,1f),Shader.TileMode.CLAMP);c.drawCircle(x,y,r*1.35f,paint)
+                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/9551121fd7cf/source/opennomi-mobile/app/src/main/java/ai/opennomi/app/screen/OrbitOverlay.kt:77: Warning: Avoid object allocations during draw/layout operations (preallocate and reuse instead) [DrawAllocation]
+        paint.shader=RadialGradient(x,y,r*1.35f,intArrayOf(accent and 0xFFFFFF or 0x70000000,Color.TRANSPARENT),floatArrayOf(.55f,1f),Shader.TileMode.CLAMP);c.drawCircle(x,y,r*1.35f,paint)
+                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/9551121fd7cf/source/opennomi-mobile/app/src/main/java/ai/opennomi/app/screen/OrbitOverlay.kt:78: Warning: Avoid object allocations during draw/layout operations (preallocate and reuse instead) [DrawAllocation]
+        paint.shader=RadialGradient(x-r*.25f,y-r*.3f,r*1.45f,intArrayOf(0xFF6C3AAC.toInt(),0xFF081423.toInt(),accent),floatArrayOf(0f,.62f,1f),Shader.TileMode.CLAMP);c.drawCircle(x,y,r,paint)
+                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/9551121fd7cf/source/opennomi-mobile/app/src/main/java/ai/opennomi/app/screen/OrbitOverlay.kt:78: Warning: Avoid object allocations during draw/layout operations (preallocate and reuse instead) [DrawAllocation]
+        paint.shader=RadialGradient(x-r*.25f,y-r*.3f,r*1.45f,intArrayOf(0xFF6C3AAC.toInt(),0xFF081423.toInt(),accent),floatArrayOf(0f,.62f,1f),Shader.TileMode.CLAMP);c.drawCircle(x,y,r,paint)
+                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "DrawAllocation":
+   You should avoid allocating objects during a drawing or layout operation.
+   These are called frequently, so a smooth UI can be interrupted by garbage
+   collection pauses caused by the object allocations.
+
+   The way this is generally handled is to allocate the needed objects up
+   front and to reuse them for each drawing operation.
+
+   Some methods allocate memory on your behalf (such as Bitmap.create), and
+   these should be handled in the same way.
+
+/workspace/scratch/9551121fd7cf/source/opennomi-mobile/app/src/main/java/ai/opennomi/app/screen/ScreenAssistant.kt:40: Warning: Do not place Android context classes in static fields (static reference to ScreenAssistant which has field context pointing to Context); this is a memory leak [StaticFieldLeak]
+object ScreenAssistant {
+^
+/workspace/scratch/9551121fd7cf/source/opennomi-mobile/app/src/main/java/ai/opennomi/app/screen/ScreenAssistant.kt:45: Warning: Do not place Android context classes in static fields; this is a memory leak [StaticFieldLeak]
+    lateinit var context: Context;private set
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "StaticFieldLeak":
+   A static field will leak contexts.
+
+   Non-static inner classes have an implicit reference to their outer class.
+   If that outer class is for example a Fragment or Activity, then this
+   reference means that the long-running handler/loader/task will hold a
+   reference to the activity which prevents it from getting garbage
+   collected.
+
+   Similarly, direct field references to activities and fragments from these
+   longer running instances can cause leaks.
+
+   ViewModel classes should never point to Views or non-application Contexts.
+
+/workspace/scratch/9551121fd7cf/source/opennomi-mobile/app/src/main/java/ai/opennomi/app/ui/EmotionBallView.java:82: Warning: Custom view `WebView` has setOnTouchListener called on it but does not override performClick [ClickableViewAccessibility]
+            candidate.setOnTouchListener(this::handleTouch);
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/9551121fd7cf/source/opennomi-mobile/app/src/main/java/ai/opennomi/app/ui/EmotionBallView.java:89: Warning: Custom view `FallbackFace` has setOnTouchListener called on it but does not override performClick [ClickableViewAccessibility]
+        fallback.setOnTouchListener(this::handleTouch);
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/9551121fd7cf/source/opennomi-mobile/app/src/main/java/ai/opennomi/app/screen/OrbitOverlay.kt:32: Warning: Custom view `GalaxyOrb` has setOnTouchListener called on it but does not override performClick [ClickableViewAccessibility]
+        orb.setOnTouchListener { _,e ->
+        ^
+/workspace/scratch/9551121fd7cf/source/opennomi-mobile/app/src/main/java/ai/opennomi/app/screen/OrbitOverlay.kt:32: Warning: onTouch lambda should call View#performClick when a click is detected [ClickableViewAccessibility]
+        orb.setOnTouchListener { _,e ->
+                               ^
+
+   Explanation for issues of type "ClickableViewAccessibility":
+   If a View that overrides onTouchEvent or uses an OnTouchListener does not
+   also implement performClick and call it when clicks are detected, the View
+   may not handle accessibility actions properly. Logic handling the click
+   actions should ideally be placed in View#performClick as some accessibility
+   services invoke performClick when a click action should occur.
+
+/workspace/scratch/9551121fd7cf/source/opennomi-mobile/app/src/main/java/ai/opennomi/app/web/AiriActivity.java:187: Warning: String literal in setText can not be translated. Use Android resources instead. [SetTextI18n]
+            hearingStatus.setText("使用手机语音识别；回复结束后自动继续听。手机需启用识别服务，AIRI 仍需聊天模型。");
+                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/9551121fd7cf/source/opennomi-mobile/app/src/main/java/ai/opennomi/app/web/AiriActivity.java:334: Warning: String literal in setText can not be translated. Use Android resources instead. [SetTextI18n]
+                    pageStatus.setText("网页加载失败，请检查网络或服务地址。点“返回 NOMI”可回到球球。");
+                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/9551121fd7cf/source/opennomi-mobile/app/src/main/java/ai/opennomi/app/screen/ScreenPromptActivity.kt:17: Warning: String literal in setText can not be translated. Use Android resources instead. [SetTextI18n]
+        root.addView(TextView(this).apply{text="NOMI · 正在看这页";textSize=21f;setTextColor(Color.WHITE)})
+                                                ~~~~~~~~~~~~
+
+   Explanation for issues of type "SetTextI18n":
+   When calling TextView#setText
+   * Never call Number#toString() to format numbers; it will not handle
+   fraction separators and locale-specific digits properly. Consider using
+   String#format with proper format specifications (%d or %f) instead.
+   * Do not pass a string literal (e.g. "Hello") to display text. Hardcoded
+   text can not be properly translated to other languages. Consider using
+   Android resource strings instead.
+   * Do not build messages by concatenating text chunks. Such messages can not
+   be properly translated.
+
+   https://developer.android.com/guide/topics/resources/localization.html
+
+/workspace/scratch/9551121fd7cf/source/opennomi-mobile/app/src/main/java/ai/opennomi/app/screen/OrbitOverlay.kt:23: Warning: Use "Gravity.START" instead of "Gravity.LEFT" to ensure correct behavior in right-to-left locales [RtlHardcoded]
+        params=layout(dp(74),dp(74),Gravity.TOP or Gravity.LEFT).apply{x=dm.widthPixels-dp(84);y=dm.heightPixels/2}
+                                                           ~~~~
+
+   Explanation for issues of type "RtlHardcoded":
+   Using Gravity#LEFT and Gravity#RIGHT can lead to problems when a layout is
+   rendered in locales where text flows from right to left. Use Gravity#START
+   and Gravity#END instead. Similarly, in XML gravity and layout_gravity
+   attributes, use start rather than left.
+
+   For XML attributes such as paddingLeft and layout_marginLeft, use
+   paddingStart and layout_marginStart. NOTE: If your minSdkVersion is less
+   than 17, you should add both the older left/right attributes as well as the
+   new start/end attributes. On older platforms, where RTL is not supported
+   and the start/end attributes are unknown and therefore ignored, you need
+   the older left/right attributes. There is a separate lint check which
+   catches that type of error.
+
+   (Note: For Gravity#LEFT and Gravity#START, you can use these constants even
+   when targeting older platforms, because the start bitmask is a superset of
+   the left bitmask. Therefore, you can use gravity="start" rather than
+   gravity="left|start".)
+
+0 errors, 22 warnings

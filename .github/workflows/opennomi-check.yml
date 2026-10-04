@@ -1,0 +1,64 @@
+name: OpenNomi Android checks
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - uses: android-actions/setup-android@v3
+      - name: Install required Android components
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Restore verified offline OCR and speech assets
+        run: python3 scripts/restore-build-assets.py
+      - name: Java frame and AIRI hearing regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/opennomi-frame-tests /tmp/opennomi-hearing-tests
+          javac -encoding UTF-8 -d /tmp/opennomi-frame-tests app/src/main/java/ai/opennomi/app/screen/FrameReadiness.java validation/FrameReadinessRegression.java
+          java -cp /tmp/opennomi-frame-tests FrameReadinessRegression
+          mapfile -t hearing_stubs < <(find tests-hearing-stubs -name '*.java')
+          javac -encoding UTF-8 -d /tmp/opennomi-hearing-tests "${hearing_stubs[@]}" app/src/main/java/ai/opennomi/app/web/AiriNativeHearing.java AiriHearingRegression.java
+          java -cp /tmp/opennomi-hearing-tests ai.opennomi.app.web.AiriHearingRegression
+          node airi-native-voice.test.cjs
+      - name: Compile Android, unit tests and lint
+        run: gradle :app:assembleRelease :app:testReleaseUnitTest :app:lintRelease -Pkotlin.incremental=false --no-daemon
+      - name: Stage unsigned result and official signing tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build-handoff/signing-tools
+          cp app/build/outputs/apk/release/*-unsigned.apk build-handoff/
+          cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" build-handoff/signing-tools/
+          cp "$ANDROID_HOME/build-tools/35.0.0/zipalign" build-handoff/signing-tools/
+          if [ -d "$ANDROID_HOME/build-tools/35.0.0/lib64" ]; then
+            cp -R "$ANDROID_HOME/build-tools/35.0.0/lib64" build-handoff/signing-tools/
+          fi
+          echo 'Unsigned verification output. It must be signed with the original key before installation.' > build-handoff/README.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: opennomi-041-unsigned-and-signing-tools
+          path: build-handoff/
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: opennomi-041-check-reports
+          path: app/build/reports/
+          retention-days: 7

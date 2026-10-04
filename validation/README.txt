@@ -1,0 +1,1 @@
+OpenNomi 0.40: release compilation PASS; 11 JVM tests PASS; AIRI JavaScript regression PASS; Android lint 0 errors, 22 warnings; signature and 16KB ZIP alignment checks PASS; package ID and signer match 0.39; OCR models and speech/JNA native libraries present. Device runtime, OEM permissions, account service and external-model end-to-end tests not performed.

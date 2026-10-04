@@ -1,0 +1,1 @@
+package org.json; import java.util.*; public class JSONObject { private final Map<String,Object> v=new HashMap<>(); public JSONObject put(String k,Object value){v.put(k,value);return this;} public String optString(String k){return optString(k,"");} public String optString(String k,String fallback){Object x=v.get(k);return x==null?fallback:x.toString();} }

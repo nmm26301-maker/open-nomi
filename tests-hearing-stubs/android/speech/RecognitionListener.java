@@ -1,0 +1,1 @@
+package android.speech; import android.os.Bundle; public interface RecognitionListener {void onReadyForSpeech(Bundle b);void onBeginningOfSpeech();void onRmsChanged(float f);void onBufferReceived(byte[] b);void onEndOfSpeech();void onError(int n);void onResults(Bundle b);void onPartialResults(Bundle b);void onEvent(int n,Bundle b);}

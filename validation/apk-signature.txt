@@ -1,0 +1,17 @@
+Verifies
+Verified using v1 scheme (JAR signing): false
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): true
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+Signer #1 certificate DN: CN=OpenNomi Voice Test
+Signer #1 certificate SHA-256 digest: 56dee45a8ac7d0e0a0f18f77aaf0c05c1f53f33a6ba31610d5c5e5127ebe4571
+Signer #1 certificate SHA-1 digest: b43bdf87f423db94128be911d0d6156c667ffb5e
+Signer #1 certificate MD5 digest: e7891a7adfd9553452fcd1fb3c0994a9
+Signer #1 key algorithm: RSA
+Signer #1 key size (bits): 2048
+Signer #1 public key SHA-256 digest: 7301a989ba61b431c17f285dca695264314ee63583b63d4c6ec966a5c1e2c989
+Signer #1 public key SHA-1 digest: ea3a8da762b36a4fa43a3181d8ffb1509017b1d3
+Signer #1 public key MD5 digest: 77c7a599129621f0f47b8bd67d80c9cf

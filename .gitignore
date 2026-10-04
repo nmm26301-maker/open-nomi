@@ -4,3 +4,10 @@ local.properties
 **/build/
 *.jks
 *.keystore
+.DS_Store
+
+# Restored by scripts/restore-build-assets.py with SHA-256 verification
+app/libs/*.aar
+app/src/main/assets/tessdata/
+app/src/main/assets/playback-model/
+build-handoff/

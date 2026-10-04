@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
+    body { display: grid; place-items: center; }
+    #ball { width: min(98vw, 98vh); height: min(98vw, 98vh); }
+    svg { width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <div id="ball" role="img" aria-label="NOMI 的表情球"></div>
+  <script src="rings.js"></script>
+  <script src="emotions.js"></script>
+  <script src="ball.js"></script>
+  <script src="engine.js"></script>
+  <script>
+    'use strict';
+    const ball = EmotionBall.create(document.getElementById('ball'), {
+      emotion: '02', shape: 'blob', idle: false
+    });
+    let visible = true, motion = true;
+    window.setNomiEmotion = function (id) {
+      ball.setEmotion(id);
+      if (!motion) ball.renderStatic();
+    };
+    window.setNomiMotion = function (enabled, foreground) {
+      motion = enabled; visible = foreground;
+      ball.setActive(motion && visible);
+      if (!motion && visible) ball.renderStatic();
+    };
+    document.addEventListener('visibilitychange', function () {
+      window.setNomiMotion(motion, !document.hidden);
+    });
+  </script>
+</body>
+</html>
