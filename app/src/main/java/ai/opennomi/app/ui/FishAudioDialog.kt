@@ -1,7 +1,7 @@
 package ai.opennomi.app.ui
 
-import android.content.Intent
-import android.net.Uri
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -16,11 +16,12 @@ import androidx.compose.ui.unit.dp
 import ai.opennomi.app.OpenNomiCloudViewModel
 import ai.opennomi.app.voice.FishAudioConfig
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 @Composable
-internal fun FishAudioDialog(vm: OpenNomiCloudViewModel, onClose: () -> Unit) {
+internal fun FishAudioDialog(vm: OpenNomiCloudViewModel, onClose: () -> Unit, onApply: () -> Unit) {
     val settings = vm.fishSettings
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -44,7 +45,15 @@ internal fun FishAudioDialog(vm: OpenNomiCloudViewModel, onClose: () -> Unit) {
             Text("手机控制仍跳过播报。FishAudio 负责把小智的回答文字变成声音，不替代手机任务模型。")
             OutlinedTextField(key, { key = it }, label = { Text("API Key") }, singleLine = true,
                 visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), modifier = Modifier.fillMaxWidth())
-            TextButton(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://fish.audio/app/api-keys"))) }) { Text("打开 FishAudio 获取密钥") }
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                TextButton(onClick = onApply) { Text("内部注册 / 申请密钥") }
+                TextButton(onClick = {
+                    val clip = (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).primaryClip
+                    val pasted = if (clip != null && clip.itemCount > 0) clip.getItemAt(0).coerceToText(context)?.toString().orEmpty() else ""
+                    if (pasted.isNotBlank()) { key = pasted.trim(); message = "已填入剪贴板内容，请确认这是 API Key" }
+                    else message = "剪贴板没有可用的密钥文字"
+                }) { Text("粘贴密钥") }
+            }
             OutlinedTextField(voice, { voice = it }, label = { Text("音色 reference_id（可留空）") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             Text("填写 FishAudio 音色页面的模型 ID 可选择音色；留空使用服务默认音色。使用需要账户权限与可用额度。")
             OutlinedTextField(model, { model = it }, label = { Text("合成模型") }, singleLine = true, modifier = Modifier.fillMaxWidth())
@@ -59,6 +68,7 @@ internal fun FishAudioDialog(vm: OpenNomiCloudViewModel, onClose: () -> Unit) {
                     message = "正在合成并试听…"; previewing = true
                     previewJob = scope.launch {
                         try { vm.previewFish(draft); message = "试听播放完成。保存后聊天回复将使用这个音色。" }
+                        catch (e: TimeoutCancellationException) { message = "FishAudio 试听超时，请检查网络后重试" }
                         catch (e: CancellationException) { throw e }
                         catch (e: Exception) { message = e.message ?: "FishAudio 试听失败" }
                         finally { previewing = false; previewJob = null }

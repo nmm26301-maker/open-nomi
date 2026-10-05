@@ -70,7 +70,7 @@ fun OpenNomiApp(vm: OpenNomiCloudViewModel, onTalk: () -> Unit) {
     var reduceMotion by remember { mutableStateOf(vm.voiceSettings.reduceMotion) }
     DisposableEffect(owner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) { foreground = true; airi = false }
+            if (event == Lifecycle.Event.ON_RESUME) { foreground = true; airi = false; voiceRevision++ }
             if (event == Lifecycle.Event.ON_PAUSE) foreground = false
         }
         owner.lifecycle.addObserver(observer)
@@ -123,8 +123,8 @@ fun OpenNomiApp(vm: OpenNomiCloudViewModel, onTalk: () -> Unit) {
                     }
                 }
                 Row(Modifier.fillMaxWidth().padding(horizontal = 22.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    listOf("vision" to "看屏幕", "tasks" to "Agent", "fragments" to "碎片本").forEach { (key, label) ->
-                        OutlinedButton(onClick = { context.startActivity(Intent(context, ai.opennomi.app.screen.WorkspaceActivity::class.java).putExtra("tab", key)) }, modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 4.dp)) { Text(label, fontSize = 13.sp, maxLines = 1) }
+                    listOf("vision" to "看屏幕", "tasks" to "Agent", "fragments" to "碎片本", "fish" to "FishAudio").forEach { (key, label) ->
+                        OutlinedButton(onClick = { if (key == "fish") context.startActivity(Intent(context, ai.opennomi.app.voice.FishAudioActivity::class.java)) else context.startActivity(Intent(context, ai.opennomi.app.screen.WorkspaceActivity::class.java).putExtra("tab", key)) }, modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 4.dp)) { Text(label, fontSize = 13.sp, maxLines = 1) }
                     }
                 }
                 TalkButton(state, connecting, pendingStart, { if (pairing != null) account = true else onTalk() }, Modifier.padding(horizontal = 22.dp).padding(top = 10.dp), reduceMotion)
@@ -213,7 +213,7 @@ private fun TalkButton(state: ConversationState, connecting: Boolean, pendingSta
 
 @Composable
 private fun SettingsDialog(vm: OpenNomiCloudViewModel, reduceMotion: Boolean, onMotion: (Boolean) -> Unit, onClose: () -> Unit, onAccount: () -> Unit) {
-    var fishDialog by remember { mutableStateOf(false) }
+    val settingsContext = LocalContext.current
     var phoneControl by remember { mutableStateOf(vm.voiceSettings.phoneControl) }
     var continuous by remember { mutableStateOf(vm.voiceSettings.continuousConversation) }
     var realtime by remember { mutableStateOf(vm.voiceSettings.realtimeConversation) }
@@ -223,7 +223,7 @@ private fun SettingsDialog(vm: OpenNomiCloudViewModel, reduceMotion: Boolean, on
             SettingSwitch("语音控制优先", "默认开启：目标直接交给手机任务模型，操作跳过播报", phoneControl) { phoneControl=it;vm.voiceSettings.phoneControl=it;vm.pauseConversation() }
             SettingSwitch("连续对话", "回复后继续听你说话", continuous) { continuous = it; vm.voiceSettings.continuousConversation = it; vm.pauseConversation() }
             SettingSwitch("允许打断", "手机支持回声消除时，可开口打断", realtime) { realtime = it; vm.voiceSettings.realtimeConversation = it; vm.pauseConversation() }
-            TextButton(onClick = { fishDialog = true }) { Text("FishAudio 音色、密钥与试听") }
+            TextButton(onClick = { settingsContext.startActivity(Intent(settingsContext, ai.opennomi.app.voice.FishAudioActivity::class.java)); onClose() }) { Text("FishAudio 独立朗读、音色与申请") }
             SettingSwitch("系统朗读回退", "默认关闭；小智原声失败时才使用，FishAudio 失败保留文字", systemSpeech) { systemSpeech=it;vm.voiceSettings.systemSpeechFallback=it }
             SettingSwitch("减少动效", "保留表情，关闭循环动画", reduceMotion, onMotion)
             HorizontalDivider(Modifier.padding(vertical = 14.dp), color = Secondary.copy(alpha = .2f))
@@ -233,7 +233,6 @@ private fun SettingsDialog(vm: OpenNomiCloudViewModel, reduceMotion: Boolean, on
             Text("OpenNomi 0.46 · 语音控制优先", fontSize = 12.sp, color = Secondary)
         }
     }, confirmButton = { TextButton(onClick = onClose) { Text("完成") } })
-    if (fishDialog) FishAudioDialog(vm) { fishDialog = false }
 }
 
 @Composable
