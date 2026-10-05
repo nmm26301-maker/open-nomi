@@ -87,7 +87,8 @@ class FishAudioActivity : ComponentActivity() {
                             }
                         }
                         when (tab) {
-                            0 -> Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).imePadding().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            0 -> Column(Modifier.weight(1f).imePadding()) {
+                                Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                                 FishHero(busy, audioSession, vm.voiceSettings.reduceMotion, settings.referenceId.ifBlank { "默认音色" })
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text("让文字有声音", Modifier.weight(1f), fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
@@ -100,7 +101,11 @@ class FishAudioActivity : ComponentActivity() {
                                     AssistChip(onClick = { configure = true }, label = { Text(settings.model) })
                                     Text("独立使用 · 无需绑定小智", fontSize = 12.sp, color = Color(0xFF939BB6))
                                 }
-                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                if (audioSession > 0) LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
+                                if (result.isNotBlank()) Text(if(audioSession > 0) "正在播放 · 可随时停止" else result, fontSize = 13.sp, color = Color(0xFFABB5D0))
+                                if (!settings.configured()) OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = { switchTab(2) }) { Text("先在应用内申请密钥") }
+                            }
+                                Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(top = 8.dp, bottom = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                     Button(modifier = Modifier.weight(1f).height(54.dp), shape = RoundedCornerShape(18.dp),
                                         enabled = !busy && text.isNotBlank(), onClick = {
                                         val draft = text
@@ -118,9 +123,6 @@ class FishAudioActivity : ComponentActivity() {
                                     }) { Text(if (busy) "正在朗读" else "开始朗读", fontWeight = FontWeight.SemiBold) }
                                     OutlinedButton(modifier = Modifier.height(54.dp), shape = RoundedCornerShape(18.dp), enabled = busy, onClick = { stop(); result = "已停止" }) { Text("停止") }
                                 }
-                                if (audioSession > 0) LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
-                                if (result.isNotBlank()) Text(if(audioSession > 0) "正在播放 · 可随时停止" else result, fontSize = 13.sp, color = Color(0xFFABB5D0))
-                                if (!settings.configured()) OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = { switchTab(2) }) { Text("先在应用内申请密钥") }
                             }
                             1 -> Column(Modifier.weight(1f).padding(18.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                                 FishHero(false, 0, true, "回复声音")
