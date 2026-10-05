@@ -26,6 +26,16 @@ class HandsFreeTasks(private val context:Context) {
     suspend fun startAgent(task:String):String {
         clear();goal=task;agentSteps=0;history.clear();repeated=0;lastObservation="";session=ScreenState.state.value.session
         ScreenState.update{it.copy(task=task)}
+        check(ScreenAssistant.settings().modelReady()) { clear(); "请先在连接页配置视觉模型，或直接说明确的操作指令" }
+        check(ScreenState.valid(session)) { clear(); "复杂任务需要屏幕共享，请先开启" }
+        PhoneIntent.initialApp(task)?.let { app ->
+            val result=actions.executeResult(VoiceCommand("open_app",app))
+            if(result.state != ActionState.DONE) {
+                if(result.state == ActionState.CHOICE)agentChoice=VoiceCommand("open_app",app) else clear()
+                return result.message
+            }
+            history.add(result.message);ScreenState.event(result.message);delay(600)
+        }
         return runAgent()
     }
     suspend fun execute(commands:List<VoiceCommand>):String {

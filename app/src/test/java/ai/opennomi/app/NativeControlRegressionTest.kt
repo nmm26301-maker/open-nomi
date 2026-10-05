@@ -44,4 +44,11 @@ class NativeControlRegressionTest {
         assertEquals(VoiceCommand("volume","unmute"),VoiceCommands.parse("取消静音"))
         assertNull(VoiceCommands.parse("音量调到101"))
     }
+    @Test fun naturalGoalCanLaunchTheNamedAppBeforeObservingFromTheAssistantHome() {
+        assertEquals("微信",PhoneIntent.initialApp("帮我打开微信搜索张三"))
+        assertEquals("抖音",PhoneIntent.initialApp("打开抖音点击搜索"))
+        assertNull(PhoneIntent.initialApp("不要打开微信搜索张三"))
+        assertNull(PhoneIntent.initialApp("怎么打开微信搜索张三"))
+        assertNull(PhoneIntent.initialApp("打开微信"))
+    }
 }
