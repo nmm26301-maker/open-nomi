@@ -22,6 +22,9 @@ class FishScreenSmokeTest {
             assertNotNull(device.findObject(By.text("开始朗读")))
             val output=File(context.getExternalFilesDir(null),"fish-workstation.png")
             assertTrue(device.takeScreenshot(output))
+            // connectedAndroidTest uninstalls the test app after the run.
+            // Preserve the capture outside the app's removed data directory.
+            device.executeShellCommand("cp ${output.absolutePath} /data/local/tmp/fish-workstation.png")
             device.findObject(By.text("回复接入")).click()
             assertTrue(device.wait(Until.hasObject(By.text("同一个声音，陪你聊天")),5000))
             device.findObject(By.text("独立朗读")).click()

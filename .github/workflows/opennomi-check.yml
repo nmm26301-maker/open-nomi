@@ -122,7 +122,7 @@ jobs:
           script: |
             gradle :app:connectedDebugAndroidTest -POPENNOMI_ABIS=x86_64 -Pkotlin.incremental=false --no-daemon
             mkdir -p ui-captures
-            adb pull /sdcard/Android/data/com.opennomi.android.voicetest.dev/files/fish-workstation.png ui-captures/fish-workstation.png
+            adb pull /data/local/tmp/fish-workstation.png ui-captures/fish-workstation.png
       - uses: actions/upload-artifact@v4
         if: always()
         with:
