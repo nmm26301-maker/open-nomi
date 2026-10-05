@@ -1,6 +1,7 @@
 package ai.opennomi.app.voice
 
 import android.os.Bundle
+import android.view.ViewGroup
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.net.Uri
@@ -115,10 +116,13 @@ class FishAudioActivity : ComponentActivity() {
                                 Text("站点：$host", Modifier.padding(horizontal = 14.dp))
                                 if (webStatus.isNotBlank()) Text(webStatus, Modifier.padding(horizontal = 14.dp))
                                 AndroidView(modifier = Modifier.weight(1f).fillMaxWidth(), factory = { context ->
-                                    (portal ?: FishAccountView(context, { webStatus = it }, { host = it }) { callback, params ->
+                                    val view = portal ?: FishAccountView(context, { webStatus = it }, { host = it }) { callback, params ->
                                         chooser?.onReceiveValue(null); chooser = callback
                                         runCatching { filePicker.launch(params.createIntent()) }.onFailure { chooser?.onReceiveValue(null); chooser = null; webStatus = "无法选择文件" }
-                                    }.also { portal = it })
+                                    }.also { portal = it }
+                                    // A tab can reattach the retained portal to a new Compose holder.
+                                    (view.parent as? ViewGroup)?.removeView(view)
+                                    view
                                 })
                             }
                         }
