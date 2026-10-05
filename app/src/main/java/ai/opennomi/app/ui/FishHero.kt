@@ -17,6 +17,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -27,8 +30,15 @@ import kotlin.math.sin
 @Composable
 internal fun FishHero(busy: Boolean, audioSession: Int, reduced: Boolean, voice: String) {
     var phase by remember { mutableFloatStateOf(0f) }
-    LaunchedEffect(reduced) {
-        if (reduced) { phase = 0f; return@LaunchedEffect }
+    val owner = LocalLifecycleOwner.current
+    var foreground by remember { mutableStateOf(owner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) }
+    DisposableEffect(owner) {
+        val observer = LifecycleEventObserver { _, _ -> foreground = owner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) }
+        owner.lifecycle.addObserver(observer)
+        onDispose { owner.lifecycle.removeObserver(observer) }
+    }
+    LaunchedEffect(reduced, foreground) {
+        if (reduced || !foreground) { phase = 0f; return@LaunchedEffect }
         val animation = Animatable(0f)
         animation.animateTo(1f, infiniteRepeatable(tween(7000, easing = LinearEasing))) { phase = value }
     }
@@ -57,7 +67,7 @@ internal fun FishHero(busy: Boolean, audioSession: Int, reduced: Boolean, voice:
             }
         }
         Text(voice.take(24), fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Color(0xFFF1EDFF))
-        AndroidView(factory = { FishWaveView(it) }, update = { it.configure(audioSession, reduced) },
+        AndroidView(factory = { FishWaveView(it) }, update = { it.configure(if(foreground)audioSession else 0, reduced) },
             modifier = Modifier.fillMaxWidth().height(36.dp).padding(top = 8.dp))
     }
 }
