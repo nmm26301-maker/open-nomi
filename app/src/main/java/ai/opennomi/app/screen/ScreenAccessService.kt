@@ -14,7 +14,7 @@ class ScreenAccessService: AccessibilityService() {
     private val refresh=Runnable { readPage() }
     override fun onServiceConnected() { instance=this }
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if(!ScreenState.state.value.active) return
+        if(!ScreenState.state.value.active && !ScreenState.state.value.voiceOn) return
         main.removeCallbacks(refresh); main.postDelayed(refresh,300)
     }
     override fun onInterrupt() { ScreenState.event("无障碍读取已中断") }
@@ -26,7 +26,7 @@ class ScreenAccessService: AccessibilityService() {
     }
     @Suppress("DEPRECATION")
     fun readPage(): Page {
-        if(!ScreenState.state.value.active) return Page()
+        if(!ScreenState.state.value.active && !ScreenState.state.value.voiceOn) return Page()
         val root=rootInActiveWindow ?: run {
             if(!ScreenState.ownForeground)ScreenState.update { it.copy(page=Page(version=it.page.version+1)) }
             return Page()
@@ -61,7 +61,7 @@ class ScreenAccessService: AccessibilityService() {
     }
     @Suppress("DEPRECATION")
     fun execute(step: Step, expected: Page): Boolean {
-        check(ScreenState.state.value.active) { "屏幕共享已停止" }
+        check(ScreenState.state.value.active || ScreenState.state.value.voiceOn) { "语音控制和屏幕共享均已停止" }
         val now=readPage(); check(now.app==expected.app && now.version==expected.version && !now.sensitive) { "页面已变化，请重新规划" }
         if(step.kind=="back")return performGlobalAction(GLOBAL_ACTION_BACK)
         if(step.kind=="home")return performGlobalAction(GLOBAL_ACTION_HOME)

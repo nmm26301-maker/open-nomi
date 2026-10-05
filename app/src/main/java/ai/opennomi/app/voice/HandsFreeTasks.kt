@@ -70,12 +70,12 @@ class HandsFreeTasks(private val context:Context) {
         return replies.joinToString(" ").ifBlank{"任务已结束。"}
     }
     private suspend fun observe(image:Boolean):Pair<Page,ScreenFrame?> {
-        check(ScreenState.state.value.active){"请先开启屏幕共享"}
+        check(ScreenState.state.value.active || (!image && ScreenState.state.value.voiceOn)){"请先开启语音控制；视觉任务还需要屏幕共享"}
         val sharing=ScreenState.state.value.session
         var stable:Page?=null
         val pair=withTimeoutOrNull(7000) {
             while(isActive) {
-                check(ScreenState.valid(sharing)){"屏幕共享已经停止"}
+                check(ScreenState.valid(sharing) || (!image && ScreenState.state.value.voiceOn)){"语音控制已停止"}
                 val service=ScreenAccessService.instance ?: error("无障碍服务未连接")
                 val page=service.readPage();val frame=ScreenState.frame
                 check(!page.sensitive){"当前有密码框，任务已停止"}

@@ -57,6 +57,25 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
     private val _pendingStart = MutableStateFlow(false); val pendingStart = _pendingStart.asStateFlow()
     private val _backgroundConversation = MutableStateFlow(false)
     val backgroundConversation = _backgroundConversation.asStateFlow()
+    var nativePhoneControl = false; private set
+    fun beginNativeControl() {
+        disconnect()
+        nativePhoneControl = true
+        _pairingCode.value = null
+        _backgroundConversation.value = true
+        nativeControlStatus("我在听 · 直接说手机操作")
+    }
+    fun nativeControlStatus(message: String, next: ConversationState = ConversationState.LISTENING) {
+        _status.value = message; _state.value = next
+        _emotion.value = if(next == ConversationState.THINKING) "thinking" else "listening"
+    }
+    fun nativeControlLevel(value: Float) { if(nativePhoneControl)_level.value=value }
+    fun nativeControlHeard(value: String) { if(nativePhoneControl)_heard.value=value }
+    fun endNativeControl() {
+        if(!nativePhoneControl)return
+        nativePhoneControl=false;_backgroundConversation.value=false;_level.value=0f
+        _state.value=ConversationState.IDLE;_emotion.value="sleep"
+    }
     private var screenAware = false
     private var screenRouting = false
     private var screenContextJob: Job? = null
@@ -126,6 +145,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
     ) }
     private val audio: RealtimeAudioEngine get() = audioDelegate.value
     fun connect(startWhenReady: Boolean = false) {
+        if(nativePhoneControl)return
         _pendingStart.value = _pendingStart.value || startWhenReady
         if (_connected.value || _connecting.value) return
         _connecting.value = true; val generation = ++connectionGeneration

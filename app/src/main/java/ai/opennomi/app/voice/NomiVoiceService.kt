@@ -34,6 +34,9 @@ class NomiVoiceService : Service() {
     private val scope=CoroutineScope(SupervisorJob()+Dispatchers.Main.immediate)
     private val model get()=(application as NomiApplication).cloudModel
     private var started=false
+    private var native: NativePhoneControl? = null
+    private var notification: NotificationCompat.Builder? = null
+    private var failureMessage: String? = null
     private var wake: PowerManager.WakeLock? = null
     override fun onBind(intent: Intent?)=null
     override fun onStartCommand(intent: Intent?,flags:Int,startId:Int):Int {
@@ -44,11 +47,19 @@ class NomiVoiceService : Service() {
             getSystemService(NotificationManager::class.java).createNotificationChannel(NotificationChannel("nomi-voice","语音控制与聊天",NotificationManager.IMPORTANCE_LOW))
             val stop=PendingIntent.getService(this,43,Intent(this,NomiVoiceService::class.java).setAction(STOP),PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
             val open=PendingIntent.getActivity(this,44,Intent(this,MainActivity::class.java),PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-            val notification=NotificationCompat.Builder(this,"nomi-voice").setSmallIcon(R.drawable.ic_nomi).setContentTitle(if(model.voiceSettings.phoneControl)"语音控制已开启" else "小智正在陪你聊天")
-                .setContentText("麦克风已开启 · 切到其他 App 也可以说话").setContentIntent(open).setOngoing(true).addAction(0,"暂停语音",stop).build()
+            val builder=NotificationCompat.Builder(this,"nomi-voice").setSmallIcon(R.drawable.ic_nomi).setContentTitle(if(model.voiceSettings.phoneControl)"语音控制已开启" else "小智正在陪你聊天")
+                .setContentText("麦克风已开启 · 切到其他 App 也可以说话").setContentIntent(open).setOngoing(true).addAction(0,"暂停语音",stop)
+            notification=builder
+            val notification=builder.build()
             if(Build.VERSION.SDK_INT>=29)startForeground(403,notification,ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE or ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)else startForeground(403,notification)
             if(ScreenState.state.value.audio)error("请先关闭视频声音识别，再开启语音聊天")
-            model.startBackgroundConversation(intent?.getBooleanExtra("screen",false) ?: session(this).getBoolean("screen",false))
+            if(model.voiceSettings.phoneControl) {
+                if(native == null)native=NativePhoneControl(this,model,scope) { reason -> failureMessage=reason;stopSelf() }
+                native!!.start()
+            } else {
+                native?.close();native=null
+                model.startBackgroundConversation(intent?.getBooleanExtra("screen",false) ?: session(this).getBoolean("screen",false))
+            }
             if(!started) {
                 started=true
                 wake=getSystemService(PowerManager::class.java).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"OpenNomi:Voice").apply { setReferenceCounted(false);acquire(35*60*1000L) }
@@ -56,15 +67,18 @@ class NomiVoiceService : Service() {
                 scope.launch {
                     combine(model.backgroundConversation,model.status){on,status->on to status}.collect{(on,status)->
                         ScreenState.update{it.copy(voiceOn=on,voiceStatus=status)}
+                        if(on)this@NomiVoiceService.notification?.let { builder -> getSystemService(NotificationManager::class.java).notify(403,
+                            builder.setContentText(status).setStyle(NotificationCompat.BigTextStyle().bigText(status)).build()) }
                         if(!on){session(this@NomiVoiceService).edit().putBoolean("requested",false).apply();stopSelf()}
                     }
                 }
             }
-        } catch(e:Exception){session(this).edit().putBoolean("requested",false).apply();ScreenState.event("语音未能启动：${e.message}");stopSelf();return START_NOT_STICKY}
+        } catch(e:Exception){session(this).edit().putBoolean("requested",false).apply();val message="语音未能启动：${e.message}";failureMessage=message;ScreenState.event(message);model.nativeControlStatus(message,ai.opennomi.app.model.ConversationState.IDLE);stopSelf();return START_NOT_STICKY}
         return START_STICKY
     }
     override fun onDestroy() {
-        scope.cancel();wake?.let { if(it.isHeld)it.release() };wake=null;model.stopBackgroundConversation()
+        native?.close();native=null;scope.cancel();wake?.let { if(it.isHeld)it.release() };wake=null;model.stopBackgroundConversation()
+        failureMessage?.let { model.nativeControlStatus(it,ai.opennomi.app.model.ConversationState.IDLE) }
         ScreenState.update{it.copy(voiceOn=false,voiceStatus="语音已暂停")}
         stopForeground(STOP_FOREGROUND_REMOVE);super.onDestroy()
     }

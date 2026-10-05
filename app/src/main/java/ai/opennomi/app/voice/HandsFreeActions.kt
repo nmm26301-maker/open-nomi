@@ -34,6 +34,22 @@ class HandsFreeActions(private val context: Context) {
         }
         if(command.action == "torch") { pending=null; return torch(command.target == "on") }
         if(command.action == "camera") { pending=null;return camera(command.target) }
+        if(command.action == "volume") {
+            pending=null
+            val audio=context.getSystemService(android.media.AudioManager::class.java)
+            val stream=android.media.AudioManager.STREAM_MUSIC
+            return try {
+                val value=command.target.toIntOrNull()
+                if(value != null) {
+                    if(value !in 0..100)return failed("音量范围是零到一百。")
+                    audio.setStreamVolume(stream,(audio.getStreamMaxVolume(stream)*value/100f).toInt(),android.media.AudioManager.FLAG_SHOW_UI)
+                } else {
+                    val direction=when(command.target) {"up"->android.media.AudioManager.ADJUST_RAISE;"down"->android.media.AudioManager.ADJUST_LOWER;"mute"->android.media.AudioManager.ADJUST_MUTE;"unmute"->android.media.AudioManager.ADJUST_UNMUTE;else->return failed("没有识别到音量指令。")}
+                    audio.adjustStreamVolume(stream,direction,android.media.AudioManager.FLAG_SHOW_UI)
+                }
+                done("当前媒体音量：${audio.getStreamVolume(stream)}/${audio.getStreamMaxVolume(stream)}。")
+            } catch(e:Exception){failed("音量没有调整：${e.message}")}
+        }
         if(command.action == "diagnostics") {
             fun granted(permission:String)=ContextCompat.checkSelfPermission(context,permission)==PackageManager.PERMISSION_GRANTED
             return done("麦克风${if(granted(Manifest.permission.RECORD_AUDIO))"已允许" else "未允许"}；相机和手电筒${if(granted(Manifest.permission.CAMERA))"已允许" else "未允许"}；无障碍${if(ScreenAccessService.instance!=null)"已连接" else "未连接"}；屏幕共享${if(ScreenState.state.value.active)"已开启" else "未开启"}。控制结果跳过播报，执行后继续收音。")
@@ -46,7 +62,7 @@ class HandsFreeActions(private val context: Context) {
             val action=when(command.action) { "home", "exit_app" -> AccessibilityService.GLOBAL_ACTION_HOME; "back" -> AccessibilityService.GLOBAL_ACTION_BACK; else -> AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS }
             return if(service.performGlobalAction(action)) done("已${when(command.action){"home"->"回到桌面";"exit_app"->"退出当前页面，回到桌面";"back"->"返回";else->"展开通知栏"}}。") else failed("系统没有接受这次操作，请稍后再说一次。")
         }
-        if(!ScreenState.state.value.active)return failed("请先开启屏幕共享，我才能定位页面按钮。")
+        if(!ScreenState.state.value.active && !ScreenState.state.value.voiceOn)return failed("请先开启语音控制或屏幕共享，我才能定位页面按钮。")
         val page=service.readPage()
         if(page.sensitive)return failed("当前页面包含密码框，请先切换页面。")
         if(command.action == "confirm") {

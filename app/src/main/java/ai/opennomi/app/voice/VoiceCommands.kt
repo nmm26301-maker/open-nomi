@@ -23,6 +23,12 @@ object VoiceCommands {
             s in setOf("回到桌面", "返回桌面", "回到主页") -> VoiceCommand("home")
             s in setOf("退出应用", "退出这个应用", "退出当前应用", "关闭应用", "关闭这个应用", "关闭当前应用", "退出软件") -> VoiceCommand("exit_app")
             s in setOf("打开通知栏", "展开通知栏") -> VoiceCommand("notifications")
+            s in setOf("声音大一点", "音量大一点", "调大音量", "增大音量") -> VoiceCommand("volume", "up")
+            s in setOf("声音小一点", "音量小一点", "调小音量", "减小音量") -> VoiceCommand("volume", "down")
+            s in setOf("静音", "媒体静音", "关掉声音") -> VoiceCommand("volume", "mute")
+            s in setOf("取消静音", "恢复声音") -> VoiceCommand("volume", "unmute")
+            Regex("(?:音量调到|音量设为|把音量调到)(?:百分之)?([0-9]{1,3})%?").matches(s) ->
+                Regex("([0-9]{1,3})").find(s)?.value?.toIntOrNull()?.takeIf { it in 0..100 }?.let { VoiceCommand("volume", it.toString()) }
             s in setOf("向下滚动", "往下翻", "下一页", "下滑") -> VoiceCommand("scroll", "down")
             s in setOf("向上滚动", "往上翻", "上一页", "上滑") -> VoiceCommand("scroll", "up")
             s in setOf("保存这页", "保存页面文字", "保存屏幕文字", "保存碎片") -> VoiceCommand("save_page")

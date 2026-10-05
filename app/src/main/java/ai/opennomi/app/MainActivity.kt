@@ -21,7 +21,7 @@ class MainActivity : ComponentActivity() {
             val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
                 if (it[Manifest.permission.RECORD_AUDIO] == true || androidx.core.content.ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)==android.content.pm.PackageManager.PERMISSION_GRANTED) ai.opennomi.app.voice.NomiVoiceService.toggle(this)
             }
-            LaunchedEffect(Unit) { cloudViewModel.connect() }
+            LaunchedEffect(Unit) { if(!cloudViewModel.voiceSettings.phoneControl)cloudViewModel.connect() }
             OpenNomiApp(cloudViewModel) {
                 if (cloudViewModel.backgroundConversation.value) ai.opennomi.app.voice.NomiVoiceService.stop(this)
                 else {

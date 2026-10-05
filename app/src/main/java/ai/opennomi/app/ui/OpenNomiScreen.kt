@@ -64,6 +64,7 @@ fun OpenNomiApp(vm: OpenNomiCloudViewModel, onTalk: () -> Unit) {
     var settings by remember { mutableStateOf(false) }
     var voiceRevision by remember { mutableStateOf(0) }
     val voiceLabel = remember(voiceRevision) { if (vm.usesFishVoice()) "FishAudio" else "NOMI 原声" }
+    val phoneControl = remember(voiceRevision) { vm.voiceSettings.phoneControl }
     var account by remember { mutableStateOf(false) }
     var airi by remember { mutableStateOf(false) }
     var foreground by remember { mutableStateOf(true) }
@@ -88,7 +89,7 @@ fun OpenNomiApp(vm: OpenNomiCloudViewModel, onTalk: () -> Unit) {
                         Text("OpenNomi", fontSize = 25.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 5.dp)) {
                             Box(Modifier.size(6.dp).clip(CircleShape).background(if (connected) Mint else Secondary))
-                            Text("  0.46 · ${if (connecting) "连接中" else if (connected) "在线" else "未连接"}", color = Secondary, fontSize = 12.sp)
+                            Text("  0.47 · ${if(phoneControl) "手机语音控制" else if (connecting) "连接中" else if (connected) "在线" else "未连接"}", color = Secondary, fontSize = 12.sp)
                         }
                     }
                     Text(voiceLabel, color = Mint, fontSize = 12.sp, modifier = Modifier.padding(end = 10.dp))
@@ -99,7 +100,7 @@ fun OpenNomiApp(vm: OpenNomiCloudViewModel, onTalk: () -> Unit) {
                         val size = minOf(maxWidth + 12.dp, maxHeight)
                         Box(Modifier.size(size), contentAlignment = Alignment.Center) {
                             Aura(state, foreground && !reduceMotion, Modifier.fillMaxSize())
-                            Ball(emotion, foreground, reduceMotion, Modifier.fillMaxSize()) { if (pairing != null) account = true else onTalk() }
+                            Ball(emotion, foreground, reduceMotion, Modifier.fillMaxSize()) { if (!phoneControl && pairing != null) account = true else onTalk() }
                         }
                     }
                     AnimatedContent(targetState = status, label = "conversation status", transitionSpec = {
@@ -109,8 +110,8 @@ fun OpenNomiApp(vm: OpenNomiCloudViewModel, onTalk: () -> Unit) {
                         Text(message, fontSize = 21.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     }
                     Text(when (state) {
-                        ConversationState.LISTENING -> "说完会自动回应，点球球可暂停"
-                        ConversationState.THINKING -> "正在准备回答"
+                        ConversationState.LISTENING -> if(phoneControl) "说完直接操作 · 点球球暂停" else "说完会自动回应，点球球可暂停"
+                        ConversationState.THINKING -> if(phoneControl) "正在操作 · 可说取消任务" else "正在准备回答"
                         ConversationState.SPEAKING -> "陪你聊一会儿"
                         else -> "我在这儿"
                     }, fontSize = 13.sp, color = Secondary, modifier = Modifier.padding(top = 9.dp, bottom = 16.dp))
@@ -119,7 +120,7 @@ fun OpenNomiApp(vm: OpenNomiCloudViewModel, onTalk: () -> Unit) {
                         val text = response.ifBlank { heard }
                         if (text.isNotBlank()) Text(text, color = Color(0xFFBAC7C5), fontSize = 14.sp, textAlign = TextAlign.Center,
                             maxLines = 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.fillMaxWidth())
-                        if (pairing != null) TextButton(onClick = { account = true }, modifier = Modifier.align(Alignment.Center)) { Text("绑定设备 · 验证码 $pairing") }
+                        if (!phoneControl && pairing != null) TextButton(onClick = { account = true }, modifier = Modifier.align(Alignment.Center)) { Text("绑定设备 · 验证码 $pairing") }
                     }
                 }
                 Row(Modifier.fillMaxWidth().padding(horizontal = 22.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -127,7 +128,7 @@ fun OpenNomiApp(vm: OpenNomiCloudViewModel, onTalk: () -> Unit) {
                         OutlinedButton(onClick = { if (key == "fish") context.startActivity(Intent(context, ai.opennomi.app.voice.FishAudioActivity::class.java)) else context.startActivity(Intent(context, ai.opennomi.app.screen.WorkspaceActivity::class.java).putExtra("tab", key)) }, modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 4.dp)) { Text(label, fontSize = 13.sp, maxLines = 1) }
                     }
                 }
-                TalkButton(state, connecting, pendingStart, { if (pairing != null) account = true else onTalk() }, Modifier.padding(horizontal = 22.dp).padding(top = 10.dp), reduceMotion)
+                TalkButton(state, connecting && !phoneControl, pendingStart && !phoneControl, { if (!phoneControl && pairing != null) account = true else onTalk() }, Modifier.padding(horizontal = 22.dp).padding(top = 10.dp), reduceMotion)
                 Text("${if (state == ConversationState.IDLE) "轻点球球开始 · 首次请允许麦克风与手电筒权限" else "可说：打开手电筒、点个赞、返回 · 轻点暂停"}", color = Secondary,
                     fontSize = 11.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 20.dp))
             }
@@ -220,7 +221,7 @@ private fun SettingsDialog(vm: OpenNomiCloudViewModel, reduceMotion: Boolean, on
     var systemSpeech by remember { mutableStateOf(vm.voiceSettings.systemSpeechFallback) }
     AlertDialog(onDismissRequest = onClose, title = { Text("NOMI 设置") }, text = {
         Column(Modifier.verticalScroll(rememberScrollState())) {
-            SettingSwitch("语音控制优先", "默认开启：目标直接交给手机任务模型，操作跳过播报", phoneControl) { phoneControl=it;vm.voiceSettings.phoneControl=it;vm.pauseConversation() }
+            SettingSwitch("语音控制优先", "系统中文识别直接控制手机，无需绑定小智；复杂目标需配置模型", phoneControl) { phoneControl=it;vm.voiceSettings.phoneControl=it;ai.opennomi.app.voice.NomiVoiceService.stop(settingsContext);vm.pauseConversation() }
             SettingSwitch("连续对话", "回复后继续听你说话", continuous) { continuous = it; vm.voiceSettings.continuousConversation = it; vm.pauseConversation() }
             SettingSwitch("允许打断", "手机支持回声消除时，可开口打断", realtime) { realtime = it; vm.voiceSettings.realtimeConversation = it; vm.pauseConversation() }
             TextButton(onClick = { settingsContext.startActivity(Intent(settingsContext, ai.opennomi.app.voice.FishAudioActivity::class.java)); onClose() }) { Text("FishAudio 独立朗读、音色与申请") }
@@ -230,7 +231,7 @@ private fun SettingsDialog(vm: OpenNomiCloudViewModel, reduceMotion: Boolean, on
             TextButton(onClick = onAccount) { Text("设备绑定与账号") }
             Text("设备：${vm.deviceId()}", fontSize = 11.sp, color = Secondary)
             TextButton(onClick = { vm.disconnect(); vm.connect(); onClose() }) { Text("重新连接") }
-            Text("OpenNomi 0.46 · 语音控制优先", fontSize = 12.sp, color = Secondary)
+            Text("OpenNomi 0.47 · 独立手机语音控制", fontSize = 12.sp, color = Secondary)
         }
     }, confirmButton = { TextButton(onClick = onClose) { Text("完成") } })
 }

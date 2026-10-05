@@ -7,7 +7,9 @@ import kotlinx.coroutines.*
 import java.io.File
 
 /** One cancellable HTTP/playback session. A cancelled reply can never start late audio. */
-class FishSpeech(context: Context, private val api: FishAudioApi = FishAudioApi()) {
+class FishSpeech(context: Context, private val api: FishAudioApi = FishAudioApi(),
+    private val onPlayback: (Int) -> Unit = {},
+    private val onProgress: (Int, Int) -> Unit = { _, _ -> }) {
     private val cache = context.applicationContext.cacheDir
     private var generation = 0
     private var player: MediaPlayer? = null
@@ -37,23 +39,33 @@ class FishSpeech(context: Context, private val api: FishAudioApi = FishAudioApi(
                 .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
             media.setOnPreparedListener {
                 if (session == generation && player === media) {
-                    runCatching { media.start() }.onFailure { done.completeExceptionally(IllegalStateException("FishAudio 音频启动失败")) }
+                    runCatching { media.start(); onPlayback(media.audioSessionId) }.onFailure { done.completeExceptionally(IllegalStateException("FishAudio 音频启动失败")) }
                 } else done.cancel()
             }
             media.setOnCompletionListener { done.complete(Unit) }
             media.setOnErrorListener { _, _, _ -> done.completeExceptionally(IllegalStateException("FishAudio 音频播放失败，请检查音量和音色配置")); true }
             media.setDataSource(file.absolutePath)
             media.prepareAsync()
-            withTimeout(180000) { done.await() }
+            coroutineScope {
+                val progress = launch {
+                    while (isActive && !done.isCompleted) {
+                        if (session == generation && player === media)
+                            runCatching { onProgress(media.currentPosition, media.duration.coerceAtLeast(0)) }
+                        delay(160)
+                    }
+                }
+                try { withTimeout(180000) { done.await() } } finally { progress.cancel() }
+            }
         } finally {
             // stop() may have already released this player; it must not release a later one.
-            if (player === media) { player = null; completed = null; runCatching { media.release() } }
+            if (player === media) { player = null; completed = null; onPlayback(0); runCatching { media.release() } }
         }
     }
     fun stop() {
         generation++
         completed?.cancel(); completed = null
         val old = player; player = null
+        onPlayback(0)
         runCatching { old?.release() }
     }
     fun release() = stop()
