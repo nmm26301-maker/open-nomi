@@ -30,11 +30,12 @@ internal fun FishAudioDialog(vm: OpenNomiCloudViewModel, onClose: () -> Unit, on
     var voice by remember { mutableStateOf(settings.referenceId) }
     var model by remember { mutableStateOf(settings.model) }
     var base by remember { mutableStateOf(settings.base) }
+    var streaming by remember {mutableStateOf(settings.streaming)}
     var speed by remember { mutableStateOf(settings.speed.toFloat()) }
     var message by remember { mutableStateOf("") }
     var previewing by remember { mutableStateOf(false) }
     var previewJob by remember { mutableStateOf<Job?>(null) }
-    fun config() = FishAudioConfig(key.trim(), voice.trim(), model.trim(), base.trim(), speed.toDouble())
+    fun config() = FishAudioConfig(key.trim(), voice.trim(), model.trim(), base.trim(), speed.toDouble(), streaming)
     DisposableEffect(vm) { onDispose { previewJob?.cancel(); vm.stopFishPreview() } }
     AlertDialog(onDismissRequest = onClose, title = {
         Column {Text("FishAudio 语音");if(message.isNotBlank())Text(message,style=MaterialTheme.typography.bodySmall)}
@@ -44,6 +45,8 @@ internal fun FishAudioDialog(vm: OpenNomiCloudViewModel, onClose: () -> Unit, on
                 Text("用于聊天与屏幕回复", Modifier.weight(1f))
                 Switch(enabled, { enabled = it })
             }
+            Row {Text("边收边播",Modifier.weight(1f));Switch(streaming,{streaming=it})}
+            Text("聊天回答按句开始播报；回声消除可用时支持开口打断。兼容服务若不支持 PCM，可关闭边收边播。")
             Text("手机控制仍跳过播报。FishAudio 负责把小智的回答文字变成声音，不替代手机任务模型。")
             OutlinedTextField(key, { key = it }, label = { Text("API Key") }, singleLine = true,
                 visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), modifier = Modifier.fillMaxWidth())
@@ -63,7 +66,7 @@ internal fun FishAudioDialog(vm: OpenNomiCloudViewModel, onClose: () -> Unit, on
             Text("语速：${String.format(java.util.Locale.ROOT, "%.1f", speed)} 倍")
             Slider(speed, { speed = it }, valueRange = 0.5f..2f, steps = 14)
             OutlinedTextField(base, { base = it }, label = { Text("服务地址") }, singleLine = true, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri))
-            Text("默认使用 FishAudio 官方云端。兼容服务可填写 HTTPS 地址。聊天在播放完成后继续听；FishAudio 播报期间可点球球暂停。")
+            Text("默认使用 FishAudio 官方云端。兼容服务可填写 HTTPS 地址。开启边收边播与允许打断后，手机回声消除可用时可边听边说；也可点球球暂停。")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(enabled = !previewing, onClick = {
                     val draft = config()

@@ -36,6 +36,11 @@ class XiaozhiBootstrap(private val context: Context) {
     }
 
     suspend fun bootstrap(): Result = withContext(Dispatchers.IO) {
+        val alternate=VoiceEndpointSettings(context)
+        if(alternate.enabled) {
+            val config=alternate.connection();config.validate()
+            return@withContext Result(config.url,config.token,null,config.version)
+        }
         val id = identity()
         val old = context.getSharedPreferences("open_nomi", Context.MODE_PRIVATE)
         val endpoint = old.getString("url", "").orEmpty().trim()
@@ -74,4 +79,3 @@ class XiaozhiBootstrap(private val context: Context) {
         }
     }
 }
-

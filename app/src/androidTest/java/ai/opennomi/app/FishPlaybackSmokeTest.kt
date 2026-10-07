@@ -37,7 +37,7 @@ class FishPlaybackSmokeTest {
         try {
             audio.setStreamVolume(AudioManager.STREAM_MUSIC,3,0)
             server.enqueue(MockResponse().setHeader("Content-Type","audio/wav").setBody(Buffer().write(wave(500))))
-            withTimeout(20000){speaker.speak("你好",FishAudioConfig("test-key",base=server.url("/").toString()))}
+            withTimeout(20000){speaker.speak("你好",FishAudioConfig("test-key",base=server.url("/").toString(),streaming=false))}
             assertTrue(stages.any{it.startsWith("请求 FishAudio")})
             assertTrue(stages.any{it.startsWith("已收到音频")})
             assertTrue(stages.any{it.startsWith("正在播放")})
@@ -53,12 +53,12 @@ class FishPlaybackSmokeTest {
         try {
             audio.setStreamVolume(AudioManager.STREAM_MUSIC,3,0)
             server.enqueue(MockResponse().setHeader("Content-Type","audio/wav").setBody(Buffer().write(wave(3000))))
-            val first=launch {speaker.speak("第一段",FishAudioConfig("test-key",base=server.url("/").toString()))}
+            val first=launch {speaker.speak("第一段",FishAudioConfig("test-key",base=server.url("/").toString(),streaming=false))}
             withTimeout(15000){playing.await()}
             withContext(Dispatchers.Main.immediate){speaker.stop()}
             withTimeout(5000){first.join()};assertTrue(first.isCancelled)
             server.enqueue(MockResponse().setHeader("Content-Type","audio/wav").setBody(Buffer().write(wave(200))))
-            withTimeout(15000){speaker.speak("重试",FishAudioConfig("test-key",base=server.url("/").toString()))}
+            withTimeout(15000){speaker.speak("重试",FishAudioConfig("test-key",base=server.url("/").toString(),streaming=false))}
         } finally {withContext(Dispatchers.Main.immediate){speaker.release()};audio.setStreamVolume(AudioManager.STREAM_MUSIC,previous,0);server.shutdown()}
     }
 }

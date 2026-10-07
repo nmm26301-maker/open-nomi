@@ -9,6 +9,9 @@ class VoiceSettings(context: Context) {
     var continuousConversation: Boolean
         get() = prefs.getBoolean("continuous", true)
         set(value) = prefs.edit().putBoolean("continuous", value).apply()
+    var fastResponse: Boolean
+        get() = prefs.getBoolean("fast_response", true)
+        set(value) = prefs.edit().putBoolean("fast_response", value).apply()
     var realtimeConversation: Boolean
         get() = prefs.getBoolean("offline_duplex", true)
         set(value) = prefs.edit().putBoolean("offline_duplex", value).apply()

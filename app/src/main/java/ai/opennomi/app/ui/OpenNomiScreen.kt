@@ -222,11 +222,16 @@ private fun SettingsDialog(vm: OpenNomiCloudViewModel, reduceMotion: Boolean, on
     var phoneControl by remember { mutableStateOf(vm.voiceSettings.phoneControl) }
     var continuous by remember { mutableStateOf(vm.voiceSettings.continuousConversation) }
     var realtime by remember { mutableStateOf(vm.voiceSettings.realtimeConversation) }
+    var alternateDialog by remember {mutableStateOf(false)}
+    var fastResponse by remember {mutableStateOf(vm.voiceSettings.fastResponse)}
     var systemSpeech by remember { mutableStateOf(vm.voiceSettings.systemSpeechFallback) }
+    if(alternateDialog) {VoiceEndpointDialog(vm,{alternateDialog=false});return}
     AlertDialog(onDismissRequest = onClose, title = { Text("NOMI 设置") }, text = {
         Column(Modifier.verticalScroll(rememberScrollState())) {
             SettingSwitch("语音控制优先", "首页可直接切换聊天或手机控制；控制模式不播放聊天回复", phoneControl) { phoneControl=it;vm.setPhoneControl(it) }
             SettingSwitch("连续对话", "回复后继续听你说话", continuous) { continuous = it; vm.voiceSettings.continuousConversation = it; vm.pauseConversation() }
+            SettingSwitch("快速回复", "缩短说完后的等待；句中停顿较长时可关闭", fastResponse) {fastResponse=it;vm.voiceSettings.fastResponse=it;vm.pauseConversation()}
+            TextButton(onClick={alternateDialog=true}) {Text("备用语音接口 · ${if(vm.endpointSettings.enabled)"已启用" else "小智默认"}")}
             SettingSwitch("允许打断", "手机支持回声消除时，可开口打断", realtime) { realtime = it; vm.voiceSettings.realtimeConversation = it; vm.pauseConversation() }
             TextButton(onClick = { settingsContext.startActivity(Intent(settingsContext, ai.opennomi.app.voice.FishAudioActivity::class.java)); onClose() }) { Text("FishAudio 独立朗读、音色与申请") }
             SettingSwitch("系统朗读回退", "默认关闭；小智原声失败时才使用，FishAudio 失败保留文字", systemSpeech) { systemSpeech=it;vm.voiceSettings.systemSpeechFallback=it }
@@ -235,7 +240,7 @@ private fun SettingsDialog(vm: OpenNomiCloudViewModel, reduceMotion: Boolean, on
             TextButton(onClick = onAccount) { Text("设备绑定与账号") }
             Text("设备：${vm.deviceId()}", fontSize = 11.sp, color = Secondary)
             TextButton(onClick = { vm.disconnect(); vm.connect(); onClose() }) { Text("重新连接") }
-            Text("OpenNomi 0.48 · 独立手机语音控制", fontSize = 12.sp, color = Secondary)
+            Text("OpenNomi 0.49 · 独立手机语音控制", fontSize = 12.sp, color = Secondary)
         }
     }, confirmButton = { TextButton(onClick = onClose) { Text("完成") } })
 }

@@ -27,6 +27,9 @@ class FishAudioSettings(context: Context) {
     var speed: Double
         get() = prefs.getFloat("speed", 1f).toDouble()
         set(value) = prefs.edit().putFloat("speed", value.toFloat()).apply()
+    var streaming: Boolean
+        get() = prefs.getBoolean("streaming", true)
+        set(value) = prefs.edit().putBoolean("streaming", value).apply()
     private fun secretKey(): SecretKey {
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
         return (store.getKey("nomi-fish-audio", null) as? SecretKey) ?: KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore").apply {
@@ -50,12 +53,13 @@ class FishAudioSettings(context: Context) {
             }
         }
     fun configured() = prefs.contains("secret")
-    fun connection() = FishAudioConfig(apiKey, referenceId, model, base, speed)
+    fun connection() = FishAudioConfig(apiKey, referenceId, model, base, speed, streaming)
     /** Validate and encrypt before publishing the non-secret preferences. */
     fun save(config: FishAudioConfig, useFish: Boolean) {
         if (useFish || config.apiKey.isNotBlank()) config.validate()
         apiKey = config.apiKey
         referenceId = config.referenceId; model = config.model; base = config.base; speed = config.speed
+        streaming=config.streaming
         enabled = useFish
     }
 }

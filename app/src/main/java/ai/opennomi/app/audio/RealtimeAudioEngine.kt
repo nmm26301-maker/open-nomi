@@ -150,7 +150,7 @@ class RealtimeAudioEngine(
         if (run == serverGeneration.get()) onLevel((rawRms(pcm, samples) * 7).coerceAtMost(1f))
     }
     private fun startServer(track: AudioTrack, force: Boolean) {
-        if (!serverStarted && (force || serverWritten >= serverRate * 120 / 1000)) { track.play(); serverStarted = true }
+        if (!serverStarted && (force || serverWritten >= serverRate * 60 / 1000)) { track.play(); serverStarted = true }
     }
     suspend fun awaitServerPlayback() {
         val done = CompletableDeferred<Unit>()
@@ -187,3 +187,4 @@ class RealtimeAudioEngine(
     }
     private fun rawRms(pcm: ShortArray, count: Int): Float { var sum = 0.0; for (i in 0 until count) { val x = pcm[i] / 32768.0; sum += x*x }; return if (count == 0) 0f else sqrt(sum/count).toFloat() }
 }
+

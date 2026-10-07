@@ -19,6 +19,7 @@ data class FishAudioConfig(
     val model: String = "s2.1-pro-free",
     val base: String = "https://api.fish.audio",
     val speed: Double = 1.0,
+    val streaming: Boolean = true,
 ) {
     fun validate() {
         require(apiKey.isNotBlank()) { "请先填写 FishAudio API Key" }
@@ -33,6 +34,7 @@ class FishAudioApi(private val http: OkHttpClient = OkHttpClient.Builder()
     .connectTimeout(10, TimeUnit.SECONDS).callTimeout(60, TimeUnit.SECONDS)
     .followRedirects(false).followSslRedirects(false).retryOnConnectionFailure(false).build()) {
     companion object {
+        const val PCM_RATE = 24000
         const val MAX_AUDIO_BYTES = 16 * 1024 * 1024
         fun endpoint(base: String): HttpUrl {
             val url = base.trim().trimEnd('/').toHttpUrl()
@@ -73,6 +75,56 @@ class FishAudioApi(private val http: OkHttpClient = OkHttpClient.Builder()
             400, 422 -> "FishAudio 未接受合成参数，请检查模型与音色 ID"
             else -> "FishAudio 服务暂不可用（HTTP $code）"
         })
+    }
+    /** The continuation stays cancellable until EOF; stop() cancels the HTTP body too.
+     * onChunk runs on OkHttp's worker and must apply bounded playback backpressure. */
+    suspend fun streamPcm(config: FishAudioConfig, text: String, onChunk: (ByteArray) -> Unit) {
+        config.validate()
+        require(text.isNotBlank() && text.length <= 500) { "FishAudio 单段文字长度无效" }
+        val body = JSONObject().put("text", text).put("format", "pcm").put("sample_rate", PCM_RATE)
+            .put("latency", "balanced").put("chunk_length", 100)
+            .put("prosody", JSONObject().put("speed", config.speed).put("volume", 0))
+        if (config.referenceId.isNotBlank()) body.put("reference_id", config.referenceId.trim())
+        val request = Request.Builder().url(endpoint(config.base))
+            .header("Authorization", "Bearer ${config.apiKey.trim()}").header("model", config.model)
+            .post(body.toString().toRequestBody("application/json".toMediaType())).build()
+        return suspendCancellableCoroutine { continuation ->
+            val call = http.newCall(request)
+            continuation.invokeOnCancellation { call.cancel() }
+            call.enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    if (continuation.isActive) continuation.resumeWithException(IOException("FishAudio 连接失败，请检查网络或服务地址"))
+                }
+                override fun onResponse(call: Call, response: Response) {
+                    try {
+                        response.use { result ->
+                            if (!result.isSuccessful) throw failure(result.code)
+                            val audio = result.body ?: throw IOException("FishAudio 没有返回音频")
+                            val type = audio.contentType()?.toString().orEmpty().lowercase()
+                            if (type.contains("json") || type.startsWith("text/") || type.contains("mpeg") || type.contains("wav") || type.contains("ogg"))
+                                throw IOException("FishAudio 未返回 PCM 音频；请关闭边收边播再试")
+                            if (audio.contentLength() > MAX_AUDIO_BYTES) throw IOException("FishAudio 音频过大")
+                            val framer = Pcm16Framer(); var total = 0
+                            audio.byteStream().use { input ->
+                                val buffer = ByteArray(2400) // 50ms at 24kHz, 16-bit mono
+                                while (continuation.isActive) {
+                                    val count = input.read(buffer)
+                                    if (count < 0) break
+                                    total += count
+                                    if (total > MAX_AUDIO_BYTES) throw IOException("FishAudio 音频过大")
+                                    val chunk = framer.accept(buffer.copyOf(count))
+                                    if (chunk.isNotEmpty() && continuation.isActive) onChunk(chunk)
+                                }
+                            }
+                            if (continuation.isActive) framer.finish()
+                        }
+                        if (continuation.isActive) continuation.resume(Unit)
+                    } catch (e: Exception) {
+                        if (continuation.isActive) continuation.resumeWithException(e)
+                    }
+                }
+            })
+        }
     }
     suspend fun synthesize(config: FishAudioConfig, text: String): ByteArray {
         config.validate()

@@ -16,16 +16,22 @@ class FishSpeech(context: Context, private val api: FishAudioApi = FishAudioApi(
     private val cache = context.applicationContext.cacheDir
     private val audio = context.applicationContext.getSystemService(AudioManager::class.java)
     private var focus:AudioFocusRequest?=null
-    private var generation = 0
+    @Volatile private var generation = 0
     private var player: MediaPlayer? = null
     private var completed: CompletableDeferred<Unit>? = null
-    suspend fun speak(text: String, config: FishAudioConfig, stage:(String)->Unit = onStage) = withContext(Dispatchers.Main.immediate) {
+    private var requestJob: Job? = null
+    private var pcm: FishPcmPlayback? = null
+    suspend fun speak(text: String, config: FishAudioConfig, stage:(String)->Unit = onStage, duplex:Boolean=false) = withContext(Dispatchers.Main.immediate) {
         stop()
         config.validate()
-        check(audio.getStreamVolume(AudioManager.STREAM_MUSIC)>0 && !audio.isStreamMute(AudioManager.STREAM_MUSIC)) {
-            "媒体音量为零或已静音，请调高媒体音量后再试听"
+        val volumeStream=if(duplex)AudioManager.STREAM_VOICE_CALL else AudioManager.STREAM_MUSIC
+        check(audio.getStreamVolume(volumeStream)>0 && !audio.isStreamMute(volumeStream)) {
+            if(duplex) "通话音量为零或已静音，请调高通话音量" else "媒体音量为零或已静音，请调高媒体音量后再试听"
         }
         val session = generation
+        val job=currentCoroutineContext().job;requestJob=job
+        try {
+        if(config.streaming) {stream(text,config,session,stage,duplex);return@withContext}
         val parts=FishAudioApi.speechParts(text)
         for ((index,part) in parts.withIndex()) {
             if (part.isBlank()) continue
@@ -41,6 +47,40 @@ class FishSpeech(context: Context, private val api: FishAudioApi = FishAudioApi(
                 stage("已收到音频 ${mp3.size/1024} KB · 准备播放")
                 play(file, session,stage)
             } finally { file.delete() }
+        }
+        } finally {if(requestJob===job)requestJob=null}
+    }
+    private suspend fun stream(text:String,config:FishAudioConfig,session:Int,stage:(String)->Unit,duplex:Boolean) {
+        val handler=android.os.Handler(android.os.Looper.getMainLooper())
+        fun current(block:()->Unit) {handler.post {if(session==generation)block()}}
+        val attributes=AudioAttributes.Builder().setUsage(if(duplex)AudioAttributes.USAGE_VOICE_COMMUNICATION else AudioAttributes.USAGE_MEDIA)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()
+        val request=AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+            .setAudioAttributes(attributes).setOnAudioFocusChangeListener {change ->
+                if(change==AudioManager.AUDIOFOCUS_LOSS && session==generation)stop()
+            }.build()
+        check(audio.requestAudioFocus(request)==AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {"无法获得音频输出，请结束其他通话或播放后重试"}
+        focus=request
+        val startedAt=android.os.SystemClock.elapsedRealtime()
+        val output=FishPcmPlayback(duplex,{id->current {
+            onPlayback(id)
+            stage("正在播放 · 首段音频 ${android.os.SystemClock.elapsedRealtime()-startedAt} ms${if(duplex)" · 可开口打断" else ""}")
+        }},{position,duration->current {onProgress(position,duration)}})
+        pcm=output
+        try {
+            val parts=SpeechChunks().take(text,flush=true)
+            for((index,part) in parts.withIndex()) {
+                stage("请求 FishAudio · 第${index+1}/${parts.size}段 · 边收边播")
+                try {withTimeout(65000){api.streamPcm(config,part){bytes->
+                    if(session!=generation)throw CancellationException("FishAudio 播放已停止")
+                    output.write(bytes)
+                }}} catch(e:TimeoutCancellationException){throw IllegalStateException("FishAudio 流式请求超时，请检查网络与服务地址")}
+                currentCoroutineContext().ensureActive()
+            }
+            output.drain()
+        } finally {
+            output.close()
+            if(pcm===output){pcm=null;onPlayback(0);releaseFocus()}
         }
     }
     private suspend fun play(file: File, session: Int, stage:(String)->Unit) {
@@ -94,6 +134,8 @@ class FishSpeech(context: Context, private val api: FishAudioApi = FishAudioApi(
     }
     fun stop() {
         generation++
+        requestJob?.cancel();requestJob=null
+        val oldPcm=pcm;pcm=null;oldPcm?.close()
         completed?.cancel(); completed = null
         val old = player; player = null
         onPlayback(0)
