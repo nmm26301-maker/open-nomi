@@ -21,7 +21,7 @@ class FishSpeech(context: Context, private val api: FishAudioApi = FishAudioApi(
     private var completed: CompletableDeferred<Unit>? = null
     private var requestJob: Job? = null
     private var pcm: FishPcmPlayback? = null
-    suspend fun speak(text: String, config: FishAudioConfig, stage:(String)->Unit = onStage, duplex:Boolean=false) = withContext(Dispatchers.Main.immediate) {
+    suspend fun speak(text: String, config: FishAudioConfig, duplex:Boolean=false, stage:(String)->Unit = onStage) = withContext(Dispatchers.Main.immediate) {
         stop()
         config.validate()
         val volumeStream=if(duplex)AudioManager.STREAM_VOICE_CALL else AudioManager.STREAM_MUSIC

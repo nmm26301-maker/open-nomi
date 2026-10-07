@@ -45,7 +45,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
         config.validate()
         ai.opennomi.app.voice.NomiVoiceService.stop(getApplication())
         pauseConversation()
-        fishSpeechDelegate.value.speak("你好，我是小智。现在使用 FishAudio 和你说话。", config,onStage)
+        fishSpeechDelegate.value.speak("你好，我是小智。现在使用 FishAudio 和你说话。", config,stage=onStage)
     }
     fun setPhoneControl(enabled:Boolean) {
         ai.opennomi.app.voice.NomiVoiceService.stop(getApplication())
@@ -342,6 +342,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
             }
             return
         }
+        if(active && realtime && _state.value==ConversationState.SPEAKING && text==_heard.value)return
         // A server transcript may beat the local barge-in callback. Keep those words.
         if(active && realtime && !screenRouting && _state.value==ConversationState.SPEAKING) {
             client?.sendAbort();clearSpeech();audio.stopAllPlayback()
