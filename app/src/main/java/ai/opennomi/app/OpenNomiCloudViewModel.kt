@@ -266,13 +266,14 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
         client?.sendAbort(); clearSpeech(); audio.stopAllPlayback()
         active = true; awaitingBargeTranscript=false;realtime = voiceSettings.realtimeConversation && audio.supportsRealtime()
         _state.value = ConversationState.LISTENING; _emotion.value = "listening"
-        _status.value = if (realtime) "我在听，可以随时开口" else "我在听，说完自动回复"
+        _status.value = "正在准备麦克风…"
         captureStart?.cancel()
         val generation=turn
         captureStart=viewModelScope.launch {
             try {
                 readyRoute()
                 if(generation!=turn || !active)return@launch
+                _status.value = if (realtime) "我在听，可以随时开口" else "我在听，说完自动回复"
                 client?.sendListen("start", if (realtime) "realtime" else "manual")
                 if (!audio.startRecording(realtime,silenceMillis=if(voiceSettings.fastResponse)480 else 700)) recoverVoice("麦克风暂不可用，正在重试")
             } catch(e:CancellationException){throw e}

@@ -41,6 +41,7 @@ class NativePhoneControl(private val context: Context, private val model: OpenNo
         check(offline || SpeechRecognizer.isRecognitionAvailable(context)) { "手机没有可用的语音识别服务，请在系统语音输入设置中启用中文识别" }
         enabled = true
         model.beginNativeControl()
+        publish("正在准备麦克风…")
         routeJob=scope.launch {
             try {
                 routeLease=routes.acquire();routes.awaitReady()

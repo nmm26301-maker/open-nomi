@@ -9,6 +9,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.runtime.LaunchedEffect
 import ai.opennomi.app.ui.OpenNomiApp
+import kotlinx.coroutines.flow.collect
 
 class MainActivity : ComponentActivity() {
     private val cloudViewModel: OpenNomiCloudViewModel get() = (application as NomiApplication).cloudModel
@@ -22,6 +23,11 @@ class MainActivity : ComponentActivity() {
                 if (it[Manifest.permission.RECORD_AUDIO] == true || androidx.core.content.ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)==android.content.pm.PackageManager.PERMISSION_GRANTED) ai.opennomi.app.voice.NomiVoiceService.toggle(this)
             }
             LaunchedEffect(Unit) { if(!cloudViewModel.voiceSettings.phoneControl)cloudViewModel.connect() }
+            LaunchedEffect(Unit) {
+                cloudViewModel.audioRoute.collect { route ->
+                    volumeControlStream = if(route.active) android.media.AudioManager.STREAM_VOICE_CALL else android.media.AudioManager.USE_DEFAULT_STREAM_TYPE
+                }
+            }
             OpenNomiApp(cloudViewModel) {
                 if (cloudViewModel.backgroundConversation.value) ai.opennomi.app.voice.NomiVoiceService.stop(this)
                 else {
