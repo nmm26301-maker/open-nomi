@@ -114,11 +114,12 @@ public final class AiriActivity extends Activity {
     }
     private void showPageMenu() {
         String[] actions = genericPage ? new String[]{"刷新网页"}
-            : new String[]{"手机听觉", "听觉与麦克风检查", "AIRI 听觉设置", "AIRI 服务设置", "回到 AIRI 角色", "刷新网页", "配置说明", "申请指南", "修改网址"};
+            : new String[]{"手机听觉", "对话记忆", "听觉与麦克风检查", "AIRI 听觉设置", "AIRI 服务设置", "回到 AIRI 角色", "刷新网页", "配置说明", "申请指南", "修改网址"};
         new AlertDialog.Builder(this).setTitle("应用内网页")
             .setItems(actions, (dialog, which) -> {
                 String action = actions[which];
                 if ("手机听觉".equals(action)) { showNativeHearing(); }
+                else if ("对话记忆".equals(action)) showMemory();
                 else if ("听觉与麦克风检查".equals(action)) diagnoseHearing();
                 else if ("配置说明".equals(action)) showConfigurationHelp();
                 else if ("申请指南".equals(action)) { nativeHearing.stop(); startActivity(new android.content.Intent(this, ai.opennomi.app.screen.WorkspaceActivity.class).putExtra("tab", "help")); }
@@ -225,6 +226,28 @@ public final class AiriActivity extends Activity {
         JSONObject result = new JSONObject();
         try { result.put("state", "error").put("message", message); } catch (Exception ignored) {}
         return result;
+    }
+    private void showMemory() {
+        callVoicePage("memoryInfo", "", "", result -> {
+            if ("error".equals(result.optString("state"))) { Toast.makeText(this,result.optString("message"),Toast.LENGTH_LONG).show();return; }
+            boolean enabled = result.optBoolean("enabled",true);
+            StringBuilder message = new StringBuilder("AIRI 记忆保存于本机，与 NOMI 分开。下次交流会带上最近聊天。\n已保存 " + result.optInt("count") + " 段\n");
+            if(result.optBoolean("storageError"))message.append("当前存储失败，关闭网页后可能丢失，请检查存储空间。\n");
+            JSONArray recent = result.optJSONArray("recent");
+            if(recent != null)for(int i=recent.length()-1;i>=0;i--) {
+                JSONObject turn=recent.optJSONObject(i);
+                if(turn!=null)message.append("\n你：").append(turn.optString("u")).append("\nAIRI：").append(turn.optString("a")).append("\n");
+            }
+            new AlertDialog.Builder(this).setTitle("AIRI 本机对话记忆").setMessage(message.toString())
+                .setPositiveButton(enabled ? "关闭记忆" : "开启记忆",(d,w)->{
+                    nativeHearing.stop();callVoicePage("setMemory",String.valueOf(!enabled),"",r->showMemory());
+                }).setNeutralButton("清空",(d,w)->new AlertDialog.Builder(this).setTitle("清空 AIRI 本机记忆？")
+                    .setMessage("删除本机保存的 AIRI 聊天。网页当前会话的历史请在 AIRI 内另行新建会话。")
+                    .setPositiveButton("确认清空",(confirm,button)->{
+                        nativeHearing.stop();callVoicePage("clearMemory","","",r->showMemory());
+                    }).setNegativeButton("取消",null).show())
+                .setNegativeButton("完成",null).show();
+        });
     }
     private void diagnoseHearing() {
         callVoicePage("diagnose", "", "", result -> {

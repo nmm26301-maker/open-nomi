@@ -81,7 +81,7 @@ class NomiVoiceService : Service() {
                 wake=getSystemService(PowerManager::class.java).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"OpenNomi:Voice").apply { setReferenceCounted(false);acquire(35*60*1000L) }
                 scope.launch { while(isActive) { delay(30*60*1000L);wake?.acquire(35*60*1000L) } }
                 scope.launch {
-                    combine(model.backgroundConversation,model.status){on,status->on to status}.collect{(on,status)->
+                    combine(model.backgroundConversation,model.status,model.audioRoute){on,status,route->on to (if(route.active) "$status\n${route.message}" else status)}.collect{(on,status)->
                         ScreenState.update{it.copy(voiceOn=on,voiceStatus=status)}
                         if(on)this@NomiVoiceService.notification?.let { builder -> getSystemService(NotificationManager::class.java).notify(403,
                             builder.setContentText(status).setStyle(NotificationCompat.BigTextStyle().bigText(status)).build()) }

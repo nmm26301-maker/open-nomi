@@ -30,7 +30,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /** The original NOMI online conversation, with no local-model or character pipeline. */
-class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiProtocolClient.Listener {
+class OpenNomiCloudViewModel(app: Application, private val memories:ai.opennomi.app.voice.ConversationMemory = (app as NomiApplication).conversationMemory) : AndroidViewModel(app), XiaozhiProtocolClient.Listener {
     private val routes = (app as NomiApplication).audioRoutes
     val audioRoute = routes.state
     private var routeLease: ai.opennomi.app.audio.ConversationAudioRoutes.Lease? = null
@@ -39,6 +39,31 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
     private suspend fun readyRoute() {
         if(routeLease==null)routeLease=routes.acquire()
         routes.awaitReady()
+    }
+    val memory=memories.state
+    private var memoryPrimed=false
+    private var memoryRevision=memory.value.revision
+    private var memorySaved=false
+    private var awaitingFreshReply=false
+    private var bargeWatchdog:Job?=null
+    fun setMemoryEnabled(enabled:Boolean) { memories.enabled(enabled);restartMemorySession() }
+    fun clearMemory() { memories.clear();restartMemorySession() }
+    private fun restartMemorySession() {
+        ai.opennomi.app.voice.NomiVoiceService.stop(getApplication())
+        disconnect();if(!voiceSettings.phoneControl)connect()
+    }
+    private fun rememberReply() {
+        if(memorySaved || screenTextTurn || screenSilent || !receivedReplyText || _heard.value.isBlank())return
+        runCatching { memories.record(_heard.value,_response.value,memoryRevision) }
+            .onFailure { ai.opennomi.app.screen.ScreenState.event("本机记忆保存失败，请检查存储空间") }
+        memorySaved=true
+    }
+    private fun awaitBargeTranscript() {
+        bargeWatchdog?.cancel();val generation=turn
+        bargeWatchdog=viewModelScope.launch {
+            delay(8000)
+            if(generation==turn && active && awaitingBargeTranscript)recoverVoice("打断后未收到识别结果，正在重新聆听")
+        }
     }
     val voiceSettings = VoiceSettings(app)
     val fishSettings = FishAudioSettings(app)
@@ -153,6 +178,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
             if (generation == turn && active && realtime && _state.value == ConversationState.SPEAKING) {
                 client?.sendAbort(); clearSpeech(); audio.stopAllPlayback();awaitingBargeTranscript=true;client?.sendListen("start","realtime")
                 _state.value = ConversationState.LISTENING; _emotion.value = "listening"; _status.value = "已打断，我在听"
+                awaitBargeTranscript()
             }
         } },
         onError = { message ->
@@ -196,6 +222,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
                     override fun onAudioFormat(sampleRate: Int) = current { this@OpenNomiCloudViewModel.onAudioFormat(sampleRate) }
                     override fun onAudio(opus: ByteArray) = current { this@OpenNomiCloudViewModel.onAudio(opus) }
                 }
+                client?.disconnect();memoryPrimed=false
                 client = XiaozhiProtocolClient(result.websocketUrl, result.token, id.deviceId, id.boardUuid, callback, audio.supportsRealtime(), result.protocolVersion).also { it.connect() }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
@@ -380,7 +407,8 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
         if (!VoiceSessionPolicy.canHandleRecognition(active,textSubmitted,finishingReply,_state.value==ConversationState.SPEAKING,screenRouting)) return
         if(!realtime && audio.isRecording()) { audio.stopRecording();client?.sendListen("stop","manual") }
         if (realtime && _state.value == ConversationState.LISTENING) prepareTurn()
-        awaitingBargeTranscript=false
+        awaitingBargeTranscript=false;bargeWatchdog?.cancel();bargeWatchdog=null
+        memoryRevision=memory.value.revision
         _heard.value = text; _state.value = ConversationState.THINKING; _emotion.value = "thinking"; _status.value = "让我想一想"
         var goal=VoiceTasks.agentGoal(text)
         val sequence=if(goal==null)VoiceTasks.parse(text) else null
@@ -422,7 +450,17 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
                     }
                 }
             }
-        } else watchAnswer()
+        } else {
+            if(!memoryPrimed) {
+                val recalled=memories.prompt(text);memoryPrimed=true
+                if(recalled!=text) {
+                    client?.sendAbort();textSubmitted=true;awaitingFreshReply=true
+                    _status.value="正在接着上次的话题…"
+                    client?.sendText(recalled)
+                }
+            }
+            watchAnswer()
+        }
     }
     /** May also be called from the Agent page; the task survives Activity switches. */
     fun runAgentTask(goal:String) {
@@ -490,7 +528,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
     override fun onResponseText(text: String) {
         if(!VoiceSessionPolicy.allowCloudReply(voiceSettings.phoneControl,screenTextTurn))return
         if (!active || screenRouting || finishingReply || awaitingBargeTranscript) return
-        if (text.isNotBlank()) receivedReplyText = true
+        if (text.isNotBlank()) {receivedReplyText = true;awaitingFreshReply=false}
         _response.value += accumulator.accept(text)
         if (turnFish != null && !screenSilent) {
             queueFishText()
@@ -501,6 +539,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
     override fun onTtsState(state: String) {
         if(!VoiceSessionPolicy.allowCloudReply(voiceSettings.phoneControl,screenTextTurn))return
         if (!active || screenRouting || finishingReply || awaitingBargeTranscript) return
+        if (state == "stop" && awaitingFreshReply && !receivedReplyText && audioPackets==0)return
         if (state == "stop" && screenSilent) {
             val result = _response.value.trim()
             if (result.isBlank()) silentRequest?.completeExceptionally(IllegalStateException("NOMI 未返回译文")) else silentRequest?.complete(result)
@@ -534,7 +573,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
             // TTS start precedes the first packet. Replace the short no-audio timer
             // even when the state is already SPEAKING, or long replies get cut at 8s.
             val firstPacket=audioPackets==0
-            audioPackets++
+            audioPackets++;awaitingFreshReply=false
             if(firstPacket)watchAnswer(VoiceSessionPolicy.playbackTimeout(audioPackets))
             audio.playServerOpus(opus)
         }
@@ -643,6 +682,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
     private var receivedReplyText = false
     private suspend fun resumeAfterPlayback(generation: Int, failure: String? = null) {
         if (generation != turn || !active) return
+        rememberReply()
         finishingReply=false;systemSpeaking=false;finishJob=null
         if(!_connected.value) {
             active=false;realtime=false;audio.stopRecording();closeRoute()
@@ -696,7 +736,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
             if(_connected.value)startListening()else scheduleReconnect()
         }
     }
-    private fun prepareTurn() { fishQueue?.cancel();fishQueue=null;fishJob?.cancel();fishJob=null;fishChunks=SpeechChunks();fishError=null;turnFish = if (usesFishVoice()) fishSettings.connection() else null; receivedReplyText=false; voiceRetry=0; audioPackets = 0; fallbackText="";textSubmitted=false;systemSpeaking=false; accumulator.reset(); _heard.value = ""; _response.value = "" }
+    private fun prepareTurn() { memorySaved=false;awaitingFreshReply=false;memoryRevision=memory.value.revision; fishQueue?.cancel();fishQueue=null;fishJob?.cancel();fishJob=null;fishChunks=SpeechChunks(fastStart=voiceSettings.fastResponse);fishError=null;turnFish = if (usesFishVoice()) fishSettings.connection() else null; receivedReplyText=false; voiceRetry=0; audioPackets = 0; fallbackText="";textSubmitted=false;systemSpeaking=false; accumulator.reset(); _heard.value = ""; _response.value = "" }
     private fun watchAnswer(timeout: Long = 45000) {
         answerWatchdog?.cancel()
         val generation = turn
@@ -710,7 +750,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
             }
         }
     }
-    private fun clearSpeech() { fishQueue?.cancel();fishJob?.cancel(); if (fishSpeechDelegate.isInitialized()) fishSpeechDelegate.value.stop(); finishingReply=false;turn++; answerWatchdog?.cancel(); finishJob?.cancel(); finishJob = null; prepareTurn() }
+    private fun clearSpeech() { bargeWatchdog?.cancel();bargeWatchdog=null; fishQueue?.cancel();fishJob?.cancel(); if (fishSpeechDelegate.isInitialized()) fishSpeechDelegate.value.stop(); finishingReply=false;turn++; answerWatchdog?.cancel(); finishJob?.cancel(); finishJob = null; prepareTurn() }
     override fun onCleared() {
         closeRoute()
         active = false; ++connectionGeneration; clearSpeech(); client?.disconnect();actions.release()

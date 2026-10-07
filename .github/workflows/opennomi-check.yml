@@ -60,31 +60,31 @@ jobs:
           echo 'Unsigned verification output. It must be signed with the original key before installation.' > build-handoff/README.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: opennomi-050-unsigned-and-signing-tools
+          name: opennomi-051-unsigned-and-signing-tools
           path: build-handoff/
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
-          name: opennomi-050-apk-part-00
+          name: opennomi-051-apk-part-00
           path: apk-transfer/opennomi-apk.part00
           if-no-files-found: error
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
-          name: opennomi-050-apk-part-01
+          name: opennomi-051-apk-part-01
           path: apk-transfer/opennomi-apk.part01
           if-no-files-found: error
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
-          name: opennomi-050-apk-part-02
+          name: opennomi-051-apk-part-02
           path: apk-transfer/opennomi-apk.part02
           if-no-files-found: error
           retention-days: 7
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: opennomi-050-check-reports
+          name: opennomi-051-check-reports
           path: |
             app/build/reports/
             app/build/test-results/
@@ -128,10 +128,11 @@ jobs:
             mkdir -p ui-captures
             adb pull /data/local/tmp/fish-workstation.png ui-captures/fish-workstation.png
             adb pull /data/local/tmp/conversation-home.png ui-captures/conversation-home.png
+            adb pull /data/local/tmp/conversation-memory.png ui-captures/conversation-memory.png
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: opennomi-050-ui-smoke-api-${{ matrix.api }}
+          name: opennomi-051-ui-smoke-api-${{ matrix.api }}
           path: |
             ui-captures/
             app/build/reports/androidTests/

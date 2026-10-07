@@ -141,7 +141,7 @@ class ConversationAudioRoutes(private val context: Context) {
         }
     }
     @RequiresApi(31) private fun watchModern() {
-        val listener = AudioManager.OnCommunicationDeviceChangedListener { info -> controller.confirmed(info?.let(::device)) }
+        val listener = AudioManager.OnCommunicationDeviceChangedListener { _ -> controller.confirmed(actual()) }
         modernWatcher = listener; audio.addOnCommunicationDeviceChangedListener(context.mainExecutor, listener)
     }
     private fun unwatch() {

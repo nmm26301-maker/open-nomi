@@ -44,6 +44,17 @@ class StreamingVoiceRegressionTest {
         assertTrue(chunks.take("数值是3.").isEmpty())
         assertEquals(listOf("数值是3.14。"),chunks.take("数值是3.14。"))
     }
+    @Test fun fastResponseCanStartAnUnfinishedLongPhraseAtAComma() {
+        val prefix="中".repeat(20)+"，";val text=prefix+"文".repeat(20)
+        val chunks=SpeechChunks(fastStart=true)
+        assertEquals(listOf(prefix),chunks.take(text))
+        assertEquals(listOf("文".repeat(20)),chunks.take(text,true))
+        assertTrue(SpeechChunks().take(text).isEmpty())
+    }
+    @Test fun fastResponseNeverSplitsTheThousandsSeparatorInANumber() {
+        val text="中".repeat(20)+"1,000"+"文".repeat(20)
+        assertTrue(SpeechChunks(fastStart=true).take(text).isEmpty())
+    }
     @Test fun excessiveReplyTextIsRejectedBeforeQueueing() {
         assertTrue(runCatching{SpeechChunks().take("中".repeat(12001),true)}.isFailure)
     }

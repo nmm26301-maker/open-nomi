@@ -1,7 +1,7 @@
 package ai.opennomi.app.voice
 
 /** Only consume committed text. A cumulative server response must not be read twice. */
-class SpeechChunks {
+class SpeechChunks(private val fastStart:Boolean = false) {
     private var consumed = 0
     fun take(text: String, flush: Boolean = false): List<String> {
         require(text.length <= 12000) { "FishAudio 回复过长，文字已保留" }
@@ -12,7 +12,11 @@ class SpeechChunks {
             val punctuation = (consumed until limit).firstOrNull { text[it] in "。！？；.!?;\n" &&
                 !(text[it] == '.' && ((!flush && it+1==text.length) ||
                     (it > 0 && it+1 < text.length && text[it-1].isDigit() && text[it+1].isDigit()))) }
-            var end = punctuation?.plus(1) ?: when {
+            val phrase = if(fastStart && punctuation==null && limit-consumed>=36)
+                (consumed+17 until limit).firstOrNull { text[it] in "，、：," &&
+                    !(text[it]==',' && it>0 && it+1<text.length && text[it-1].isDigit() && text[it+1].isDigit()) }
+                else null
+            var end = punctuation?.plus(1) ?: phrase?.plus(1) ?: when {
                 limit < text.length || limit-consumed == 150 -> limit
                 flush -> text.length
                 else -> break

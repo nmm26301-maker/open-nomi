@@ -31,6 +31,7 @@ class XiaozhiProtocolClient(
 
     private companion object {
         // Reconnects share the HTTP dispatcher instead of creating another thread pool.
+        private const val MAX_PENDING_AUDIO = 12 * 1024L
         val http = OkHttpClient.Builder()
             .readTimeout(0, TimeUnit.MILLISECONDS)
             .pingInterval(30, TimeUnit.SECONDS)
@@ -82,6 +83,7 @@ class XiaozhiProtocolClient(
 
     fun sendAudio(opus: ByteArray) {
         if (!ready) return
+        if((socket?.queueSize() ?: 0)>MAX_PENDING_AUDIO) {fail(IllegalStateException("语音网络积压，正在重新连接"));return}
         val packet=XiaozhiAudioWire.encode(opus,protocolVersion)
         if (socket?.send(ByteString.of(*packet)) != true) fail(IllegalStateException("网络发送失败"))
     }
@@ -115,6 +117,7 @@ class XiaozhiProtocolClient(
         override fun onMessage(webSocket: WebSocket, text: String) {
             if (closed) return
             val json = runCatching { JSONObject(text) }.getOrNull() ?: return
+            if(!ready && json.optString("type") !in setOf("hello","error"))return
             when (json.optString("type")) {
                 "hello" -> {
                     sessionId = json.optString("session_id", "")

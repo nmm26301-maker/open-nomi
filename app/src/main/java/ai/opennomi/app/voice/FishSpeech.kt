@@ -25,15 +25,17 @@ class FishSpeech(context: Context, private val api: FishAudioApi = FishAudioApi(
     suspend fun speak(text: String, config: FishAudioConfig, duplex:Boolean=false, stage:(String)->Unit = onStage) = withContext(Dispatchers.Main.immediate) {
         stop()
         config.validate()
+        val session = generation
+        val job=currentCoroutineContext().job;requestJob=job
+        try {
         val communication=routes.active
         if(communication)routes.awaitReady()
+        currentCoroutineContext().ensureActive()
+        if(session!=generation)throw CancellationException("FishAudio 播报已取消")
         val volumeStream=if(communication)AudioManager.STREAM_VOICE_CALL else AudioManager.STREAM_MUSIC
         check(audio.getStreamVolume(volumeStream)>0 && !audio.isStreamMute(volumeStream)) {
             if(communication) "通话音量为零或已静音，请调高通话音量" else "媒体音量为零或已静音，请调高媒体音量后再试听"
         }
-        val session = generation
-        val job=currentCoroutineContext().job;requestJob=job
-        try {
         if(config.streaming) {stream(text,config,session,stage,duplex,communication);return@withContext}
         val parts=FishAudioApi.speechParts(text)
         for ((index,part) in parts.withIndex()) {
@@ -60,7 +62,7 @@ class FishSpeech(context: Context, private val api: FishAudioApi = FishAudioApi(
             .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()
         val request=AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
             .setAudioAttributes(attributes).setOnAudioFocusChangeListener {change ->
-                if(change==AudioManager.AUDIOFOCUS_LOSS && session==generation)stop()
+                if(change in setOf(AudioManager.AUDIOFOCUS_LOSS,AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) && session==generation)stop()
             }.build()
         check(audio.requestAudioFocus(request)==AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {"无法获得音频输出，请结束其他通话或播放后重试"}
         focus=request
@@ -96,7 +98,7 @@ class FishSpeech(context: Context, private val api: FishAudioApi = FishAudioApi(
                 .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()
             val request=AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
                 .setAudioAttributes(attributes).setOnAudioFocusChangeListener { change ->
-                    if(change==AudioManager.AUDIOFOCUS_LOSS && player===media)
+                    if(change in setOf(AudioManager.AUDIOFOCUS_LOSS,AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) && player===media)
                         done.completeExceptionally(IllegalStateException("音频输出被其他应用占用，请结束通话或其他播放后重试"))
                 }.build()
             check(audio.requestAudioFocus(request)==AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {"无法获得音频输出，请结束其他通话或播放后重试"}

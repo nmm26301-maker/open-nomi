@@ -22,6 +22,67 @@ function fixture() {
   return {api: window.__nomiAiriVoice, chat, mind, microphone, speaking, Source,
     calls: () => calls, stopped: () => stopped, finish: () => finish(), context};
 }
+
+function memoryFixture(disk, ingest) {
+  const session = {messages: []};
+  const seen = [];
+  const chat = {ingest: async (...args) => {
+    seen.push(args);return ingest(session,...args);
+  }};
+  const stores = new Map([['chat',chat],['chat-session',session]]);
+  const window = {localStorage: {getItem: k => disk.get(k), setItem: (k,v) => disk.set(k,v)}};
+  vm.runInNewContext(script,{window,document:{
+    querySelector:()=>({__vue_app__:{config:{globalProperties:{$pinia:{_s:stores}}}}}),
+    querySelectorAll:()=>[]},Promise,Map,WeakSet});
+  return {api:window.__nomiAiriVoice,chat,seen,window,session};
+}
+async function memoryRegression() {
+  const disk=new Map();let sequence=0;
+  const reply=async (session,text) => {
+    session.messages.push({role:'user',content:text},
+      {id:String(++sequence),role:'assistant',content:[{type:'text',text:'你叫小林。'}]});
+    return {ok:true};
+  };
+  const first=memoryFixture(disk,reply);
+  const options={model:'unchanged'};
+  assert.deepEqual(await first.chat.ingest('我叫小林',options,'session-1'),{ok:true});
+  assert.equal(first.api.memoryInfo().count,1);
+  assert.equal(first.seen[0][1],options);assert.equal(first.seen[0][2],'session-1');
+  const reopened=memoryFixture(disk,reply);
+  await reopened.chat.ingest('我叫什么名字',options);
+  assert.ok(reopened.seen[0][0].includes('我叫小林'));
+  assert.ok(reopened.seen[0][0].endsWith('用户现在说：我叫什么名字'));
+  await reopened.chat.ingest('聊点别的',options);
+  assert.equal(reopened.seen[1][0],'聊点别的');
+  assert.equal(reopened.api.memoryInfo().count,3);
+  reopened.api.setMemory('false');
+  await reopened.chat.ingest('不要记录',options);
+  assert.equal(reopened.api.memoryInfo().count,3);
+  assert.equal(reopened.seen[2][0],'不要记录');
+  reopened.api.clearMemory();
+  assert.equal(memoryFixture(disk,reply).api.memoryInfo().count,0);
+  let finish;
+  const delayed=memoryFixture(disk,async session=>{
+    await new Promise(resolve=>{finish=resolve});
+    session.messages.push({id:'late',role:'assistant',content:'迟到的回答'});
+  });
+  delayed.api.setMemory('true');
+  const pending=delayed.chat.ingest('迟到的问题',options);
+  delayed.api.clearMemory();finish();await pending;
+  assert.equal(delayed.api.memoryInfo().count,0);
+  const failed=memoryFixture(disk,async()=>{throw new Error('network')});
+  await assert.rejects(failed.chat.ingest('未完成的对话',options));
+  assert.equal(failed.api.memoryInfo().count,0);
+  const stale=memoryFixture(disk,async()=>{});
+  stale.session.messages.push({id:'old',role:'assistant',content:'旧答案'});
+  await stale.chat.ingest('没有新回答',options);
+  assert.equal(stale.api.memoryInfo().count,0);
+  const broken=memoryFixture(new Map(),reply);
+  broken.window.localStorage.setItem=()=>{throw new Error('quota')};
+  await broken.chat.ingest('存储失败',options);
+  assert.equal(broken.api.memoryInfo().storageError,true);
+}
+
 const tick = () => new Promise(resolve => setImmediate(resolve));
 (async () => {
   const f = fixture();
@@ -50,5 +111,6 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
   broken.api.send('你好', 'failed'); await tick();
   assert.equal(broken.api.poll('', 'failed').state, 'error');
   assert.ok(!broken.api.poll('', 'failed').message.includes('private'));
-  console.log('PASS: native AIRI send once, microphone ownership, reply gating, WebAudio tracking, missing config and failure handling');
+  await memoryRegression();
+  console.log('PASS: AIRI local memory persistence, reload recall, options preservation, disabled/clear/late/failure safeguards;  native AIRI send once, microphone ownership, reply gating, WebAudio tracking, missing config and failure handling');
 })().catch(error => { console.error(error); process.exitCode = 1; });

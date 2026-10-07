@@ -14,6 +14,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -58,6 +60,8 @@ fun OpenNomiApp(vm: OpenNomiCloudViewModel, onTalk: () -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
     val status by vm.status.collectAsStateWithLifecycle()
     val audioRoute by vm.audioRoute.collectAsStateWithLifecycle()
+    val memory by vm.memory.collectAsStateWithLifecycle()
+    var memoryOpen by remember { mutableStateOf(false) }
     val emotion by vm.emotion.collectAsStateWithLifecycle()
     val heard by vm.heard.collectAsStateWithLifecycle()
     val response by vm.response.collectAsStateWithLifecycle()
@@ -85,12 +89,12 @@ fun OpenNomiApp(vm: OpenNomiCloudViewModel, onTalk: () -> Unit) {
         Surface(color = Background, modifier = Modifier.fillMaxSize()) {
             Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
                 ModeTabs(airi, reduceMotion) { airi = it }
-                Row(Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 18.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text("OpenNomi", fontSize = 25.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 5.dp)) {
                             Box(Modifier.size(6.dp).clip(CircleShape).background(if (connected) Mint else Secondary))
-                            Text("  0.50 · ${if(phoneControl) "手机语音控制" else if (connecting) "连接中" else if (connected) "在线" else "未连接"}", color = Secondary, fontSize = 12.sp)
+                            Text("  0.51 · ${if(phoneControl) "手机语音控制" else if (connecting) "连接中" else if (connected) "在线" else "未连接"}", color = Secondary, fontSize = 12.sp)
                         }
                     }
                     Text(voiceLabel, color = Mint, fontSize = 12.sp, modifier = Modifier.padding(end = 10.dp))
@@ -120,10 +124,13 @@ fun OpenNomiApp(vm: OpenNomiCloudViewModel, onTalk: () -> Unit) {
                         ConversationState.SPEAKING -> "陪你聊一会儿"
                         else -> "我在这儿"
                     }, fontSize = 13.sp, color = Secondary, modifier = Modifier.padding(top = 9.dp, bottom = 16.dp))
-                    Text(audioRoute.message, fontSize = 12.sp, color = if(audioRoute.pending) Mint else Secondary,
-                        textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 7.dp))
+                    Row(Modifier.fillMaxWidth().padding(horizontal=22.dp),verticalAlignment=Alignment.CenterVertically) {
+                        Text(audioRoute.message, fontSize = 12.sp, color = if(audioRoute.pending) Mint else Secondary,
+                            maxLines=2, modifier = Modifier.weight(1f))
+                        TextButton(onClick={memoryOpen=true}) {Text(if(memory.enabled)"记忆 ${memory.turns.size}" else "记忆关闭",fontSize=12.sp)}
+                    }
                     LevelBars(vm, state, Modifier.height(24.dp).width(56.dp))
-                    Box(Modifier.fillMaxWidth().heightIn(min = 44.dp, max = 84.dp).padding(horizontal = 26.dp, vertical = 9.dp)) {
+                    if(response.isNotBlank() || heard.isNotBlank() || (!phoneControl && pairing!=null)) Box(Modifier.fillMaxWidth().heightIn(min = 44.dp, max = 84.dp).padding(horizontal = 26.dp, vertical = 9.dp)) {
                         val text = response.ifBlank { heard }
                         if (text.isNotBlank()) Text(text, color = Color(0xFFBAC7C5), fontSize = 14.sp, textAlign = TextAlign.Center,
                             maxLines = 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.fillMaxWidth())
@@ -142,7 +149,37 @@ fun OpenNomiApp(vm: OpenNomiCloudViewModel, onTalk: () -> Unit) {
         }
         if (settings) SettingsDialog(vm, reduceMotion, { reduceMotion = it; vm.voiceSettings.reduceMotion = it }, { settings = false; voiceRevision++ }, { settings = false; account = true })
         if (account) AccountDialog({ account = false }) { account = false; vm.disconnect(); vm.connect() }
+        if (memoryOpen) MemoryDialog(vm) { memoryOpen=false }
     }
+}
+
+@Composable
+private fun MemoryDialog(vm:OpenNomiCloudViewModel,onClose:()->Unit) {
+    val memory by vm.memory.collectAsStateWithLifecycle()
+    var confirmClear by remember { mutableStateOf(false) }
+    AlertDialog(onDismissRequest=onClose,title={Text("本机对话记忆")},text={
+        Column(verticalArrangement=Arrangement.spacedBy(10.dp)) {
+            Text("NOMI 与 FishAudio 回复共用记忆。保留最近 60 段聊天；再次聊天会把近期与相关记录交给小智作为上下文。",fontSize=13.sp)
+            SettingSwitch("记住聊天","更改此设置会暂停当前对话",memory.enabled,vm::setMemoryEnabled)
+            if(memory.turns.isEmpty())Text("还没有完成的聊天。聊完后会自动保存在这里。",fontSize=13.sp,color=Secondary)
+            else LazyColumn(Modifier.fillMaxWidth().heightIn(max=340.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                items(memory.turns.asReversed()) { turn ->
+                    Card {
+                        Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
+                            Text(java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT,java.text.DateFormat.SHORT).format(java.util.Date(turn.time)),fontSize=11.sp,color=Secondary)
+                            Text("你：${turn.user}",fontSize=13.sp)
+                            Text("NOMI：${turn.assistant}",fontSize=13.sp,color=Color(0xFFBAC7C5))
+                        }
+                    }
+                }
+            }
+            Text("AIRI 的记忆在 AIRI 页面「设置 → 对话记忆」管理；两个角色分别保存。",fontSize=12.sp,color=Secondary)
+        }
+    },confirmButton={TextButton(onClick=onClose){Text("完成")}},dismissButton={
+        TextButton(onClick={confirmClear=true},enabled=memory.turns.isNotEmpty()){Text("清空记忆")}
+    })
+    if(confirmClear)AlertDialog(onDismissRequest={confirmClear=false},title={Text("清空本机记忆？")},text={Text("将删除 NOMI 保存的聊天，并暂停当前对话。下次开始时不会再带上这些记录。")},
+        confirmButton={TextButton(onClick={vm.clearMemory();confirmClear=false}){Text("确认清空")}},dismissButton={TextButton(onClick={confirmClear=false}){Text("取消")}})
 }
 
 @Composable
@@ -243,7 +280,7 @@ private fun SettingsDialog(vm: OpenNomiCloudViewModel, reduceMotion: Boolean, on
             TextButton(onClick = onAccount) { Text("设备绑定与账号") }
             Text("设备：${vm.deviceId()}", fontSize = 11.sp, color = Secondary)
             TextButton(onClick = { vm.disconnect(); vm.connect(); onClose() }) { Text("重新连接") }
-            Text("OpenNomi 0.50 · 独立手机语音控制", fontSize = 12.sp, color = Secondary)
+            Text("OpenNomi 0.51 · 独立手机语音控制", fontSize = 12.sp, color = Secondary)
         }
     }, confirmButton = { TextButton(onClick = onClose) { Text("完成") } })
 }
