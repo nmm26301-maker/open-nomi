@@ -312,8 +312,9 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
                     else -> null
                 }
                 if(request!=null) {
-                    val accepted=controlInbox.offer(request)
-                    ai.opennomi.app.screen.ScreenState.event(if(accepted)"已收到下一条指令：$text" else "待执行指令已满，请稍后再说。")
+                    val rejected=actions.continuation.rejection(request,true)
+                    val accepted=rejected==null && controlInbox.offer(request)
+                    ai.opennomi.app.screen.ScreenState.event(rejected ?: if(accepted)"已收到下一条指令：$text" else "待执行指令已满，请稍后再说。")
                 }
                 // The action lane keeps receiving user instructions and ignores chat audio.
                 client?.sendAbort();client?.sendListen("start","manual");audio.startRecording(false)
@@ -392,7 +393,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
                     taskControlListening=true;client?.sendListen("start","manual")
                     _state.value=ConversationState.LISTENING;audio.startRecording(false)
                 }
-                val reply=controlInbox.drain(ControlRequest(commands,goal)) { request ->
+                val reply=controlInbox.drain(ControlRequest(commands,goal),{ actions.continuation.canDrain }) { request ->
                     request.goal?.let { actions.startAgent(it) } ?: actions.execute(request.commands)
                 }
                 if(generation!=turn || !active)return@launch

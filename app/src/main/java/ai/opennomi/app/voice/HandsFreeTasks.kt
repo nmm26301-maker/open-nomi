@@ -20,10 +20,14 @@ class HandsFreeTasks(private val context:Context) {
     private var session=0L
     var paused=false;private set
     val hasTask get()=queue.hasTask || goal.isNotBlank()
+    val continuation get()=TaskContinuation(hasTask,paused,
+        if(agentWaiting)ActionState.CONFIRM else if(agentChoice!=null)ActionState.CHOICE else queue.waiting,
+        agentChoice ?: queue.current)
     fun release() { clear();actions.release() }
     fun clear() {queue.clear();actions.clear();goal="";agentWaiting=false;agentChoice=null;paused=false;ScreenState.update{it.copy(agentRunning=false,busy=false,proposed=null,proposedPage=null,voiceTaskConfirmation=false)}}
     fun pause() {paused=true;ScreenState.update{it.copy(agentRunning=false,busy=false,status="任务已暂停，可说继续任务")}}
     suspend fun startAgent(task:String):String {
+        continuation.rejection(ControlRequest(goal=task))?.let{return it}
         clear();goal=task;agentSteps=0;history.clear();repeated=0;lastObservation="";session=ScreenState.state.value.session
         ScreenState.update{it.copy(task=task)}
         check(ScreenAssistant.settings().modelReady()) { clear(); "请先在连接页配置视觉模型，或直接说明确的操作指令" }
@@ -39,6 +43,7 @@ class HandsFreeTasks(private val context:Context) {
         return runAgent()
     }
     suspend fun execute(commands:List<VoiceCommand>):String {
+        continuation.rejection(ControlRequest(commands))?.let{return it}
         val command=commands.singleOrNull()
         when(command?.action) {
             "cancel"->{clear();return "任务已取消，我继续听你说。"}
@@ -65,12 +70,17 @@ class HandsFreeTasks(private val context:Context) {
         clear();queue.start(commands);return runQueue()
     }
     private suspend fun runQueue(prefix:String=""):String {
+        if(queue.waiting!=null)return continuation.waitingMessage()
         val replies=mutableListOf<String>();if(prefix.isNotBlank())replies.add(prefix)
         while(queue.hasTask && !paused) {
             currentCoroutineContext().ensureActive()
             val command=queue.current!!;val number=queue.index+1
             ScreenState.update{it.copy(agentRunning=true,status="正在执行第${number}/${queue.size}步")}
-            if(command.action in setOf("click","like","type","scroll"))observe(false)
+            if(command.action in setOf("click","like","type","scroll")) {
+                try { observe(false) } catch(e:PageNotReady) {
+                    pause();return (replies+"页面仍在切换，第${number}步已保留。回到目标 App 后说继续任务。").joinToString(" ")
+                }
+            }
             val result=actions.executeResult(command)
             replies.add(result.message);ScreenState.event("第${number}步：${result.message}");queue.result(result)
             if(result.state!=ActionState.DONE)break
@@ -95,7 +105,7 @@ class HandsFreeTasks(private val context:Context) {
             }
             null
         }
-        return pair ?: error("页面仍在切换，请回到目标 App 后说继续任务")
+        return pair ?: throw PageNotReady()
     }
     private suspend fun runAgent():String {
         if(agentWaiting)return "当前步骤仍在等待确认，请单独说确认执行或取消任务。"
@@ -107,7 +117,9 @@ class HandsFreeTasks(private val context:Context) {
             currentCoroutineContext().ensureActive()
             if(agentSteps>=20){clear();return "已达到二十步上限，任务已停止。请查看任务记录。"}
             ScreenState.update{it.copy(agentRunning=true,busy=true,status="Agent 正在观察第${agentSteps+1}步")}
-            val (page,frame)=observe(cfg.includeImage)
+            val (page,frame)=try { observe(cfg.includeImage) } catch(e:PageNotReady) {
+                pause();return "页面仍在切换，任务已保留。回到目标 App 后说继续任务。"
+            }
             val raw=withTimeout(45000){ScreenAssistant.planVoiceTask(goal,history.takeLast(12),page,frame)}
             currentCoroutineContext().ensureActive()
             check(ScreenState.valid(session)){"屏幕共享已停止"}
@@ -129,6 +141,8 @@ class HandsFreeTasks(private val context:Context) {
         return "任务已暂停。"
     }
 }
+
+private class PageNotReady:Exception()
 
 object AgentPolicy {
     fun resolve(step:Step?,page:Page,screenWidth:Int,screenHeight:Int):Step? {

@@ -123,6 +123,7 @@ class NativePhoneControl(private val context: Context, private val model: OpenNo
             "cancel" -> { taskEpoch++;job?.cancel();job=null;inbox.clear();tasks.clear();publish("任务已取消，我继续听");return }
             "pause_task" -> {taskEpoch++;job?.cancel();job=null;inbox.clear();tasks.pause();publish("任务已暂停，可说继续任务");return}
         }
+        tasks.continuation.rejection(request,job?.isActive==true)?.let { publish(it);return }
         if(job?.isActive == true) {
             publish(if(inbox.offer(request)) "指令已排队，可随时说取消任务" else "等待指令太多，请稍后再说")
             return
@@ -130,7 +131,7 @@ class NativePhoneControl(private val context: Context, private val model: OpenNo
         val taskToken = ++taskEpoch
         job = scope.launch {
             try {
-                inbox.drain(request) { next ->
+                inbox.drain(request,{ tasks.continuation.canDrain }) { next ->
                     publish("正在操作手机…", ConversationState.THINKING)
                     val answer = if(next.goal != null) tasks.startAgent(next.goal) else tasks.execute(next.commands)
                     ScreenState.event(answer); publish(answer); answer
