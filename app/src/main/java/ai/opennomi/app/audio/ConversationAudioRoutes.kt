@@ -101,7 +101,7 @@ class ConversationAudioRoutes(private val context: Context) {
             val outputs = audio.getDevices(AudioManager.GET_DEVICES_OUTPUTS).mapNotNull(::device).filter { it.kind != RouteKind.BLUETOOTH }
             @Suppress("DEPRECATION")
             val connected = try {
-                BluetoothAdapter.getDefaultAdapter()?.getProfileConnectionState(BluetoothProfile.HEADSET) == BluetoothProfile.STATE_CONNECTED
+                BluetoothAdapter.getDefaultAdapter()?.getProfileConnectionState(BluetoothProfile.HEADSET) == BluetoothAdapter.STATE_CONNECTED
             } catch (_: SecurityException) { false }
             if (connected) outputs + ConversationDevice(-1, RouteKind.BLUETOOTH, "蓝牙耳机") else outputs
         }
