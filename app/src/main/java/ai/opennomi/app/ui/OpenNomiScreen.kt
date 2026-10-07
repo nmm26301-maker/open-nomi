@@ -162,7 +162,7 @@ private fun MemoryDialog(vm:OpenNomiCloudViewModel,onClose:()->Unit) {
             Text("NOMI 与 FishAudio 回复共用记忆。保留最近 60 段聊天；再次聊天会把近期与相关记录交给小智作为上下文。",fontSize=13.sp)
             SettingSwitch("记住聊天","更改此设置会暂停当前对话",memory.enabled,vm::setMemoryEnabled)
             if(memory.turns.isEmpty())Text("还没有完成的聊天。聊完后会自动保存在这里。",fontSize=13.sp,color=Secondary)
-            else LazyColumn(Modifier.fillMaxWidth().heightIn(max=340.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+            else LazyColumn(Modifier.fillMaxWidth().weight(1f,fill=false).heightIn(max=340.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
                 items(memory.turns.asReversed()) { turn ->
                     Card {
                         Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {

@@ -60,7 +60,7 @@ class ConversationMemoryRegressionTest {
     }
     @Test fun olderRelevantFactsCanBeRetrievedOutsideTheRecentWindow() {
         val memory=ConversationMemory();memory.record("我的猫叫奶糖","奶糖这个名字很好听",0,0)
-        repeat(10){memory.record("天气第$it天","天气晴朗",0,it+1L)}
+        repeat(10){memory.record("天气第${it}天","天气晴朗",0,it+1L)}
         assertTrue(memory.prompt("我的猫叫什么名字").contains("奶糖"))
     }
     @Test fun HistoryIsQuotedAsDataAndDoesNotReplaceTheCurrentRequest() {
