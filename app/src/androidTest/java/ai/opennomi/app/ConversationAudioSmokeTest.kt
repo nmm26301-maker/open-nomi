@@ -13,6 +13,7 @@ import okio.Buffer
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.concurrent.TimeUnit
 
 @RunWith(AndroidJUnit4::class)
 class ConversationAudioSmokeTest {
@@ -36,15 +37,21 @@ class ConversationAudioSmokeTest {
             withContext(Dispatchers.Main.immediate){assertTrue(engine.startRecording(encodeCapture=false))}
             assertTrue(engine.isRecording())
             withContext(Dispatchers.Main.immediate){engine.stopRecording()}
-            assertEquals("Pausing capture must retain the route",AudioManager.MODE_IN_COMMUNICATION,manager.mode)
-            server.enqueue(MockResponse().setBody(Buffer().write(ByteArray(9600))))
-            withTimeout(15000){fish.speak("耳机对话测试",FishAudioConfig("test",base=server.url("/").toString()),duplex=false)}
-            assertTrue(playback.isCompleted)
+            assertTrue("Pausing capture must retain our conversation lease",routes.active)
+            server.enqueue(MockResponse().setBody(Buffer().write(ByteArray(48000))).throttleBody(2400,100,TimeUnit.MILLISECONDS))
+            val reply=launch { fish.speak("耳机对话测试",FishAudioConfig("test",base=server.url("/").toString()),duplex=false) }
+            withTimeout(15000){playback.await()}
+            withTimeout(5000){while(manager.mode!=AudioManager.MODE_IN_COMMUNICATION)delay(20)}
+            assertTrue("Validate routing during actual half-duplex playback",reply.isActive)
+            if(Build.VERSION.SDK_INT>=31)assertEquals(routes.state.value.device!!.id,manager.communicationDevice!!.id)
+            withTimeout(15000){reply.join()}
             assertTrue("Half duplex must retain communication routing",routes.active)
-            assertEquals(AudioManager.MODE_IN_COMMUNICATION,manager.mode)
+            // Android 12+ may temporarily return to NORMAL while no audio runs;
+            // our requested route and mode ownership remain until the last lease closes.
             withContext(Dispatchers.Main.immediate){first!!.close();first!!.close()}
             assertTrue(routes.active)
             withContext(Dispatchers.Main.immediate){second!!.close()}
+            withTimeout(3000){while(manager.mode!=oldMode)delay(20)}
             assertFalse(routes.active);assertEquals(oldMode,manager.mode)
         } finally {
             withContext(Dispatchers.Main.immediate){engine.release();fish.release();first?.close();second?.close()}
