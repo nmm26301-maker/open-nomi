@@ -94,7 +94,7 @@ fun OpenNomiApp(vm: OpenNomiCloudViewModel, onTalk: () -> Unit) {
                         Text("OpenNomi", fontSize = 25.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 5.dp)) {
                             Box(Modifier.size(6.dp).clip(CircleShape).background(if (connected) Mint else Secondary))
-                            Text("  0.51 · ${if(phoneControl) "手机语音控制" else if (connecting) "连接中" else if (connected) "在线" else "未连接"}", color = Secondary, fontSize = 12.sp)
+                            Text("  0.52 · ${if(phoneControl) "手机语音控制" else if (connecting) "连接中" else if (connected) "在线" else "未连接"}", color = Secondary, fontSize = 12.sp)
                         }
                     }
                     Text(voiceLabel, color = Mint, fontSize = 12.sp, modifier = Modifier.padding(end = 10.dp))
@@ -157,16 +157,25 @@ fun OpenNomiApp(vm: OpenNomiCloudViewModel, onTalk: () -> Unit) {
 private fun MemoryDialog(vm:OpenNomiCloudViewModel,onClose:()->Unit) {
     val memory by vm.memory.collectAsStateWithLifecycle()
     var confirmClear by remember { mutableStateOf(false) }
+    var pinnedOnly by remember { mutableStateOf(false) }
+    val pinnedCount=memory.turns.count { it.pinned }
+    val visible=memory.turns.asReversed().filter { !pinnedOnly || it.pinned }
     AlertDialog(onDismissRequest=onClose,title={Text("本机对话记忆")},text={
         Column(verticalArrangement=Arrangement.spacedBy(10.dp)) {
-            Text("NOMI 与 FishAudio 回复共用记忆。保留最近 60 段聊天；再次聊天会把近期与相关记录交给小智作为上下文。",fontSize=13.sp)
+            Text("NOMI 与 FishAudio 共用记忆。最多保存 60 段；可选 4 段长期保留，不随普通历史滚动清理。再次聊天会携带相关记录。",fontSize=13.sp)
             SettingSwitch("记住聊天","更改此设置会暂停当前对话",memory.enabled,vm::setMemoryEnabled)
+            Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                FilterChip(selected=!pinnedOnly,onClick={pinnedOnly=false},label={Text("全部")})
+                FilterChip(selected=pinnedOnly,onClick={pinnedOnly=true},label={Text("长期 $pinnedCount / 4")})
+            }
             if(memory.turns.isEmpty())Text("还没有完成的聊天。聊完后会自动保存在这里。",fontSize=13.sp,color=Secondary)
+            else if(visible.isEmpty())Text("还没有长期记忆，在记录上点「长期记住」即可。",fontSize=13.sp,color=Secondary)
             else LazyColumn(Modifier.fillMaxWidth().weight(1f,fill=false).heightIn(max=340.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
-                items(memory.turns.asReversed()) { turn ->
-                    Card {
+                items(visible) { turn ->
+                    Card(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
                             Text(java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT,java.text.DateFormat.SHORT).format(java.util.Date(turn.time)),fontSize=11.sp,color=Secondary)
+                            TextButton(onClick={vm.pinMemory(turn,!turn.pinned)},enabled=turn.pinned || pinnedCount<4) {Text(if(turn.pinned)"取消长期" else "长期记住")}
                             Text("你：${turn.user}",fontSize=13.sp)
                             Text("NOMI：${turn.assistant}",fontSize=13.sp,color=Color(0xFFBAC7C5))
                         }
@@ -280,7 +289,7 @@ private fun SettingsDialog(vm: OpenNomiCloudViewModel, reduceMotion: Boolean, on
             TextButton(onClick = onAccount) { Text("设备绑定与账号") }
             Text("设备：${vm.deviceId()}", fontSize = 11.sp, color = Secondary)
             TextButton(onClick = { vm.disconnect(); vm.connect(); onClose() }) { Text("重新连接") }
-            Text("OpenNomi 0.51 · 独立手机语音控制", fontSize = 12.sp, color = Secondary)
+            Text("OpenNomi 0.52 · 独立手机语音控制", fontSize = 12.sp, color = Secondary)
         }
     }, confirmButton = { TextButton(onClick = onClose) { Text("完成") } })
 }

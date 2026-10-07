@@ -1,6 +1,8 @@
 package ai.opennomi.app.voice
 
 object VoiceSessionPolicy {
+    fun resumeChat(userRequested:Boolean,backgroundRequested:Boolean,continuous:Boolean) = backgroundRequested || (userRequested && continuous)
+    fun rememberChat(completed:Boolean,hasModelText:Boolean,explicitScreen:Boolean,silent:Boolean,user:String) = completed && hasModelText && !explicitScreen && !silent && user.isNotBlank()
     fun allowCloudReply(phoneControl:Boolean, explicitTextRequest:Boolean)=!phoneControl || explicitTextRequest
     fun canHandleRecognition(active: Boolean, submitted: Boolean, finishing: Boolean, speaking: Boolean, routing: Boolean) = active && !submitted && !finishing && !speaking && !routing
     fun playbackTimeout(audioPackets: Int): Long = if(audioPackets==0)30000L else 120000L

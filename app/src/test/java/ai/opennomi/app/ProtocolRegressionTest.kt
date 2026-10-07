@@ -166,4 +166,33 @@ class ProtocolRegressionTest {
             assertNull(listener.audio.poll(100,TimeUnit.MILLISECONDS))
         } finally { client.disconnect();server.shutdown() }
     }
+
+    @Test fun foreignSessionRepliesAndDuplicateHelloCannotReplaceTheCurrentConversation() {
+        val server=MockWebServer();val listener=Listener();val sent=LinkedBlockingQueue<String>()
+        server.enqueue(MockResponse().withWebSocketUpgrade(object:WebSocketListener(){
+            override fun onMessage(ws:WebSocket,text:String) {
+                sent.add(text)
+                if(JSONObject(text).optString("type")!="hello")return
+                ws.send("""{"type":"hello","session_id":"current"}""")
+                ws.send("""{"type":"hello","session_id":"old"}""")
+                ws.send("""{"type":"hello","session_id":"current","audio_params":{"sample_rate":44100}}""")
+                ws.send("""{"type":"llm","session_id":"old","text":"旧会话答案"}""")
+                ws.send("""{"type":"tts","session_id":"old","state":"stop"}""")
+                ws.send("""{"type":"llm","session_id":"current","text":"当前答案"}""")
+                ws.send("""{"type":"llm","text":"兼容无会话字段"}""")
+            }
+            override fun onClosing(ws:WebSocket,code:Int,reason:String){ws.close(code,reason)}
+        }))
+        server.start()
+        val client=XiaozhiProtocolClient(server.url("/").toString().replace("http","ws"),"","device","client",listener)
+        try {
+            client.connect();assertEquals("rate:16000",listener.events.poll(5,TimeUnit.SECONDS));assertEquals("open",listener.events.poll(5,TimeUnit.SECONDS))
+            assertEquals("当前答案",listener.text.poll(5,TimeUnit.SECONDS))
+            assertEquals("兼容无会话字段",listener.text.poll(5,TimeUnit.SECONDS))
+            assertNull(listener.text.poll(100,TimeUnit.MILLISECONDS));assertNull(listener.playbackOrder.poll(100,TimeUnit.MILLISECONDS))
+            assertNull(listener.events.poll(100,TimeUnit.MILLISECONDS))
+            sent.poll(5,TimeUnit.SECONDS);client.sendText("继续")
+            assertEquals("current",JSONObject(sent.poll(5,TimeUnit.SECONDS)!!).getString("session_id"))
+        } finally {client.disconnect();server.shutdown()}
+    }
 }

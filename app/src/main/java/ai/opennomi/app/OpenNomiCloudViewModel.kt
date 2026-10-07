@@ -44,16 +44,22 @@ class OpenNomiCloudViewModel(app: Application, private val memories:ai.opennomi.
     private var memoryPrimed=false
     private var memoryRevision=memory.value.revision
     private var memorySaved=false
+    private var replyCompleted=false
     private var awaitingFreshReply=false
     private var bargeWatchdog:Job?=null
     fun setMemoryEnabled(enabled:Boolean) { memories.enabled(enabled);restartMemorySession() }
     fun clearMemory() { memories.clear();restartMemorySession() }
+    fun pinMemory(turn:ai.opennomi.app.voice.RememberedTurn,enabled:Boolean):Boolean {
+        val changed=memories.pin(turn,enabled)
+        if(changed)memoryPrimed=false
+        return changed
+    }
     private fun restartMemorySession() {
         ai.opennomi.app.voice.NomiVoiceService.stop(getApplication())
         disconnect();if(!voiceSettings.phoneControl)connect()
     }
     private fun rememberReply() {
-        if(memorySaved || screenTextTurn || screenSilent || !receivedReplyText || _heard.value.isBlank())return
+        if(memorySaved || !VoiceSessionPolicy.rememberChat(replyCompleted,receivedReplyText,screenTextTurn,screenSilent,_heard.value))return
         runCatching { memories.record(_heard.value,_response.value,memoryRevision) }
             .onFailure { ai.opennomi.app.screen.ScreenState.event("本机记忆保存失败，请检查存储空间") }
         memorySaved=true
@@ -105,6 +111,8 @@ class OpenNomiCloudViewModel(app: Application, private val memories:ai.opennomi.
     private var client: XiaozhiProtocolClient? = null
     private var connectionGeneration = 0
     @Volatile private var active = false
+    private var conversationRequested=false
+    private fun shouldResumeChat()=VoiceSessionPolicy.resumeChat(conversationRequested && !screenTextTurn && !screenSilent && !screenRouting,_backgroundConversation.value,voiceSettings.continuousConversation)
     @Volatile private var realtime = false
     private var awaitingBargeTranscript=false
     @Volatile private var turn = 0
@@ -201,6 +209,7 @@ class OpenNomiCloudViewModel(app: Application, private val memories:ai.opennomi.
     private val audio: RealtimeAudioEngine get() = audioDelegate.value
     fun connect(startWhenReady: Boolean = false) {
         if(nativePhoneControl)return
+        if(startWhenReady)conversationRequested=true
         _pendingStart.value = _pendingStart.value || startWhenReady
         if (_connected.value || _connecting.value) return
         _connecting.value = true; val generation = ++connectionGeneration
@@ -246,6 +255,7 @@ class OpenNomiCloudViewModel(app: Application, private val memories:ai.opennomi.
     fun askScreenText(text: String): Boolean {
         if (!_connected.value || _pairingCode.value != null) { connect(); return false }
         resetTurn()
+        conversationRequested=false
         screenTextTurn = true
         screenSession = ai.opennomi.app.screen.ScreenState.state.value.session
         active = true; realtime = false
@@ -256,6 +266,7 @@ class OpenNomiCloudViewModel(app: Application, private val memories:ai.opennomi.
         return true
     }
     fun pauseConversation() {
+        conversationRequested=false
         _backgroundConversation.value = false
         reconnectJob?.cancel(); reconnectJob = null
         recoveryJob?.cancel(); recoveryJob = null; actions.clear()
@@ -289,7 +300,8 @@ class OpenNomiCloudViewModel(app: Application, private val memories:ai.opennomi.
     private fun startListening() {
         if (!_connected.value) return
         recoveryJob?.cancel();recoveryJob=null
-        if (!audio.hasRecordPermission()) { _backgroundConversation.value = false; _status.value = "请允许麦克风权限"; return }
+        if (!audio.hasRecordPermission()) { conversationRequested=false;_backgroundConversation.value = false; _status.value = "请允许麦克风权限"; return }
+        conversationRequested=true
         client?.sendAbort(); clearSpeech(); audio.stopAllPlayback()
         active = true; awaitingBargeTranscript=false;realtime = voiceSettings.realtimeConversation && audio.supportsRealtime()
         _state.value = ConversationState.LISTENING; _emotion.value = "listening"
@@ -350,18 +362,18 @@ class OpenNomiCloudViewModel(app: Application, private val memories:ai.opennomi.
         if (_pendingStart.value && _pairingCode.value == null) { _pendingStart.value = false; startListening() }
     }
     override fun onClosed(error: Throwable?) {
-        val resume = _backgroundConversation.value && _pairingCode.value == null
+        val resume = shouldResumeChat() && _pairingCode.value == null
         _connecting.value = false; _connected.value = false; resetTurn()
         _status.value = "连接断开：${error?.message ?: "已断开"}"
-        if (resume) scheduleReconnect()
+        if (resume) scheduleReconnect() else conversationRequested=false
     }
     private fun scheduleReconnect() {
-        if(!_backgroundConversation.value || _pairingCode.value != null)return
+        if(!shouldResumeChat() || _pairingCode.value != null)return
         reconnectJob?.cancel()
         reconnectJob=viewModelScope.launch {
             _status.value="连接暂时中断，正在自动重连"
             delay((2000L shl reconnectAttempt.coerceAtMost(4)).coerceAtMost(30000L)); reconnectAttempt++
-            if(_backgroundConversation.value)connect(startWhenReady=true)
+            if(shouldResumeChat())connect(startWhenReady=true)
         }
     }
     override fun onStt(text: String) {
@@ -540,6 +552,7 @@ class OpenNomiCloudViewModel(app: Application, private val memories:ai.opennomi.
         if(!VoiceSessionPolicy.allowCloudReply(voiceSettings.phoneControl,screenTextTurn))return
         if (!active || screenRouting || finishingReply || awaitingBargeTranscript) return
         if (state == "stop" && awaitingFreshReply && !receivedReplyText && audioPackets==0)return
+        if(state=="stop" && _state.value in setOf(ConversationState.THINKING,ConversationState.SPEAKING))replyCompleted=true
         if (state == "stop" && screenSilent) {
             val result = _response.value.trim()
             if (result.isBlank()) silentRequest?.completeExceptionally(IllegalStateException("NOMI 未返回译文")) else silentRequest?.complete(result)
@@ -705,7 +718,7 @@ class OpenNomiCloudViewModel(app: Application, private val memories:ai.opennomi.
                 if (failure != null) _status.value = "$failure。我继续听你说"
             }
         } else {
-            _backgroundConversation.value = false; active = false; realtime = false; audio.stopRecording(); closeRoute()
+            conversationRequested=false;_backgroundConversation.value = false; active = false; realtime = false; audio.stopRecording(); closeRoute()
             _state.value = ConversationState.IDLE; _status.value = failure ?: "我在这儿"; _emotion.value = "happy"
         }
     }
@@ -726,17 +739,18 @@ class OpenNomiCloudViewModel(app: Application, private val memories:ai.opennomi.
         } else finishPlayback()
     }
     private fun recoverVoice(message: String) {
-        val resume=_backgroundConversation.value
+        val resume=shouldResumeChat()
         resetTurn();_status.value=message;ai.opennomi.app.screen.ScreenState.event(message)
+        if(!resume)conversationRequested=false
         val generation=turn
         if(resume)recoveryJob=viewModelScope.launch {
             delay(2500)
-            if(VoiceSessionPolicy.staleRecovery(generation,turn,_backgroundConversation.value))return@launch
+            if(VoiceSessionPolicy.staleRecovery(generation,turn,shouldResumeChat()))return@launch
             recoveryJob=null
             if(_connected.value)startListening()else scheduleReconnect()
         }
     }
-    private fun prepareTurn() { memorySaved=false;awaitingFreshReply=false;memoryRevision=memory.value.revision; fishQueue?.cancel();fishQueue=null;fishJob?.cancel();fishJob=null;fishChunks=SpeechChunks(fastStart=voiceSettings.fastResponse);fishError=null;turnFish = if (usesFishVoice()) fishSettings.connection() else null; receivedReplyText=false; voiceRetry=0; audioPackets = 0; fallbackText="";textSubmitted=false;systemSpeaking=false; accumulator.reset(); _heard.value = ""; _response.value = "" }
+    private fun prepareTurn() { memorySaved=false;replyCompleted=false;awaitingFreshReply=false;memoryRevision=memory.value.revision; fishQueue?.cancel();fishQueue=null;fishJob?.cancel();fishJob=null;fishChunks=SpeechChunks(fastStart=voiceSettings.fastResponse);fishError=null;turnFish = if (usesFishVoice()) fishSettings.connection() else null; receivedReplyText=false; voiceRetry=0; audioPackets = 0; fallbackText="";textSubmitted=false;systemSpeaking=false; accumulator.reset(); _heard.value = ""; _response.value = "" }
     private fun watchAnswer(timeout: Long = 45000) {
         answerWatchdog?.cancel()
         val generation = turn
@@ -752,6 +766,7 @@ class OpenNomiCloudViewModel(app: Application, private val memories:ai.opennomi.
     }
     private fun clearSpeech() { bargeWatchdog?.cancel();bargeWatchdog=null; fishQueue?.cancel();fishJob?.cancel(); if (fishSpeechDelegate.isInitialized()) fishSpeechDelegate.value.stop(); finishingReply=false;turn++; answerWatchdog?.cancel(); finishJob?.cancel(); finishJob = null; prepareTurn() }
     override fun onCleared() {
+        conversationRequested=false
         closeRoute()
         active = false; ++connectionGeneration; clearSpeech(); client?.disconnect();actions.release()
         if (audioDelegate.isInitialized()) audio.release()

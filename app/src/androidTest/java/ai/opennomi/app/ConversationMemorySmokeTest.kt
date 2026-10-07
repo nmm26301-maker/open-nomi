@@ -31,8 +31,10 @@ class ConversationMemorySmokeTest {
         try {
             val first=LocalConversationMemory(context,key).conversation
             assertTrue(first.record("我叫小林","记住了",0))
+            assertTrue(first.pin(first.state.value.turns.single(),true))
             val reopened=LocalConversationMemory(context,key).conversation
             assertEquals("我叫小林",reopened.state.value.turns.single().user)
+            assertTrue(reopened.state.value.turns.single().pinned)
             assertTrue(reopened.prompt("我叫什么名字").contains("小林"))
             reopened.clear()
             assertTrue(LocalConversationMemory(context,key).conversation.state.value.turns.isEmpty())
@@ -117,6 +119,11 @@ class ConversationMemorySmokeTest {
                 assertTrue(device.wait(Until.hasObject(By.text("本机对话记忆")),5000))
                 assertNotNull(device.findObject(By.text("你：我叫小林")))
                 assertNotNull(device.findObject(By.text("NOMI：记住了，下次接着聊")))
+                device.findObject(By.text("长期记住")).click()
+                assertTrue(device.wait(Until.hasObject(By.text("长期 1 / 4")),5000))
+                device.findObject(By.text("长期 1 / 4")).click()
+                assertNotNull(device.findObject(By.text("取消长期")))
+                assertTrue(memory.state.value.turns.single().pinned)
                 val output=File(context.getExternalFilesDir(null),"conversation-memory.png")
                 assertTrue(device.takeScreenshot(output))
                 device.executeShellCommand("cp ${output.absolutePath} /data/local/tmp/conversation-memory.png")

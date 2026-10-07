@@ -118,8 +118,10 @@ class XiaozhiProtocolClient(
             if (closed) return
             val json = runCatching { JSONObject(text) }.getOrNull() ?: return
             if(!ready && json.optString("type") !in setOf("hello","error"))return
+            if(ready && json.optString("session_id").let { it.isNotBlank() && it!=sessionId })return
             when (json.optString("type")) {
                 "hello" -> {
+                    if(ready)return
                     sessionId = json.optString("session_id", "")
                     val params = json.optJSONObject("audio_params")
                     if (sessionId.isBlank() || json.optString("transport","websocket")!="websocket" || (params != null && (params.optInt("sample_rate", 16000) !in setOf(8000, 12000, 16000, 24000, 48000) || params.optInt("channels", 1) != 1 || params.optString("format", "opus") != "opus"))) {

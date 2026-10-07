@@ -73,4 +73,64 @@ class ConversationMemoryRegressionTest {
         assertTrue(runCatching{memory.record("问题","回答",0)}.isFailure)
         assertTrue(memory.state.value.turns.isEmpty())
     }
+
+    @Test fun pinnedChatSurvivesRollingHistoryAndReload() {
+        var disk="";val memory=ConversationMemory(persist={disk=it})
+        memory.record("我的猫叫奶糖","记住了",0,1)
+        assertTrue(memory.pin(memory.state.value.turns.single(),true))
+        repeat(100){memory.record("普通聊天$it","普通回答",0,it+2L)}
+        val reopened=ConversationMemory(disk)
+        assertTrue(reopened.state.value.turns.first().pinned)
+        assertTrue(reopened.prompt("我的猫叫什么").contains("奶糖"))
+        assertEquals(60,reopened.state.value.turns.size)
+    }
+    @Test fun pinLimitDoesNotEvictExistingImportantChats() {
+        val memory=ConversationMemory()
+        repeat(5){memory.record("重点$it","答案$it",0,it.toLong())}
+        memory.state.value.turns.take(4).forEach{assertTrue(memory.pin(it,true))}
+        assertFalse(memory.pin(memory.state.value.turns.last(),true))
+        assertEquals(4,memory.state.value.turns.count{it.pinned})
+    }
+    @Test fun unpinnedChatCanAgeOutAndClearingAlsoRemovesPins() {
+        val memory=ConversationMemory();memory.record("以前的名字","旧答案",0,0)
+        memory.pin(memory.state.value.turns.single(),true)
+        memory.pin(memory.state.value.turns.single(),false)
+        repeat(70){memory.record("新话题$it","新答案",0,it+1L)}
+        assertFalse(memory.prompt("我的名字").contains("以前的名字"))
+        memory.pin(memory.state.value.turns.last(),true);memory.clear()
+        assertTrue(memory.state.value.turns.isEmpty())
+    }
+    @Test fun oldVersionWithoutPinFlagsStillLoads() {
+        val memory=ConversationMemory("""{"version":1,"enabled":true,"revision":0,"turns":[{"u":"旧版聊天","a":"旧版回答","t":1}]}""")
+        assertEquals("旧版聊天",memory.state.value.turns.single().user)
+        assertFalse(memory.state.value.turns.single().pinned)
+    }
+    @Test fun pinDoesNotInvalidateAnUnrelatedAnswerAlreadyInFlight() {
+        val memory=ConversationMemory();memory.record("重要聊天","重要回答",0)
+        val revision=memory.state.value.revision
+        memory.pin(memory.state.value.turns.single(),true)
+        assertTrue(memory.record("正在聊的问题","刚完成的回答",revision))
+        assertTrue(memory.state.value.turns.first().pinned)
+    }
+    @Test fun pinnedAndRecentContextStillFitsThePromptBudget() {
+        val memory=ConversationMemory()
+        repeat(4){
+            memory.record("重要$it"+"重".repeat(1000),"答案"+"重".repeat(2000),0,it.toLong())
+            memory.pin(memory.state.value.turns.last(),true)
+        }
+        repeat(10){memory.record("当前$it"+"近".repeat(1000),"答案"+"近".repeat(2000),0,it+4L)}
+        val prompt=memory.prompt("现在继续聊")
+        assertTrue(prompt.length<8000);assertTrue(prompt.contains("重要0"));assertTrue(prompt.contains("当前9"))
+    }
+    @Test fun escapedControlCharactersStillReloadWithoutLosingStoredChats() {
+        var disk="";val memory=ConversationMemory(persist={disk=it})
+        repeat(20){memory.record("问题$it"+"\u0001".repeat(1100)+"尾","答案$it"+"\u0002".repeat(2200)+"尾",0,it.toLong())}
+        assertEquals(memory.state.value,ConversationMemory(disk).state.value)
+        assertTrue(memory.prompt("接着聊").length<8000)
+    }
+    @Test fun damagedStorageCannotBypassThePinLimit() {
+        val turns=(0..7).joinToString(","){"""{"u":"问题$it","a":"答案$it","t":$it,"p":true}"""}
+        val memory=ConversationMemory("""{"version":1,"turns":[$turns]}""")
+        assertEquals(4,memory.state.value.turns.count{it.pinned})
+    }
 }

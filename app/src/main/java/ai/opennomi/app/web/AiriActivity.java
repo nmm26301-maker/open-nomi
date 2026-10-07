@@ -232,7 +232,7 @@ public final class AiriActivity extends Activity {
             if ("error".equals(result.optString("state"))) { Toast.makeText(this,result.optString("message"),Toast.LENGTH_LONG).show();return; }
             boolean enabled = result.optBoolean("enabled",true);
             StringBuilder message = new StringBuilder("AIRI 记忆保存于本机，与 NOMI 分开。下次交流会带上最近聊天。\n已保存 " + result.optInt("count") + " 段\n");
-            if(result.optBoolean("storageError"))message.append("当前存储失败，关闭网页后可能丢失，请检查存储空间。\n");
+            if(result.optBoolean("storageError"))message.append("存储失败，此次更改未能写入；请检查存储空间后重试。\n");
             JSONArray recent = result.optJSONArray("recent");
             if(recent != null)for(int i=recent.length()-1;i>=0;i--) {
                 JSONObject turn=recent.optJSONObject(i);

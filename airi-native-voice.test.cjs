@@ -23,19 +23,30 @@ function fixture() {
     calls: () => calls, stopped: () => stopped, finish: () => finish(), context};
 }
 
-function memoryFixture(disk, ingest) {
-  const session = {messages: []};
-  const seen = [];
-  const chat = {ingest: async (...args) => {
-    seen.push(args);return ingest(session,...args);
-  }};
-  const stores = new Map([['chat',chat],['chat-session',session]]);
-  const window = {localStorage: {getItem: k => disk.get(k), setItem: (k,v) => disk.set(k,v)}};
+function memoryFixture(disk, ingest, modern=false) {
+  const threads=new Map([['session-1',[]]]);const generations=new Map();
+  const session={activeSessionId:'session-1',
+    getSessionMessagesIfLoaded:id=>threads.get(id),
+    getSessionGeneration:id=>generations.get(id) || 0};
+  Object.defineProperty(session,'messages',{get:()=>threads.get(session.activeSessionId),set:v=>threads.set(session.activeSessionId,v)});
+  const seen=[];
+  async function run(args) {
+    seen.push(args);const id=args[2] || session.activeSessionId;
+    if(!threads.has(id))threads.set(id,[]);
+    return ingest({messages:threads.get(id)},...args);
+  }
+  const chat={ingest:modern ? async function(text,options,...rest) {
+    const supplement=options?.systemPromptSupplement;
+    return run([text,options,...rest]);
+  } : async function(...args){return run(args);}};
+  const stores=new Map([['chat',chat],['chat-session',session]]);
+  const window={localStorage:{getItem:k=>disk.get(k),setItem:(k,v)=>disk.set(k,v)}};
   vm.runInNewContext(script,{window,document:{
     querySelector:()=>({__vue_app__:{config:{globalProperties:{$pinia:{_s:stores}}}}}),
     querySelectorAll:()=>[]},Promise,Map,WeakSet});
-  return {api:window.__nomiAiriVoice,chat,seen,window,session};
+  return {api:window.__nomiAiriVoice,chat,seen,window,session,threads,generations,stores};
 }
+
 async function memoryRegression() {
   const disk=new Map();let sequence=0;
   const reply=async (session,text) => {
@@ -73,14 +84,60 @@ async function memoryRegression() {
   const failed=memoryFixture(disk,async()=>{throw new Error('network')});
   await assert.rejects(failed.chat.ingest('未完成的对话',options));
   assert.equal(failed.api.memoryInfo().count,0);
-  const stale=memoryFixture(disk,async()=>{});
+  const stale=memoryFixture(disk,async session=>{session.messages.push({role:'user',content:'只有新问题，没有新回答'});});
   stale.session.messages.push({id:'old',role:'assistant',content:'旧答案'});
   await stale.chat.ingest('没有新回答',options);
   assert.equal(stale.api.memoryInfo().count,0);
   const broken=memoryFixture(new Map(),reply);
   broken.window.localStorage.setItem=()=>{throw new Error('quota')};
   await broken.chat.ingest('存储失败',options);
-  assert.equal(broken.api.memoryInfo().storageError,true);
+  assert.equal(broken.api.memoryInfo().storageError,true);assert.equal(broken.api.memoryInfo().count,0);
+  const remembered=new Map([['open-nomi-airi-memory-v1',JSON.stringify({enabled:true,revision:0,turns:[{u:'我的猫叫奶糖',a:'记住了',t:1}]})]]);
+  const modern=memoryFixture(remembered,reply,true);
+  const originalOptions={model:'model',systemPromptSupplement:'保留原有工具提示',temperature:0.4};
+  await modern.chat.ingest('猫叫什么',originalOptions);
+  assert.equal(modern.seen[0][0],'猫叫什么');
+  assert.ok(modern.seen[0][1].systemPromptSupplement.includes('奶糖'));
+  assert.ok(modern.seen[0][1].systemPromptSupplement.includes('保留原有工具提示'));
+  assert.equal(originalOptions.systemPromptSupplement,'保留原有工具提示');
+  assert.equal(modern.seen[0][1].temperature,0.4);
+  modern.session.activeSessionId='session-2';modern.session.messages=[];
+  modern.stores.set('llm-toolset-prompts',{activeToolsetPrompt:'默认工具提示'});
+  await modern.chat.ingest('新会话继续聊',{model:'model'});
+  assert.equal(modern.seen[1][0],'新会话继续聊');
+  assert.ok(modern.seen[1][1].systemPromptSupplement.includes('默认工具提示'));
+  assert.ok(modern.seen[1][1].systemPromptSupplement.includes('历史资料'));
+  let attempts=0;
+  const retry=memoryFixture(remembered,async (...args)=>{
+    if(++attempts===1)throw new Error('first failed');return reply(...args);
+  });
+  await assert.rejects(retry.chat.ingest('第一次失败',{}));
+  await retry.chat.ingest('重新问',{});
+  assert.ok(retry.seen[1][0].includes('历史资料'));
+  let settle;
+  const switched=memoryFixture(new Map(),async session=>{
+    await new Promise(r=>{settle=r});session.messages.push({id:'owned',role:'assistant',content:'原会话答案'});
+  });
+  const turn=switched.chat.ingest('原会话问题',{});
+  switched.session.activeSessionId='other';switched.session.messages=[{id:'other',role:'assistant',content:'别的会话答案'}];
+  settle();await turn;
+  assert.equal(switched.api.memoryInfo().recent[0].a,'原会话答案');
+  let resolve;
+  const reset=memoryFixture(new Map(),async session=>{
+    await new Promise(r=>{resolve=r});session.messages.push({id:'late',role:'assistant',content:'已清除会话的答案'});
+  });
+  const late=reset.chat.ingest('旧会话问题',{});
+  reset.generations.set('session-1',1);resolve();await late;
+  assert.equal(reset.api.memoryInfo().count,0);
+  const interrupted=memoryFixture(new Map(),async session=>{
+    session.messages.push({id:'partial',role:'assistant',interrupted:true,content:'不完整回答'});
+  });
+  await interrupted.chat.ingest('被打断的问题',{});assert.equal(interrupted.api.memoryInfo().count,0);
+  const emoji=memoryFixture(new Map(),reply);
+  await emoji.chat.ingest('中'.repeat(1199)+'😀',{});
+  const raw=JSON.parse(emoji.window.localStorage.getItem('open-nomi-airi-memory-v1'));
+  assert.ok(!/[\uD800-\uDBFF]$/.test(raw.turns[0].u));
+
 }
 
 const tick = () => new Promise(resolve => setImmediate(resolve));

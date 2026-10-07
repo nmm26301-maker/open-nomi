@@ -83,5 +83,19 @@ class HandsFreeRegressionTest {
         assertEquals(VoiceCommand("click","发送"),VoiceCommands.parse("点击发送按钮"))
         assertEquals(VoiceCommand("scroll","up"),VoiceCommands.parse("向上滚动"))
     }
-}
 
+    @Test fun foregroundContinuousChatRecoversButPauseAndSingleTurnDoNot() {
+        assertTrue(VoiceSessionPolicy.resumeChat(true,false,true))
+        assertFalse(VoiceSessionPolicy.resumeChat(false,false,true))
+        assertFalse(VoiceSessionPolicy.resumeChat(true,false,false))
+        assertTrue(VoiceSessionPolicy.resumeChat(false,true,false))
+    }
+    @Test fun partialAndSilentRepliesCannotBeSavedAsCompletedChat() {
+        assertFalse(VoiceSessionPolicy.rememberChat(false,true,false,false,"问题"))
+        assertFalse(VoiceSessionPolicy.rememberChat(true,false,false,false,"问题"))
+        assertFalse(VoiceSessionPolicy.rememberChat(true,true,true,false,"问题"))
+        assertFalse(VoiceSessionPolicy.rememberChat(true,true,false,true,"问题"))
+        assertFalse(VoiceSessionPolicy.rememberChat(true,true,false,false," "))
+        assertTrue(VoiceSessionPolicy.rememberChat(true,true,false,false,"问题"))
+    }
+}
