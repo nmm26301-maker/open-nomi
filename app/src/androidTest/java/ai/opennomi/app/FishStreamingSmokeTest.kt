@@ -59,7 +59,10 @@ class FishStreamingSmokeTest {
         val oldEndpoint=model.endpointSettings.connection();val oldEndpointEnabled=model.endpointSettings.enabled
         val oldPhone=model.voiceSettings.phoneControl
         val socket=CompletableDeferred<WebSocket>()
+        val socketClosed=CompletableDeferred<Unit>()
         xiaozhi.enqueue(MockResponse().withWebSocketUpgrade(object:WebSocketListener(){
+            override fun onClosing(ws:WebSocket,code:Int,reason:String) {ws.close(code,reason)}
+            override fun onClosed(ws:WebSocket,code:Int,reason:String) {socketClosed.complete(Unit)}
             override fun onMessage(ws:WebSocket,text:String) {
                 val event=JSONObject(text)
                 if(event.optString("type")=="hello") {
@@ -95,6 +98,10 @@ class FishStreamingSmokeTest {
             assertEquals("1",handshake.getHeader("Protocol-Version"))
         } finally {
             withContext(Dispatchers.Main.immediate){model.disconnect()}
+            if(socket.isCompleted) {
+                try {withTimeout(5000){socketClosed.await()}}
+                finally {if(!socketClosed.isCompleted)socket.await().cancel()}
+            }
             model.fishSettings.save(oldFish,oldFishEnabled && oldFish.apiKey.isNotBlank())
             model.endpointSettings.save(oldEndpoint,oldEndpointEnabled);model.voiceSettings.phoneControl=oldPhone
             audio.setStreamVolume(AudioManager.STREAM_MUSIC,previous,0)

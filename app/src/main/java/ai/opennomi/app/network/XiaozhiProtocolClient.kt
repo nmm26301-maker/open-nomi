@@ -145,7 +145,9 @@ class XiaozhiProtocolClient(
         }
 
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) = fail(t)
+        override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+            webSocket.close(code,reason)
+        }
         override fun onClosed(webSocket: WebSocket, code: Int, reason: String) = fail(null)
     }
 }
-
