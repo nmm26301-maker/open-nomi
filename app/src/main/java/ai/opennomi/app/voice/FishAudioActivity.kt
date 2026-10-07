@@ -101,7 +101,10 @@ class FishAudioActivity : ComponentActivity() {
                                     AssistChip(onClick = { configure = true }, label = { Text(settings.model) })
                                     Text("独立使用 · 无需绑定小智", fontSize = 12.sp, color = Color(0xFF939BB6))
                                 }
-                                if (audioSession > 0) LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
+                                if (audioSession > 0) {
+                                    if(settings.streaming)LinearProgressIndicator(modifier=Modifier.fillMaxWidth())
+                                    else LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
+                                }
                                 if (!settings.configured()) OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = { switchTab(2) }) { Text("先在应用内申请密钥") }
                             }
                                 if(result.isNotBlank())Text(result,modifier=Modifier.fillMaxWidth().padding(horizontal=20.dp,vertical=6.dp),fontSize=13.sp,color=Color(0xFFABB5D0))

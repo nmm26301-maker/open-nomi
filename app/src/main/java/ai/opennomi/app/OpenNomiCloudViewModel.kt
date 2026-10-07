@@ -572,7 +572,11 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
                         _state.value=ConversationState.SPEAKING;_emotion.value="talking"
                         fishSpeechDelegate.value.speak(piece,config,duplex=realtime && audio.isRecording())
                     }
-                } catch(e:CancellationException){throw e}
+                } catch(e:CancellationException){
+                    if(!currentCoroutineContext().isActive || generation!=turn)throw e
+                    fishError="FishAudio 播报被其他音频停止，文字已保留";queue.cancel()
+                    _status.value=fishError!!;ai.opennomi.app.screen.ScreenState.event(fishError!!)
+                }
                 catch(e:Exception) {
                     if(generation==turn) {
                         fishError="FishAudio 播报失败：${e.message}。文字已保留"
@@ -623,7 +627,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
             if(!_backgroundConversation.value) { active=false;audio.restoreAudioMode(); if (failure != null) _status.value = failure; return }
         }
         if (realtime && VoiceSessionPolicy.keepListening(_backgroundConversation.value,voiceSettings.continuousConversation)) {
-            prepareTurn();client?.sendListen("start","realtime"); _state.value = ConversationState.LISTENING; _emotion.value = "listening"; _status.value = "我在听，可以继续说"
+            prepareTurn();client?.sendListen("start","realtime"); _state.value = ConversationState.LISTENING; _emotion.value = "listening"; _status.value = failure?.let{"$it。我继续听你说"} ?: "我在听，可以继续说"
         } else if (!realtime && VoiceSessionPolicy.keepListening(_backgroundConversation.value,voiceSettings.continuousConversation)) {
             delay(120)
             if (generation == turn && active) {
