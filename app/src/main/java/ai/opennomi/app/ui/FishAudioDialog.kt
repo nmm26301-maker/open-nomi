@@ -36,7 +36,9 @@ internal fun FishAudioDialog(vm: OpenNomiCloudViewModel, onClose: () -> Unit, on
     var previewJob by remember { mutableStateOf<Job?>(null) }
     fun config() = FishAudioConfig(key.trim(), voice.trim(), model.trim(), base.trim(), speed.toDouble())
     DisposableEffect(vm) { onDispose { previewJob?.cancel(); vm.stopFishPreview() } }
-    AlertDialog(onDismissRequest = onClose, title = { Text("FishAudio 语音") }, text = {
+    AlertDialog(onDismissRequest = onClose, title = {
+        Column {Text("FishAudio 语音");if(message.isNotBlank())Text(message,style=MaterialTheme.typography.bodySmall)}
+    }, text = {
         Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(Modifier.fillMaxWidth()) {
                 Text("用于聊天与屏幕回复", Modifier.weight(1f))
@@ -67,20 +69,19 @@ internal fun FishAudioDialog(vm: OpenNomiCloudViewModel, onClose: () -> Unit, on
                     val draft = config()
                     message = "正在合成并试听…"; previewing = true
                     previewJob = scope.launch {
-                        try { vm.previewFish(draft); message = "试听播放完成。保存后聊天回复将使用这个音色。" }
+                        try { vm.previewFish(draft) { message=it }; message = "试听播放完成。保存后聊天回复将使用这个音色。" }
                         catch (e: TimeoutCancellationException) { message = "FishAudio 试听超时，请检查网络后重试" }
-                        catch (e: CancellationException) { throw e }
+                        catch (e: CancellationException) { message="试听已停止，请重新点试听";throw e }
                         catch (e: Exception) { message = e.message ?: "FishAudio 试听失败" }
                         finally { previewing = false; previewJob = null }
                     }
                 }) { Text("试听") }
                 if (previewing) TextButton(onClick = { previewJob?.cancel(); vm.stopFishPreview(); message = "试听已停止" }) { Text("停止") }
             }
-            if (message.isNotBlank()) Text(message)
         }
     }, confirmButton = {
         TextButton(enabled = !previewing, onClick = {
-            try { settings.save(config(), enabled); vm.pauseConversation(); onClose() }
+            try { settings.save(config(), enabled); ai.opennomi.app.voice.NomiVoiceService.stop(context);vm.pauseConversation(); onClose() }
             catch (e: Exception) { message = e.message ?: "FishAudio 配置保存失败" }
         }) { Text("保存") }
     }, dismissButton = { TextButton(onClick = onClose) { Text("取消") } })

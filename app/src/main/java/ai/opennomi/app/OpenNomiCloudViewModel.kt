@@ -30,13 +30,20 @@ import kotlinx.coroutines.flow.asStateFlow
 class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiProtocolClient.Listener {
     val voiceSettings = VoiceSettings(app)
     val fishSettings = FishAudioSettings(app)
-    private val fishSpeechDelegate = lazy { FishSpeech(app) }
+    private val fishSpeechDelegate = lazy { FishSpeech(app,onStage={ _status.value=it }) }
     private var turnFish: FishAudioConfig? = null
     fun usesFishVoice() = fishSettings.enabled && fishSettings.configured()
-    suspend fun previewFish(config: FishAudioConfig) {
+    suspend fun previewFish(config: FishAudioConfig, onStage:(String)->Unit = {}) {
         config.validate()
+        ai.opennomi.app.voice.NomiVoiceService.stop(getApplication())
         pauseConversation()
-        fishSpeechDelegate.value.speak("你好，我是小智。现在使用 FishAudio 和你说话。", config)
+        fishSpeechDelegate.value.speak("你好，我是小智。现在使用 FishAudio 和你说话。", config,onStage)
+    }
+    fun setPhoneControl(enabled:Boolean) {
+        ai.opennomi.app.voice.NomiVoiceService.stop(getApplication())
+        endNativeControl();pauseConversation();voiceSettings.phoneControl=enabled
+        if(enabled) {disconnect();_status.value="手机控制 · 点球球后直接说操作"}
+        else {connect();if(_connected.value)_status.value="聊天 · 点球球开始说话"}
     }
     fun stopFishPreview() { if (fishSpeechDelegate.isInitialized()) fishSpeechDelegate.value.stop() }
     private val bootstrap = XiaozhiBootstrap(app)

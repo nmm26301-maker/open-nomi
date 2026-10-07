@@ -4,7 +4,7 @@ import android.content.Context
 class VoiceSettings(context: Context) {
     private val prefs = context.getSharedPreferences("open_nomi_voice", Context.MODE_PRIVATE)
     var phoneControl: Boolean
-        get() = prefs.getBoolean("phone_control", true)
+        get() = prefs.getBoolean("phone_control", false)
         set(value) = prefs.edit().putBoolean("phone_control", value).apply()
     var continuousConversation: Boolean
         get() = prefs.getBoolean("continuous", true)

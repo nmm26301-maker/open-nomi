@@ -102,9 +102,9 @@ class FishAudioActivity : ComponentActivity() {
                                     Text("独立使用 · 无需绑定小智", fontSize = 12.sp, color = Color(0xFF939BB6))
                                 }
                                 if (audioSession > 0) LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
-                                if (result.isNotBlank()) Text(if(audioSession > 0) "正在播放 · 可随时停止" else result, fontSize = 13.sp, color = Color(0xFFABB5D0))
                                 if (!settings.configured()) OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = { switchTab(2) }) { Text("先在应用内申请密钥") }
                             }
+                                if(result.isNotBlank())Text(result,modifier=Modifier.fillMaxWidth().padding(horizontal=20.dp,vertical=6.dp),fontSize=13.sp,color=Color(0xFFABB5D0))
                                 Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(top = 8.dp, bottom = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                     Button(modifier = Modifier.weight(1f).height(54.dp), shape = RoundedCornerShape(18.dp),
                                         enabled = !busy && text.isNotBlank(), onClick = {
@@ -112,11 +112,11 @@ class FishAudioActivity : ComponentActivity() {
                                         val config = settings.connection()
                                         val sequence = ++playbackSequence
                                         busy = true; progress = 0f; result = "正在合成声音…"
-                                        vm.pauseConversation()
+                                        NomiVoiceService.stop(applicationContext);vm.pauseConversation()
                                         job = scope.launch {
-                                            try { speaker.speak(draft, config); if (sequence == playbackSequence) result = "朗读播放完成" }
+                                            try { speaker.speak(draft, config) { result=it }; if (sequence == playbackSequence) result = "朗读播放完成" }
                                             catch (e: TimeoutCancellationException) { if (sequence == playbackSequence) result = "FishAudio 朗读超时，请检查网络后重试" }
-                                            catch (e: CancellationException) { throw e }
+                                            catch (e: CancellationException) { if(sequence==playbackSequence)result="朗读已停止，请重新点开始朗读";throw e }
                                             catch (e: Exception) { if (sequence == playbackSequence) result = e.message ?: "FishAudio 朗读失败" }
                                             finally { if (sequence == playbackSequence) { busy = false; job = null } }
                                         }
@@ -136,7 +136,7 @@ class FishAudioActivity : ComponentActivity() {
                                 }
                                 Button(onClick = { configure = true }) { Text("配置音色并选择用于回复") }
                                 Text("在音色设置中开启“用于聊天与屏幕回复”，保存后，小智负责回答文字，FishAudio 负责合成声音。")
-                                Text("返回首页关闭“语音控制优先”可聊天。手机控制继续跳过播报，执行后马上听下一条指令。")
+                                Text("返回首页选择“聊天”即可对话；选择“手机控制”执行操作，执行后马上听下一条指令。")
                                 OutlinedButton(onClick = { switchTab(2) }) { Text("内部申请密钥 / 选择音色") }
                             }
                             2 -> {

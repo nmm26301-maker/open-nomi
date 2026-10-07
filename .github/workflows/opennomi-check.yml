@@ -123,6 +123,7 @@ jobs:
             gradle :app:connectedDebugAndroidTest -POPENNOMI_ABIS=x86_64 -Pkotlin.incremental=false --no-daemon
             mkdir -p ui-captures
             adb pull /data/local/tmp/fish-workstation.png ui-captures/fish-workstation.png
+            adb pull /data/local/tmp/conversation-home.png ui-captures/conversation-home.png
       - uses: actions/upload-artifact@v4
         if: always()
         with:

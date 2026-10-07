@@ -17,15 +17,28 @@ import kotlinx.coroutines.flow.combine
 /** A microphone session started by the user's visible Activity, retained across App switches. */
 class NomiVoiceService : Service() {
     companion object {
+        private var live:NomiVoiceService?=null
         private const val START="nomi.voice.start"
         private const val STOP="nomi.voice.stop"
         private fun session(context:Context)=context.getSharedPreferences("open_nomi_voice_service",Context.MODE_PRIVATE)
         fun start(context: Context, withScreen: Boolean) {
             session(context).edit().putBoolean("requested",true).putBoolean("screen",withScreen).apply()
+            if(live?.sessionClosed==true) {
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    if(session(context).getBoolean("requested",false))start(context.applicationContext,withScreen)
+                },150)
+                return
+            }
             try { ContextCompat.startForegroundService(context,Intent(context,NomiVoiceService::class.java).setAction(START).putExtra("screen",withScreen)) }
             catch(e:Exception) {session(context).edit().putBoolean("requested",false).apply();throw e}
         }
-        fun stop(context: Context) { session(context).edit().putBoolean("requested",false).apply();context.stopService(Intent(context,NomiVoiceService::class.java)) }
+        fun stop(context: Context) {
+            session(context).edit().putBoolean("requested",false).apply()
+            // Finish the old session before a new standalone preview can start.
+            // onDestroy must not later cancel that new playback.
+            live?.closeSession()
+            context.stopService(Intent(context,NomiVoiceService::class.java))
+        }
         fun toggle(context: Context) {
             val model=(context.applicationContext as NomiApplication).cloudModel
             if(model.backgroundConversation.value)stop(context) else start(context,ScreenState.state.value.active)
@@ -38,8 +51,11 @@ class NomiVoiceService : Service() {
     private var notification: NotificationCompat.Builder? = null
     private var failureMessage: String? = null
     private var wake: PowerManager.WakeLock? = null
+    private var sessionClosed=false
+    override fun onCreate() {super.onCreate();live=this}
     override fun onBind(intent: Intent?)=null
     override fun onStartCommand(intent: Intent?,flags:Int,startId:Int):Int {
+        if(sessionClosed){stopSelf();return START_NOT_STICKY}
         if(intent?.action==STOP){session(this).edit().putBoolean("requested",false).apply();stopSelf();return START_NOT_STICKY}
         val restore=intent==null && session(this).getBoolean("requested",false)
         if(intent?.action!=START && !restore){stopSelf();return START_NOT_STICKY}
@@ -76,10 +92,15 @@ class NomiVoiceService : Service() {
         } catch(e:Exception){session(this).edit().putBoolean("requested",false).apply();val message="语音未能启动：${e.message}";failureMessage=message;ScreenState.event(message);model.nativeControlStatus(message,ai.opennomi.app.model.ConversationState.IDLE);stopSelf();return START_NOT_STICKY}
         return START_STICKY
     }
-    override fun onDestroy() {
+    private fun closeSession() {
+        if(sessionClosed)return
+        sessionClosed=true
         native?.close();native=null;scope.cancel();wake?.let { if(it.isHeld)it.release() };wake=null;model.stopBackgroundConversation()
         failureMessage?.let { model.nativeControlStatus(it,ai.opennomi.app.model.ConversationState.IDLE) }
         ScreenState.update{it.copy(voiceOn=false,voiceStatus="语音已暂停")}
+    }
+    override fun onDestroy() {
+        closeSession();if(live===this)live=null
         stopForeground(STOP_FOREGROUND_REMOVE);super.onDestroy()
     }
 }

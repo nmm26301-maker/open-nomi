@@ -95,6 +95,10 @@ fun OpenNomiApp(vm: OpenNomiCloudViewModel, onTalk: () -> Unit) {
                     Text(voiceLabel, color = Mint, fontSize = 12.sp, modifier = Modifier.padding(end = 10.dp))
                     TextButton(onClick = { settings = true }, contentPadding = PaddingValues(10.dp)) { Text("设置", fontSize = 14.sp) }
                 }
+                Row(Modifier.fillMaxWidth().padding(horizontal=22.dp),horizontalArrangement=Arrangement.spacedBy(10.dp)) {
+                    FilterChip(selected=!phoneControl,onClick={vm.setPhoneControl(false);voiceRevision++},label={Text("聊天")},modifier=Modifier.weight(1f))
+                    FilterChip(selected=phoneControl,onClick={vm.setPhoneControl(true);voiceRevision++},label={Text("手机控制")},modifier=Modifier.weight(1f))
+                }
                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                     BoxWithConstraints(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                         val size = minOf(maxWidth + 12.dp, maxHeight)
@@ -221,7 +225,7 @@ private fun SettingsDialog(vm: OpenNomiCloudViewModel, reduceMotion: Boolean, on
     var systemSpeech by remember { mutableStateOf(vm.voiceSettings.systemSpeechFallback) }
     AlertDialog(onDismissRequest = onClose, title = { Text("NOMI 设置") }, text = {
         Column(Modifier.verticalScroll(rememberScrollState())) {
-            SettingSwitch("语音控制优先", "系统中文识别直接控制手机，无需绑定小智；复杂目标需配置模型", phoneControl) { phoneControl=it;vm.voiceSettings.phoneControl=it;ai.opennomi.app.voice.NomiVoiceService.stop(settingsContext);vm.pauseConversation() }
+            SettingSwitch("语音控制优先", "首页可直接切换聊天或手机控制；控制模式不播放聊天回复", phoneControl) { phoneControl=it;vm.setPhoneControl(it) }
             SettingSwitch("连续对话", "回复后继续听你说话", continuous) { continuous = it; vm.voiceSettings.continuousConversation = it; vm.pauseConversation() }
             SettingSwitch("允许打断", "手机支持回声消除时，可开口打断", realtime) { realtime = it; vm.voiceSettings.realtimeConversation = it; vm.pauseConversation() }
             TextButton(onClick = { settingsContext.startActivity(Intent(settingsContext, ai.opennomi.app.voice.FishAudioActivity::class.java)); onClose() }) { Text("FishAudio 独立朗读、音色与申请") }
