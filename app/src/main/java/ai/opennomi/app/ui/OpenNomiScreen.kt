@@ -57,6 +57,7 @@ fun OpenNomiApp(vm: OpenNomiCloudViewModel, onTalk: () -> Unit) {
     val pendingStart by vm.pendingStart.collectAsStateWithLifecycle()
     val state by vm.state.collectAsStateWithLifecycle()
     val status by vm.status.collectAsStateWithLifecycle()
+    val audioRoute by vm.audioRoute.collectAsStateWithLifecycle()
     val emotion by vm.emotion.collectAsStateWithLifecycle()
     val heard by vm.heard.collectAsStateWithLifecycle()
     val response by vm.response.collectAsStateWithLifecycle()
@@ -89,7 +90,7 @@ fun OpenNomiApp(vm: OpenNomiCloudViewModel, onTalk: () -> Unit) {
                         Text("OpenNomi", fontSize = 25.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 5.dp)) {
                             Box(Modifier.size(6.dp).clip(CircleShape).background(if (connected) Mint else Secondary))
-                            Text("  0.49 · ${if(phoneControl) "手机语音控制" else if (connecting) "连接中" else if (connected) "在线" else "未连接"}", color = Secondary, fontSize = 12.sp)
+                            Text("  0.50 · ${if(phoneControl) "手机语音控制" else if (connecting) "连接中" else if (connected) "在线" else "未连接"}", color = Secondary, fontSize = 12.sp)
                         }
                     }
                     Text(voiceLabel, color = Mint, fontSize = 12.sp, modifier = Modifier.padding(end = 10.dp))
@@ -119,6 +120,8 @@ fun OpenNomiApp(vm: OpenNomiCloudViewModel, onTalk: () -> Unit) {
                         ConversationState.SPEAKING -> "陪你聊一会儿"
                         else -> "我在这儿"
                     }, fontSize = 13.sp, color = Secondary, modifier = Modifier.padding(top = 9.dp, bottom = 16.dp))
+                    Text(audioRoute.message, fontSize = 12.sp, color = if(audioRoute.pending) Mint else Secondary,
+                        textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 7.dp))
                     LevelBars(vm, state, Modifier.height(24.dp).width(56.dp))
                     Box(Modifier.fillMaxWidth().heightIn(min = 44.dp, max = 84.dp).padding(horizontal = 26.dp, vertical = 9.dp)) {
                         val text = response.ifBlank { heard }
@@ -133,7 +136,7 @@ fun OpenNomiApp(vm: OpenNomiCloudViewModel, onTalk: () -> Unit) {
                     }
                 }
                 TalkButton(state, connecting && !phoneControl, pendingStart && !phoneControl, { if (!phoneControl && pairing != null) account = true else onTalk() }, Modifier.padding(horizontal = 22.dp).padding(top = 10.dp), reduceMotion)
-                Text("${if (state == ConversationState.IDLE) "轻点球球开始 · 首次请允许麦克风与手电筒权限" else "可说：打开手电筒、点个赞、返回 · 轻点暂停"}", color = Secondary,
+                Text("${if (state == ConversationState.IDLE) "轻点球球开始 · 首次允许麦克风、附近设备与手电筒权限" else "可说：打开手电筒、点个赞、返回 · 轻点暂停"}", color = Secondary,
                     fontSize = 11.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 20.dp))
             }
         }
@@ -240,7 +243,7 @@ private fun SettingsDialog(vm: OpenNomiCloudViewModel, reduceMotion: Boolean, on
             TextButton(onClick = onAccount) { Text("设备绑定与账号") }
             Text("设备：${vm.deviceId()}", fontSize = 11.sp, color = Secondary)
             TextButton(onClick = { vm.disconnect(); vm.connect(); onClose() }) { Text("重新连接") }
-            Text("OpenNomi 0.49 · 独立手机语音控制", fontSize = 12.sp, color = Secondary)
+            Text("OpenNomi 0.50 · 独立手机语音控制", fontSize = 12.sp, color = Secondary)
         }
     }, confirmButton = { TextButton(onClick = onClose) { Text("完成") } })
 }

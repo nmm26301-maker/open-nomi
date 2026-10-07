@@ -3,6 +3,7 @@ import android.app.Application
 import java.io.File
 import kotlin.concurrent.thread
 class NomiApplication : Application() {
+    val audioRoutes by lazy { ai.opennomi.app.audio.ConversationAudioRoutes(this) }
     val cloudModel by lazy { OpenNomiCloudViewModel(this) }
     override fun onCreate() {
         super.onCreate()

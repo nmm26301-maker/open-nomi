@@ -13,6 +13,7 @@ class FishSpeech(context: Context, private val api: FishAudioApi = FishAudioApi(
     private val onPlayback: (Int) -> Unit = {},
     private val onProgress: (Int, Int) -> Unit = { _, _ -> },
     private val onStage: (String) -> Unit = {}) {
+    private val routes = (context.applicationContext as ai.opennomi.app.NomiApplication).audioRoutes
     private val cache = context.applicationContext.cacheDir
     private val audio = context.applicationContext.getSystemService(AudioManager::class.java)
     private var focus:AudioFocusRequest?=null
@@ -24,14 +25,16 @@ class FishSpeech(context: Context, private val api: FishAudioApi = FishAudioApi(
     suspend fun speak(text: String, config: FishAudioConfig, duplex:Boolean=false, stage:(String)->Unit = onStage) = withContext(Dispatchers.Main.immediate) {
         stop()
         config.validate()
-        val volumeStream=if(duplex)AudioManager.STREAM_VOICE_CALL else AudioManager.STREAM_MUSIC
+        val communication=routes.active
+        if(communication)routes.awaitReady()
+        val volumeStream=if(communication)AudioManager.STREAM_VOICE_CALL else AudioManager.STREAM_MUSIC
         check(audio.getStreamVolume(volumeStream)>0 && !audio.isStreamMute(volumeStream)) {
-            if(duplex) "通话音量为零或已静音，请调高通话音量" else "媒体音量为零或已静音，请调高媒体音量后再试听"
+            if(communication) "通话音量为零或已静音，请调高通话音量" else "媒体音量为零或已静音，请调高媒体音量后再试听"
         }
         val session = generation
         val job=currentCoroutineContext().job;requestJob=job
         try {
-        if(config.streaming) {stream(text,config,session,stage,duplex);return@withContext}
+        if(config.streaming) {stream(text,config,session,stage,duplex,communication);return@withContext}
         val parts=FishAudioApi.speechParts(text)
         for ((index,part) in parts.withIndex()) {
             if (part.isBlank()) continue
@@ -45,15 +48,15 @@ class FishSpeech(context: Context, private val api: FishAudioApi = FishAudioApi(
                 withContext(Dispatchers.IO) { file.writeBytes(mp3) }
                 if (session != generation) throw CancellationException("FishAudio 播报已取消")
                 stage("已收到音频 ${mp3.size/1024} KB · 准备播放")
-                play(file, session,stage)
+                play(file, session,stage,communication)
             } finally { file.delete() }
         }
         } finally {if(requestJob===job)requestJob=null}
     }
-    private suspend fun stream(text:String,config:FishAudioConfig,session:Int,stage:(String)->Unit,duplex:Boolean) {
+    private suspend fun stream(text:String,config:FishAudioConfig,session:Int,stage:(String)->Unit,duplex:Boolean,communication:Boolean) {
         val handler=android.os.Handler(android.os.Looper.getMainLooper())
         fun current(block:()->Unit) {handler.post {if(session==generation)block()}}
-        val attributes=AudioAttributes.Builder().setUsage(if(duplex)AudioAttributes.USAGE_VOICE_COMMUNICATION else AudioAttributes.USAGE_MEDIA)
+        val attributes=AudioAttributes.Builder().setUsage(if(communication)AudioAttributes.USAGE_VOICE_COMMUNICATION else AudioAttributes.USAGE_MEDIA)
             .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()
         val request=AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
             .setAudioAttributes(attributes).setOnAudioFocusChangeListener {change ->
@@ -62,7 +65,7 @@ class FishSpeech(context: Context, private val api: FishAudioApi = FishAudioApi(
         check(audio.requestAudioFocus(request)==AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {"无法获得音频输出，请结束其他通话或播放后重试"}
         focus=request
         val startedAt=android.os.SystemClock.elapsedRealtime()
-        val output=FishPcmPlayback(duplex,{id->current {
+        val output=FishPcmPlayback(communication,{id->current {
             onPlayback(id)
             stage("正在播放 · 首段音频 ${android.os.SystemClock.elapsedRealtime()-startedAt} ms${if(duplex)" · 可开口打断" else ""}")
         }},{position,duration->current {onProgress(position,duration)}})
@@ -83,13 +86,13 @@ class FishSpeech(context: Context, private val api: FishAudioApi = FishAudioApi(
             if(pcm===output){pcm=null;onPlayback(0);releaseFocus()}
         }
     }
-    private suspend fun play(file: File, session: Int, stage:(String)->Unit) {
+    private suspend fun play(file: File, session: Int, stage:(String)->Unit,communication:Boolean) {
         val done = CompletableDeferred<Unit>()
         val prepared=CompletableDeferred<Unit>()
         val media = MediaPlayer()
         player = media; completed = done
         try {
-            val attributes=AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA)
+            val attributes=AudioAttributes.Builder().setUsage(if(communication)AudioAttributes.USAGE_VOICE_COMMUNICATION else AudioAttributes.USAGE_MEDIA)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()
             val request=AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
                 .setAudioAttributes(attributes).setOnAudioFocusChangeListener { change ->
@@ -116,7 +119,8 @@ class FishSpeech(context: Context, private val api: FishAudioApi = FishAudioApi(
             currentCoroutineContext().ensureActive()
             if(session!=generation)throw CancellationException("FishAudio 播报已取消")
             media.start();onPlayback(media.audioSessionId)
-            stage("正在播放 · 媒体音量 ${audio.getStreamVolume(AudioManager.STREAM_MUSIC)}/${audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)}")
+            val volume=if(communication)AudioManager.STREAM_VOICE_CALL else AudioManager.STREAM_MUSIC
+            stage("正在播放 · ${if(communication) "通话" else "媒体"}音量 ${audio.getStreamVolume(volume)}/${audio.getStreamMaxVolume(volume)}")
             coroutineScope {
                 val progress = launch {
                     while (isActive && !done.isCompleted) {

@@ -32,13 +32,22 @@ class NativePhoneControl(private val context: Context, private val model: OpenNo
     private var hasResult = false
     private var watchdog: Runnable? = null
     private var restart: Runnable? = null
+    private val routes=(context.applicationContext as ai.opennomi.app.NomiApplication).audioRoutes
+    private var routeLease: ai.opennomi.app.audio.ConversationAudioRoutes.Lease? = null
+    private var routeJob: Job? = null
     fun start() {
         if (enabled) return
         offline = Build.VERSION.SDK_INT >= 31 && SpeechRecognizer.isOnDeviceRecognitionAvailable(context)
         check(offline || SpeechRecognizer.isRecognitionAvailable(context)) { "手机没有可用的语音识别服务，请在系统语音输入设置中启用中文识别" }
         enabled = true
         model.beginNativeControl()
-        listen()
+        routeJob=scope.launch {
+            try {
+                routeLease=routes.acquire();routes.awaitReady()
+                if(enabled)listen()
+            } catch(e:CancellationException){throw e}
+            catch(e:Exception){if(enabled)fatal("耳机音频未就绪：${e.message}")}
+        }
     }
     private fun publish(message: String, state: ConversationState = ConversationState.LISTENING) {
         if(enabled) model.nativeControlStatus(message, state)
@@ -142,6 +151,7 @@ class NativePhoneControl(private val context: Context, private val model: OpenNo
         }
     }
     fun close() {
+        routeJob?.cancel();routeJob=null;routeLease?.close();routeLease=null
         enabled = false;restart?.let(main::removeCallbacks);restart=null;retire()
         taskEpoch++;job?.cancel();job=null;inbox.clear();tasks.release();model.endNativeControl()
     }

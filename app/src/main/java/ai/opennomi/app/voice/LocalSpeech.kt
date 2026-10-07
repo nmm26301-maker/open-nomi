@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 /** System Chinese speech is a fallback only; successful XiaoZhi audio keeps its original voice. */
 class LocalSpeech(context: Context) {
+    private val routes = (context.applicationContext as ai.opennomi.app.NomiApplication).audioRoutes
     private val ready = CompletableDeferred<Int>()
     private val waiting = ConcurrentHashMap<String, CompletableDeferred<Unit>>()
     private val engine = TextToSpeech(context.applicationContext) { ready.complete(it) }
@@ -27,7 +28,7 @@ class LocalSpeech(context: Context) {
     suspend fun speak(text: String) {
         check(withTimeout(10000) { ready.await() } == TextToSpeech.SUCCESS) { "系统语音引擎未就绪，请在系统文字转语音设置中安装中文语音" }
         check(engine.setLanguage(Locale.SIMPLIFIED_CHINESE) >= TextToSpeech.LANG_AVAILABLE) { "系统缺少中文语音，请在文字转语音设置中安装" }
-        engine.setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
+        engine.setAudioAttributes(AudioAttributes.Builder().setUsage(if(routes.active)AudioAttributes.USAGE_VOICE_COMMUNICATION else AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
         // Wait for actual playback completion, including long replies, before reopening the mic.
         for (part in text.take(12000).chunked(1800)) {
             if (part.isBlank()) continue

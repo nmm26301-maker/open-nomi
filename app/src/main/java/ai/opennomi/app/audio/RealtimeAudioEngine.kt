@@ -40,7 +40,6 @@ class RealtimeAudioEngine(
     private var decoder = OpusDecoder(SAMPLE_RATE, CHANNELS)
     // The serial playback worker owns this buffer; never allocate 11KB per Opus frame.
     private val decodePcm = ShortArray(5760)
-    private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
     private sealed interface Command {
         val generation: Int
         data class Packet(override val generation: Int, val bytes: ByteArray) : Command
@@ -66,14 +65,7 @@ class RealtimeAudioEngine(
     }
     fun hasRecordPermission() = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
     fun supportsRealtime() = runCatching { AcousticEchoCanceler.isAvailable() }.getOrDefault(false)
-    private fun communicationAudio() {
-        audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
-        // Respect a connected headset instead of forcing all playback onto the speaker.
-        if (!audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS).any { it.type in intArrayOf(AudioDeviceInfo.TYPE_BLUETOOTH_SCO, AudioDeviceInfo.TYPE_BLUETOOTH_A2DP, AudioDeviceInfo.TYPE_WIRED_HEADSET, AudioDeviceInfo.TYPE_USB_HEADSET) }) {
-            @Suppress("DEPRECATION")
-            runCatching { audioManager.isSpeakerphoneOn = true }
-        }
-    }
+    private val routes get() = (context.applicationContext as ai.opennomi.app.NomiApplication).audioRoutes
     fun startRecording(realtime: Boolean = false, encodeCapture: Boolean = true,silenceMillis:Long=700): Boolean {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) return false
         stopRecording()
@@ -82,7 +74,6 @@ class RealtimeAudioEngine(
         var echo: AcousticEchoCanceler? = null
         var noise: NoiseSuppressor? = null
         try {
-            communicationAudio()
             val min = AudioRecord.getMinBufferSize(SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
             input = AudioRecord(MediaRecorder.AudioSource.VOICE_COMMUNICATION, SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, maxOf(min, FRAME_SAMPLES * 8))
             check(input.state == AudioRecord.STATE_INITIALIZED) { "麦克风初始化失败" }
@@ -122,7 +113,7 @@ class RealtimeAudioEngine(
             return true
         } catch (e: Exception) {
             runCatching { input?.release() }; runCatching { echo?.release() }; runCatching { noise?.release() }
-            restoreAudioMode(); onError(e.message ?: "麦克风启动失败"); return false
+            onError(e.message ?: "麦克风启动失败"); return false
         }
     }
     fun stopRecording() { captureGeneration.incrementAndGet(); val old = record; record = null; runCatching { old?.stop() }; onLevel(0f) }
@@ -170,11 +161,9 @@ class RealtimeAudioEngine(
     fun stopServerVoice() = synchronized(trackLock) { serverGeneration.incrementAndGet(); val old = serverTrack; serverTrack = null; releaseTrack(old); serverWritten = 0; serverStarted = false }
     private fun releaseTrack(track: AudioTrack?) { runCatching { track?.pause(); track?.flush() }; runCatching { track?.release() } }
     fun stopAllPlayback() { stopServerVoice(); onLevel(0f) }
-    fun restoreAudioMode() { if (record == null) audioManager.mode = AudioManager.MODE_NORMAL }
-    fun release() { stopRecording(); stopAllPlayback(); serverFrames.close(); scope.cancel(); audioManager.mode = AudioManager.MODE_NORMAL }
+    fun release() { stopRecording(); stopAllPlayback(); serverFrames.close(); scope.cancel() }
     private fun createTrack(rate: Int): AudioTrack {
-        val duplex=isRecording()
-        if(duplex)communicationAudio()else audioManager.mode=AudioManager.MODE_NORMAL
+        val duplex=routes.active
         val minimum = AudioTrack.getMinBufferSize(rate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT)
         check(minimum > 0) { "声音输出设备不可用" }
         return AudioTrack.Builder().setAudioAttributes(AudioAttributes.Builder().setUsage(if(duplex)AudioAttributes.USAGE_VOICE_COMMUNICATION else AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())

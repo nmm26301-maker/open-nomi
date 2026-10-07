@@ -26,6 +26,7 @@ class MainActivity : ComponentActivity() {
                 if (cloudViewModel.backgroundConversation.value) ai.opennomi.app.voice.NomiVoiceService.stop(this)
                 else {
                     val requested=listOf(Manifest.permission.RECORD_AUDIO,Manifest.permission.CAMERA) +
+                        (if(android.os.Build.VERSION.SDK_INT >= 31)listOf(Manifest.permission.BLUETOOTH_CONNECT) else emptyList()) +
                         if(android.os.Build.VERSION.SDK_INT >= 33)listOf(Manifest.permission.POST_NOTIFICATIONS) else emptyList()
                     val missing=requested.filter { androidx.core.content.ContextCompat.checkSelfPermission(this,it)!=android.content.pm.PackageManager.PERMISSION_GRANTED }
                     if(missing.isEmpty())ai.opennomi.app.voice.NomiVoiceService.start(this,ai.opennomi.app.screen.ScreenState.state.value.active)

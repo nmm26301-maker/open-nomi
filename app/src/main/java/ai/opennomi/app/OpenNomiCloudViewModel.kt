@@ -31,6 +31,15 @@ import kotlinx.coroutines.flow.asStateFlow
 
 /** The original NOMI online conversation, with no local-model or character pipeline. */
 class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiProtocolClient.Listener {
+    private val routes = (app as NomiApplication).audioRoutes
+    val audioRoute = routes.state
+    private var routeLease: ai.opennomi.app.audio.ConversationAudioRoutes.Lease? = null
+    private var captureStart: Job? = null
+    private fun closeRoute() { captureStart?.cancel();captureStart=null;routeLease?.close();routeLease=null }
+    private suspend fun readyRoute() {
+        if(routeLease==null)routeLease=routes.acquire()
+        routes.awaitReady()
+    }
     val voiceSettings = VoiceSettings(app)
     val fishSettings = FishAudioSettings(app)
     val endpointSettings = VoiceEndpointSettings(app)
@@ -227,6 +236,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
     }
     /** Reset one turn without toggling the foreground service's lifetime. */
     private fun resetTurn() {
+        closeRoute()
         taskCaptureWatchdog?.cancel();taskCaptureWatchdog=null
         recoveryJob?.cancel();recoveryJob=null
         screenContextJob?.cancel(); screenContextJob = null; screenRouting = false;taskControlListening=false;controlInbox.clear()
@@ -236,7 +246,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
         screenTextTurn = false
         active = false; _pendingStart.value = false; realtime = false; client?.sendAbort(); clearSpeech()
         if (speechDelegate.isInitialized()) speechDelegate.value.stop()
-        if (audioDelegate.isInitialized()) { audio.stopRecording(); audio.stopAllPlayback(); audio.restoreAudioMode() }
+        if (audioDelegate.isInitialized()) { audio.stopRecording(); audio.stopAllPlayback() }
         _state.value = ConversationState.IDLE; _emotion.value = "sleep"; _status.value = "已暂停，点击继续"
     }
     fun toggleListening() {
@@ -257,8 +267,17 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
         active = true; awaitingBargeTranscript=false;realtime = voiceSettings.realtimeConversation && audio.supportsRealtime()
         _state.value = ConversationState.LISTENING; _emotion.value = "listening"
         _status.value = if (realtime) "我在听，可以随时开口" else "我在听，说完自动回复"
-        client?.sendListen("start", if (realtime) "realtime" else "manual")
-        if (!audio.startRecording(realtime,silenceMillis=if(voiceSettings.fastResponse)480 else 700)) recoverVoice("麦克风暂不可用，正在重试")
+        captureStart?.cancel()
+        val generation=turn
+        captureStart=viewModelScope.launch {
+            try {
+                readyRoute()
+                if(generation!=turn || !active)return@launch
+                client?.sendListen("start", if (realtime) "realtime" else "manual")
+                if (!audio.startRecording(realtime,silenceMillis=if(voiceSettings.fastResponse)480 else 700)) recoverVoice("麦克风暂不可用，正在重试")
+            } catch(e:CancellationException){throw e}
+            catch(e:Exception){if(generation==turn && active)recoverVoice("音频路由未就绪：${e.message}")}
+        }
     }
     fun cancelScreenRequest() { if(screenTextTurn) { resetTurn(); if(_backgroundConversation.value)startListening() } }
     fun deviceId() = bootstrap.identity().deviceId
@@ -287,8 +306,16 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
         if(screenRouting && active && _pairingCode.value==null) {
             _pendingStart.value=false
             if(audio.hasRecordPermission()) {
-                taskControlListening=true;client?.sendListen("start","manual")
-                _state.value=ConversationState.LISTENING;audio.startRecording(false)
+                val generation=turn
+                captureStart=viewModelScope.launch {
+                    try {
+                        readyRoute()
+                        if(generation!=turn || !active)return@launch
+                        taskControlListening=true;client?.sendListen("start","manual")
+                        _state.value=ConversationState.LISTENING;audio.startRecording(false)
+                    } catch(e:CancellationException){throw e}
+                    catch(e:Exception){if(generation==turn && active)recoverVoice("音频路由未就绪：${e.message}")}
+                }
             }
             return
         }
@@ -418,6 +445,8 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
                 // Keep NOMI's STT available while the separate vision Agent is planning.
                 // Its TTS/audio is gated until the real task result is ready.
                 if(_connected.value && audio.hasRecordPermission()) {
+                    readyRoute()
+                    if(generation!=turn || !active)return@launch
                     taskControlListening=true;client?.sendListen("start","manual")
                     _state.value=ConversationState.LISTENING;audio.startRecording(false)
                 }
@@ -452,9 +481,9 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
             startListening()
             _status.value="$result 我在听，可以继续说。"
         } else if(_backgroundConversation.value) {
-            active=false;audio.stopRecording();_status.value="$result 正在恢复连接。";scheduleReconnect()
+            active=false;audio.stopRecording();closeRoute();_status.value="$result 正在恢复连接。";scheduleReconnect()
         } else {
-            active=false;audio.stopRecording();_state.value=ConversationState.IDLE;_status.value=result
+            active=false;audio.stopRecording();closeRoute();_state.value=ConversationState.IDLE;_status.value=result
         }
     }
     override fun onResponseText(text: String) {
@@ -535,7 +564,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
                     systemSpeaking=true
                     _status.value = if(forceLocal)"音轨播放失败，正在使用系统中文朗读" else "小智未返回语音，正在使用系统中文朗读"
                     ai.opennomi.app.screen.ScreenState.event(_status.value)
-                    audio.stopRecording();audio.restoreAudioMode();realtime=false
+                    audio.stopRecording();realtime=false
                     _state.value=ConversationState.SPEAKING;_emotion.value="talking"
                     val reply=VoiceSessionPolicy.fallbackReply(_response.value,fallbackText)
                     _response.value=reply
@@ -562,7 +591,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
         }
         if(pieces.isEmpty())return
         if(fishQueue==null) {
-            if(!realtime || !config.streaming) {audio.stopRecording();realtime=false;audio.restoreAudioMode()}
+            if(!realtime || !config.streaming) {audio.stopRecording();realtime=false}
             val queue=Channel<String>(96);fishQueue=queue
             val generation=turn
             fishJob=viewModelScope.launch {
@@ -615,7 +644,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
         if (generation != turn || !active) return
         finishingReply=false;systemSpeaking=false;finishJob=null
         if(!_connected.value) {
-            active=false;realtime=false;audio.stopRecording();audio.restoreAudioMode()
+            active=false;realtime=false;audio.stopRecording();closeRoute()
             _state.value=ConversationState.IDLE
             if(_backgroundConversation.value)scheduleReconnect()
             return
@@ -624,7 +653,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
             screenTextTurn = false
             _state.value = ConversationState.IDLE; _emotion.value = "happy"; _status.value = "我在这儿"
             if (ai.opennomi.app.screen.ScreenState.valid(screenSession)) ai.opennomi.app.screen.ScreenState.update { it.copy(busy=false, status="NOMI 已完成屏幕文字问答") }
-            if(!_backgroundConversation.value) { active=false;audio.restoreAudioMode(); if (failure != null) _status.value = failure; return }
+            if(!_backgroundConversation.value) { active=false;closeRoute(); if (failure != null) _status.value = failure; return }
         }
         if (realtime && VoiceSessionPolicy.keepListening(_backgroundConversation.value,voiceSettings.continuousConversation)) {
             prepareTurn();client?.sendListen("start","realtime"); _state.value = ConversationState.LISTENING; _emotion.value = "listening"; _status.value = failure?.let{"$it。我继续听你说"} ?: "我在听，可以继续说"
@@ -635,7 +664,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
                 if (failure != null) _status.value = "$failure。我继续听你说"
             }
         } else {
-            _backgroundConversation.value = false; active = false; realtime = false; audio.stopRecording(); audio.restoreAudioMode()
+            _backgroundConversation.value = false; active = false; realtime = false; audio.stopRecording(); closeRoute()
             _state.value = ConversationState.IDLE; _status.value = failure ?: "我在这儿"; _emotion.value = "happy"
         }
     }
@@ -682,6 +711,7 @@ class OpenNomiCloudViewModel(app: Application) : AndroidViewModel(app), XiaozhiP
     }
     private fun clearSpeech() { fishQueue?.cancel();fishJob?.cancel(); if (fishSpeechDelegate.isInitialized()) fishSpeechDelegate.value.stop(); finishingReply=false;turn++; answerWatchdog?.cancel(); finishJob?.cancel(); finishJob = null; prepareTurn() }
     override fun onCleared() {
+        closeRoute()
         active = false; ++connectionGeneration; clearSpeech(); client?.disconnect();actions.release()
         if (audioDelegate.isInitialized()) audio.release()
         if (speechDelegate.isInitialized()) speechDelegate.value.release()
