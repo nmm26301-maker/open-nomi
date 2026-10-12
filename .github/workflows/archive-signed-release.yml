@@ -1,0 +1,67 @@
+name: Archive locally signed OpenNomi release
+
+on:
+  push:
+    branches: [main]
+    paths: ['backups/incoming/*.json.gz']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version with a prepared signing recipe
+        required: true
+        default: '0.54.0'
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: opennomi-release-archive
+  cancel-in-progress: false
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Select verified release recipe
+        id: recipe
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$REQUESTED_VERSION"
+          if [ -z "$version" ]; then
+            version=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" -- 'backups/incoming/*.json.gz' | sed -n 's@backups/incoming/\([0-9.]*\).json.gz@\1@p' | tail -1)
+          fi
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          python3 scripts/archive-signed-release.py --recipe "backups/incoming/$version.json.gz" --gha-output "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ steps.recipe.outputs.artifact }}
+          run-id: ${{ steps.recipe.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: /tmp/opennomi-unsigned
+      - name: Reconstruct the exact signed APK without signing credentials
+        env:
+          RELEASE_VERSION: ${{ steps.recipe.outputs.version }}
+        run: |
+          python3 scripts/archive-signed-release.py --recipe "backups/incoming/$RELEASE_VERSION.json.gz" --source-parts /tmp/opennomi-unsigned --release "backups/releases/$RELEASE_VERSION"
+          python3 "backups/releases/$RELEASE_VERSION/restore.py" --output-dir /tmp/opennomi-restored
+      - name: Commit complete verified APK archive
+        env:
+          RELEASE_VERSION: ${{ steps.recipe.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add "backups/releases/$RELEASE_VERSION/apk-parts"
+          if git diff --cached --quiet; then exit 0; fi
+          git -c user.name='OpenNomi release archive' -c user.email='release-archive@users.noreply.github.com' commit -m "Archive byte-identical signed OpenNomi $RELEASE_VERSION APK"
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main

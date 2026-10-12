@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ai.opennomi.app.VoiceTaskRegressionTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-12T12:40:14" hostname="runnervmmprz5" time="0.006">
+  <properties/>
+  <testcase name="protocolVersionsRoundTripAndMalformedFramesNeverReachDecoder" classname="ai.opennomi.app.VoiceTaskRegressionTest" time="0.0"/>
+  <testcase name="autoGlmLaunchTypeAndSwipeAreParsedAsData" classname="ai.opennomi.app.VoiceTaskRegressionTest" time="0.001"/>
+  <testcase name="failedOperationNeverAdvancesOrRunsRemainingCommands" classname="ai.opennomi.app.VoiceTaskRegressionTest" time="0.0"/>
+  <testcase name="openThenExitAndNextUtteranceBothParse" classname="ai.opennomi.app.VoiceTaskRegressionTest" time="0.001"/>
+  <testcase name="missingTaskControlRecognitionRestartsOnlyItsOwnCapture" classname="ai.opennomi.app.VoiceTaskRegressionTest" time="0.0"/>
+  <testcase name="modelActsOnlyOnExistingControlsAndScalesToPhysicalScreen" classname="ai.opennomi.app.VoiceTaskRegressionTest" time="0.002"/>
+  <testcase name="quotedDataNeverExecutesAsACommandAndUnknownStepsAbortWholeChain" classname="ai.opennomi.app.VoiceTaskRegressionTest" time="0.001"/>
+  <testcase name="chainKeepsRemainderUntilChoiceAndConfirmationActuallySucceed" classname="ai.opennomi.app.VoiceTaskRegressionTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

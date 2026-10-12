@@ -1,0 +1,750 @@
+{
+  "apk_file": "OpenNomi-0.54.0.apk",
+  "apk_bytes": 89822445,
+  "apk_sha256": "4f58d45e0ada98ca2074efe6f8db6c6a49a08b747180cca1a60059e05d3cd379",
+  "certificate_sha256": "8132825a68acba5653aba326b84e301bb65b28664af0d0727d7a5f5b41ad1b8e",
+  "application_id": "com.opennomi.android",
+  "version_code": 54,
+  "version": "0.54.0",
+  "abis": [
+    "arm64-v8a"
+  ],
+  "parts": [
+    {
+      "file": "OpenNomi-0.54.0.apk.part000",
+      "index": 0,
+      "size": 737280,
+      "sha256": "509601d53683342f9c0787fc3287f929e769112a7c62a90d0fc12fa75f3c6900"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part001",
+      "index": 1,
+      "size": 737280,
+      "sha256": "71642d52c96a61020f2a3b80dd7e405a28275efe9c047f1c09090e783708767f"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part002",
+      "index": 2,
+      "size": 737280,
+      "sha256": "a6e399f924e56bba8b66e2f21a0ea71fe8c31a36fa0405707fece9853ff678cf"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part003",
+      "index": 3,
+      "size": 737280,
+      "sha256": "6bef489fe63310bb2fa06bd7fc93c4a7f941455da83367d85661894dd80af674"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part004",
+      "index": 4,
+      "size": 737280,
+      "sha256": "1857cdcb442c77dc0f3d354ac2e994e886f5d3d567aed7494d1d8cd32c02e9fc"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part005",
+      "index": 5,
+      "size": 737280,
+      "sha256": "7c7b202c8781f684e88bbaadd51554e19c00d3e9daab3a1a32bce9c8cc4c634a"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part006",
+      "index": 6,
+      "size": 737280,
+      "sha256": "cde74603950cc35187f72e78db3c4f8d5fb9a3911fafa34244889ec26506ce29"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part007",
+      "index": 7,
+      "size": 737280,
+      "sha256": "41bd808ffba1eaff70bc580fbae06441bc1e3877d8c185ba893b646af51ab3c0"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part008",
+      "index": 8,
+      "size": 737280,
+      "sha256": "49dea3e233415eb6672edca1208cf2920e0b60747dcbdc130c4a121a3f872837"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part009",
+      "index": 9,
+      "size": 737280,
+      "sha256": "e49e28624ec97a4933997961e69a091a270e28ce259033a84cb7cf4da89f2c9d"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part010",
+      "index": 10,
+      "size": 737280,
+      "sha256": "9e1676d75ccce9b1b7fbd57a7795830e2f40176bc2a0fd370e84d00e65355c54"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part011",
+      "index": 11,
+      "size": 737280,
+      "sha256": "bf3f71162d01177be7404dd62618ea9566c734896ac2ff9d734094fbeeff5831"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part012",
+      "index": 12,
+      "size": 737280,
+      "sha256": "7f71f9f40dddf754a111c64a9c4ece555dad3b90335c77e9f983b95b48224a6b"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part013",
+      "index": 13,
+      "size": 737280,
+      "sha256": "6bf5fce813b2dd855ee17d71ec0219efcb1a7718365d79639aefed3e51e433eb"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part014",
+      "index": 14,
+      "size": 737280,
+      "sha256": "238de46c69bda557a4972281344e7d56d1b037d9e5e44e5d9dbdd4d56a0e14c1"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part015",
+      "index": 15,
+      "size": 737280,
+      "sha256": "8cc19537a3f28affe3b9a02ee0ef9e0682ef081bb746b61dcb5dd14b652c9974"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part016",
+      "index": 16,
+      "size": 737280,
+      "sha256": "88dcfa4b67c5d10645ad24eff66f383cae0d6a663a9cf935debeb498d218dd17"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part017",
+      "index": 17,
+      "size": 737280,
+      "sha256": "5f13498898ff82c2336e1c031b5e55cac5e8713213b65cd3922ed04f500b2255"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part018",
+      "index": 18,
+      "size": 737280,
+      "sha256": "65ed462e73e22ccdc8eb44e020d27fda813502a435cde8c9ec337276447e8b80"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part019",
+      "index": 19,
+      "size": 737280,
+      "sha256": "082b3a65ef7b8b345f14be7beccabdd78b40bdb7a98bb1dc084f9c0d0c96bd90"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part020",
+      "index": 20,
+      "size": 737280,
+      "sha256": "f8026eee1e1945ebaf7d971908355640501d1feebcf283263a7bc16f8d18eeaa"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part021",
+      "index": 21,
+      "size": 737280,
+      "sha256": "ec2c826c2543938de95164dea8c37047e550cae1bf7871d210e62cc300e2dc9f"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part022",
+      "index": 22,
+      "size": 737280,
+      "sha256": "4039f7b539968961a057379b65227af94b9baa8ea43aa2a56f51b0b9f9f7f2a7"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part023",
+      "index": 23,
+      "size": 737280,
+      "sha256": "b9e782cfeff2ed02471ec29818d504827a79cc86effbda12ae0e16a812140aa1"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part024",
+      "index": 24,
+      "size": 737280,
+      "sha256": "d68593547a8c058795e73bdd6aea78084feb47c663c5ad3e44c8b074d0796f87"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part025",
+      "index": 25,
+      "size": 737280,
+      "sha256": "29867344a805dca599df96ad57a4fcda894b70a4197c9270ea3bf3478935cedb"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part026",
+      "index": 26,
+      "size": 737280,
+      "sha256": "ebe12f2a628be9c8873e0c270aeb88270d067cca457a6ac732c8279990935d43"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part027",
+      "index": 27,
+      "size": 737280,
+      "sha256": "eb4373c6572f9c78076bb8e08a5dbf3714f669acdf2d5f3e06aace949bf3f0d5"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part028",
+      "index": 28,
+      "size": 737280,
+      "sha256": "6ba1a80f31ed9bce133ead0b8051d179f1b4d3d48d34bd1651ee342572249583"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part029",
+      "index": 29,
+      "size": 737280,
+      "sha256": "e5daa569ba0436f4e9726965fe25be34df6a1d0cc0a08e70eb37d6c11d18ae84"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part030",
+      "index": 30,
+      "size": 737280,
+      "sha256": "712de04280eb0ec74c8361e683b7bed76c9c226231d42d8f3b427037e2aec6be"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part031",
+      "index": 31,
+      "size": 737280,
+      "sha256": "9ebe30cde1b3be1867f91a823a880d815f22c005ffa25b4510b6237c1c19dfa8"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part032",
+      "index": 32,
+      "size": 737280,
+      "sha256": "2920300b572e888ecb3fac2bc47f2800697a7807ccfcf2073d9b8de8accd3bcd"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part033",
+      "index": 33,
+      "size": 737280,
+      "sha256": "b19cfe3aaf2242fab3ffb44172bc7279bfbe78de46995bf7afc66e031deb2e70"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part034",
+      "index": 34,
+      "size": 737280,
+      "sha256": "8df707670407ad617fbbdcac900c2de812c0760cf1521016609af7c73f9d6317"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part035",
+      "index": 35,
+      "size": 737280,
+      "sha256": "1cd9ad23b450a3a666fde70f7c84576ddc4df9b7c22539f5693c371608709291"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part036",
+      "index": 36,
+      "size": 737280,
+      "sha256": "5f840c18b65ca6c984154d51ecec37c8226c18ada1792f634d4d65a587046dc8"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part037",
+      "index": 37,
+      "size": 737280,
+      "sha256": "dce1a342227fbb0329aa3fe6b5b84d86722555585f2c3d24ea6ab61926de531b"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part038",
+      "index": 38,
+      "size": 737280,
+      "sha256": "e8202b53e068422abfedac3a2e570d93d28f5eb0aadbd58d00956879a626402e"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part039",
+      "index": 39,
+      "size": 737280,
+      "sha256": "b192e42cf7d6cb411dfa56520029fd1811025455b067d608d84189d58de7b98d"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part040",
+      "index": 40,
+      "size": 737280,
+      "sha256": "468b8fcfa4900e9be3028ef4aeb55568c25ff8c045da73ef570cb5d1b1816b59"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part041",
+      "index": 41,
+      "size": 737280,
+      "sha256": "ac0a27f435d98adac51ab1d95247bf0c97b5fee27ff53a6960b3607f3db7bf15"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part042",
+      "index": 42,
+      "size": 737280,
+      "sha256": "24e9199aa378832bd978eae58cd34e36184d1c227e7f252ff360851927334abf"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part043",
+      "index": 43,
+      "size": 737280,
+      "sha256": "9dbaa91b43c8a736cfe58c8c501ec3f7e44cf5491ec87e8d78eac32d1a126d23"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part044",
+      "index": 44,
+      "size": 737280,
+      "sha256": "b0113b7084753ec02b554679f4ff54ef0958011cf8ffd10687cf9d8a4187c536"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part045",
+      "index": 45,
+      "size": 737280,
+      "sha256": "2eb3d5e9f8cd0778bb7219679c0c9edd59c608bffa7756d612f525943d8c826a"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part046",
+      "index": 46,
+      "size": 737280,
+      "sha256": "5cbb420defce8ec2c0b12cc3333cb9aa8f934bc6491921f05a663b6003f41249"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part047",
+      "index": 47,
+      "size": 737280,
+      "sha256": "d68fc424bf5443c0d5813a47d691f61b6180bf5ed457d821d5fa19c6daf901ce"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part048",
+      "index": 48,
+      "size": 737280,
+      "sha256": "9262ccc171b9a263d52e9f3e599010244e0b8a31e25182afb2abc27d19cbfedc"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part049",
+      "index": 49,
+      "size": 737280,
+      "sha256": "277e8200f3f91e397ee60f1fbfee84fb4d06a2459fc3965ed5506f3e97d4d839"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part050",
+      "index": 50,
+      "size": 737280,
+      "sha256": "1c91ddc6acdb87628a771c85fbfd761d79c6200d868d5927559b8333a7c9188b"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part051",
+      "index": 51,
+      "size": 737280,
+      "sha256": "fe4456d1d24928ebfa30762151ba0676686d89b13a88271c24f0ac93941960f6"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part052",
+      "index": 52,
+      "size": 737280,
+      "sha256": "1ddc25abf412a86a45e94e4dbce87cf8b772d2ce7372bff125012e896821fee1"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part053",
+      "index": 53,
+      "size": 737280,
+      "sha256": "5a136d701919273041b87155dbef209cd5af4ab14b16230c4a2f787a62aba617"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part054",
+      "index": 54,
+      "size": 737280,
+      "sha256": "28b7dd2984c75856db95c731dc69f34003844106b96adcfacb04336561d79dd0"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part055",
+      "index": 55,
+      "size": 737280,
+      "sha256": "fdcbc804b9803c7857b2f0de764a22a5f02f2864e5fca465a4d75baabaefa18c"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part056",
+      "index": 56,
+      "size": 737280,
+      "sha256": "6711f294ca811d7a903228645314a6143408548dbee9742cb07f95003dd79ca4"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part057",
+      "index": 57,
+      "size": 737280,
+      "sha256": "ac68c662f6d92d712d3bf3d505ae6e2c72578a70f908ec4c73e27b7816772ecd"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part058",
+      "index": 58,
+      "size": 737280,
+      "sha256": "5696821dc7e88ea862623c1f825a4719a0d86d5c139c3d7f81e2e0bb0e711545"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part059",
+      "index": 59,
+      "size": 737280,
+      "sha256": "263adafa701dec7cfab443e035548dbe4e4083ec39d7cedf54a7ae4dd8050e67"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part060",
+      "index": 60,
+      "size": 737280,
+      "sha256": "7d525d913295ef777de75796ba2e44bd57a684209902444065652afb69938de9"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part061",
+      "index": 61,
+      "size": 737280,
+      "sha256": "57ba16c435a47a7449e48e24dace8f606d3f8e2dded419bb08dec7ecd83b2839"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part062",
+      "index": 62,
+      "size": 737280,
+      "sha256": "5e52d57b6160914b7864536754260805007f8c0f4c4e1c448a10cf2cd5f66bae"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part063",
+      "index": 63,
+      "size": 737280,
+      "sha256": "5df0fac473d6199657f76bf6ee5d292235108412a9bf9f761878ee89223aadfe"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part064",
+      "index": 64,
+      "size": 737280,
+      "sha256": "409487ae96bc68dbcb4bb118f0f51dc91211525b61669cd49cc0860bda028260"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part065",
+      "index": 65,
+      "size": 737280,
+      "sha256": "d699599a24675da005da6eff8d203e7c19726c2ca4d3dcf2f82e26174181a94e"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part066",
+      "index": 66,
+      "size": 737280,
+      "sha256": "c675803d8457542f3796718123a8af836ec007b7d4eff006f42fb0ade0c0e8e3"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part067",
+      "index": 67,
+      "size": 737280,
+      "sha256": "817924d784aa308bf41119b1a7cbda6b0aa6e884e5485ff57d5dd7b744f15607"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part068",
+      "index": 68,
+      "size": 737280,
+      "sha256": "455938a587b1b95a43e881449e66c6f196cb60d51b982c9cd8b4a2da4bcec1ea"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part069",
+      "index": 69,
+      "size": 737280,
+      "sha256": "206cf2fbe8e5c9eef74c041c56dbaf9f532776d78add5c417667c88958332c26"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part070",
+      "index": 70,
+      "size": 737280,
+      "sha256": "8be383422c653321f485db774cca61ef3b8a596f0bf2c2d8b4a27ce4acdde13c"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part071",
+      "index": 71,
+      "size": 737280,
+      "sha256": "4b524040cac7879aa3e515c8d5cbee125d9e4e7fced1de23fd0acd423d3d52af"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part072",
+      "index": 72,
+      "size": 737280,
+      "sha256": "f64b197e9e6f36f6aa4915a94c42c6a1cc15776c7d2714d5e8241ed4dea4d505"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part073",
+      "index": 73,
+      "size": 737280,
+      "sha256": "d546a5588ea16681fd3b7c6be42841b1194901fa7ec1d84ec794e5a726ab83c9"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part074",
+      "index": 74,
+      "size": 737280,
+      "sha256": "2328118156f6aeb0379d306c5a7a368d2dec10c0a8594b3cc92d7d79f22ddce3"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part075",
+      "index": 75,
+      "size": 737280,
+      "sha256": "852adf6e6f8236816cb090005247e5ddc9c6c3f4aa3b2d113bc2d512f71cd0a8"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part076",
+      "index": 76,
+      "size": 737280,
+      "sha256": "9abd82b70e634c3624f7d2469b9b8979073f62cbd4f3d321b6c172755d484048"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part077",
+      "index": 77,
+      "size": 737280,
+      "sha256": "354763d68d5eca7172a39f6993051698db24479aa07013ddb6f6c7ebeee91db7"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part078",
+      "index": 78,
+      "size": 737280,
+      "sha256": "58323d83cb2e9f3be56be40a2fdf83e753c9f0552323b2c1eed0d935ae4c882c"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part079",
+      "index": 79,
+      "size": 737280,
+      "sha256": "b286d4fa5f8e31453053c17db4c4d3eddbf196adbf8fb6828d83bccfea280f90"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part080",
+      "index": 80,
+      "size": 737280,
+      "sha256": "0758e6fbade4f3753c5752ac2bc28eccaf4d065e8611ae499178ce4d46c19f88"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part081",
+      "index": 81,
+      "size": 737280,
+      "sha256": "ee829cc7882f16fa43b1128c76abd4b8a72fcb8bb97e2665803aeaf4ddb8224b"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part082",
+      "index": 82,
+      "size": 737280,
+      "sha256": "d555866b9ad7da2cc508dcfe5ce031b73ff0491648cb460ba80ef97328a7a1a6"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part083",
+      "index": 83,
+      "size": 737280,
+      "sha256": "3349b819fe3d57531f8b4e516925b15cfcf391d68dbb22df23cf0436ca206283"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part084",
+      "index": 84,
+      "size": 737280,
+      "sha256": "41c4244bbebd4988ae2df38df0e0926c62b46c9891d23a257bac8dae39147451"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part085",
+      "index": 85,
+      "size": 737280,
+      "sha256": "f19967b4625b5dfb194da756a0461f1df2929ceadcb17c23390cd6be01d4e7cf"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part086",
+      "index": 86,
+      "size": 737280,
+      "sha256": "61df910558017f2a66fb86270fe0e214498e5412ff548c27e543f3576fe1e409"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part087",
+      "index": 87,
+      "size": 737280,
+      "sha256": "a3f04bb273348771c75e6bc786b7fe62bf5e0fb4e94e897fd414831384d39cdc"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part088",
+      "index": 88,
+      "size": 737280,
+      "sha256": "c2da5cc181ad99e8d4ce40a4fda4d6058a78ee74a2ea066ed86f940048046496"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part089",
+      "index": 89,
+      "size": 737280,
+      "sha256": "dfeae5a69ce9208a4be43066e533b990ff69635546fe76b73695fa92a442dda9"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part090",
+      "index": 90,
+      "size": 737280,
+      "sha256": "611bf5a75b68c08c043487ffe04e1cb0f06c13150645e0df53406d6dd7082dc6"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part091",
+      "index": 91,
+      "size": 737280,
+      "sha256": "f8815a118017bcf35e556fd9df645a8d96763c55194a0d0da0b9dfbbb8697758"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part092",
+      "index": 92,
+      "size": 737280,
+      "sha256": "cf526419a34e998048f51bbc7f1aa1d0ff9c05267a27d87e3620add69199067d"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part093",
+      "index": 93,
+      "size": 737280,
+      "sha256": "908f1bc68ba4054fbb6f58dfae753fb28cdbcadd810b0355e6b3977a22a7eed3"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part094",
+      "index": 94,
+      "size": 737280,
+      "sha256": "e0359212b48772c6553e2df8358e8db4a9052d5ea414fa639377f04b7eda2fe5"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part095",
+      "index": 95,
+      "size": 737280,
+      "sha256": "481a67302a648e139a0c6a245b1e013c77e13d00ce8f0385860756abe11d3e61"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part096",
+      "index": 96,
+      "size": 737280,
+      "sha256": "6261c6e217c12a13335ffc4ed0201d5968415b9aaaef2777da90aec68b281305"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part097",
+      "index": 97,
+      "size": 737280,
+      "sha256": "59db214d4143f94c912521e8afcd2d3f422afa7060a274ba1930d25883b9e0cc"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part098",
+      "index": 98,
+      "size": 737280,
+      "sha256": "7f2e531608dca2f8c00e3117e8d8615f7788f96c5acc6022927e06ef69ca38df"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part099",
+      "index": 99,
+      "size": 737280,
+      "sha256": "b18b30d78f148cc567081c609de3734709d2527641b92d82fe0662edf628fd69"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part100",
+      "index": 100,
+      "size": 737280,
+      "sha256": "99f6cec9c5fc61fb136b1c2940840e9514211239c5b246f745432f18c2be2d79"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part101",
+      "index": 101,
+      "size": 737280,
+      "sha256": "2d3e554422099b68765a9c35c455e7961d69bd55b93a0ab8243432c2f6502fae"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part102",
+      "index": 102,
+      "size": 737280,
+      "sha256": "d87c1de24e377c49812919f6319b0565ed9f09093e707939f7f74b030b19e608"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part103",
+      "index": 103,
+      "size": 737280,
+      "sha256": "bbf369ab6484a7975fffff3f265d433676fd3802ef805b384e233077718764fd"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part104",
+      "index": 104,
+      "size": 737280,
+      "sha256": "43bf4b7e19628197f431ec294673970f43f11edf626f894f19067d9ded63129a"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part105",
+      "index": 105,
+      "size": 737280,
+      "sha256": "a9c2fe14216cf8b189914ab246539af3e5068ddfc7a6a1e5b5890bce8037384b"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part106",
+      "index": 106,
+      "size": 737280,
+      "sha256": "44a062729d664eddd8b7638c6977e02897537e708071f526b57c77b43b4f229f"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part107",
+      "index": 107,
+      "size": 737280,
+      "sha256": "50920d9570e0dfb268425205a6a85366b94b717fe701c9b0388edf11ee5d6ae2"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part108",
+      "index": 108,
+      "size": 737280,
+      "sha256": "363e1ae44d69ee1de7868c7f9aadc662b44e558908577a959deca21b12666e9f"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part109",
+      "index": 109,
+      "size": 737280,
+      "sha256": "4dc53c6a1c82097208b876099cd085585a26a9b4e32547dbd8e8a96aa7193a4c"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part110",
+      "index": 110,
+      "size": 737280,
+      "sha256": "3c84408c178095d685622dec0cecaa29ce67ffacd6910cc66413cc9ac1163201"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part111",
+      "index": 111,
+      "size": 737280,
+      "sha256": "55ab800de830609db76c99b1dcf55ed57b0ea2522a356163b0f6c9ca99d2c3a0"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part112",
+      "index": 112,
+      "size": 737280,
+      "sha256": "a07d13ba7cf0a8c490742e9dfbd0adcd23bade0722fcbd6660c45aaf6fc15e38"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part113",
+      "index": 113,
+      "size": 737280,
+      "sha256": "3aa9db5e4443a133abc3e44e8d5577c308dbf39bf10e5f4dc93cc30a09e9185e"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part114",
+      "index": 114,
+      "size": 737280,
+      "sha256": "672dc5372d74817d75768bc38de2c3a518a48ae2ee2646065f401ded31da3314"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part115",
+      "index": 115,
+      "size": 737280,
+      "sha256": "98de81803a3d4deeda61131fd7e3769f2395e0af99602bbad34aa7d1a7b214fe"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part116",
+      "index": 116,
+      "size": 737280,
+      "sha256": "4e1a2042540860e9d2bb61bfb3eff3a5588492bf47a71ef89145c0d9f05bacdd"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part117",
+      "index": 117,
+      "size": 737280,
+      "sha256": "d447666d757c99d5fd81ba710d1e3cced56d07dbfbb3f52a2e2613846f102907"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part118",
+      "index": 118,
+      "size": 737280,
+      "sha256": "38d66657d6c360ea33a41556c2aeb8f8d416ffe2765c469c2095ea007e223903"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part119",
+      "index": 119,
+      "size": 737280,
+      "sha256": "a05c4d0d4f81251c17e3a726e36ac6fca4d41e13975e040493b9d6c81c3656da"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part120",
+      "index": 120,
+      "size": 737280,
+      "sha256": "8c6ce210ec5e5005484b2ca5cfce6a2a71124595bd28711e86b67e539c6e5c88"
+    },
+    {
+      "file": "OpenNomi-0.54.0.apk.part121",
+      "index": 121,
+      "size": 611565,
+      "sha256": "9e770be34e7270619de18078b80774d470cb64a83cb532f2308649b156d68cf7"
+    }
+  ],
+  "built_source_commit": "55f4e4fcaa34a9afb7cce9b9e18a192400d472f7",
+  "merged_commit": "f9cac88a90f4e971fe9a9932c18ebfa759148d81",
+  "workflow_url": "https://github.com/nmm26301-maker/open-nomi/actions/runs/38250171074",
+  "signing_backup": "signing/OpenNomi-new-signing.enc.json"
+}

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ai.opennomi.app.ControlLaneRegressionTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-12T12:40:07" hostname="runnervmmprz5" time="0.595">
+  <properties/>
+  <testcase name="lateChatTextTtsAndAudioCannotInterruptTheIndependentControlLane" classname="ai.opennomi.app.ControlLaneRegressionTest" time="0.006"/>
+  <testcase name="separateTorchUtterancesUseOneObserverAndFinishWithoutAPlaybackDependency" classname="ai.opennomi.app.ControlLaneRegressionTest" time="0.339"/>
+  <testcase name="userCameraAndTorchChainsAreRealCommandsAndQuestionsStayChat" classname="ai.opennomi.app.ControlLaneRegressionTest" time="0.027"/>
+  <testcase name="lateInitialCallbackCannotAcknowledgeAnOppositeRequestedState" classname="ai.opennomi.app.ControlLaneRegressionTest" time="0.083"/>
+  <testcase name="clearRemovesUnexecutedFollowupsAndCapacityIsBounded" classname="ai.opennomi.app.ControlLaneRegressionTest" time="0.0"/>
+  <testcase name="aCameraFollowupWaitsForSavingAndIsNotLostDuringExecution" classname="ai.opennomi.app.ControlLaneRegressionTest" time="0.012"/>
+  <testcase name="unavailableTorchNeverReportsSuccessAndCanRecoverOnTheNextTurn" classname="ai.opennomi.app.ControlLaneRegressionTest" time="0.12"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

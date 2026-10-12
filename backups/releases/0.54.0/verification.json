@@ -1,0 +1,56 @@
+{
+  "application_id": "com.opennomi.android",
+  "version_code": 54,
+  "version": "0.54.0",
+  "abis": [
+    "arm64-v8a"
+  ],
+  "unsigned_sha256": "5061c0907f0dd42b69fdf4e2bf170431300a1e8625cb52e6dd5ac29c0738b4a4",
+  "unsigned_bytes": 89769566,
+  "unit_tests": {
+    "tests": 144,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "lint": {
+    "Error": 0,
+    "Fatal": 0,
+    "Warning": 47,
+    "Information": 3
+  },
+  "android_smoke": {
+    "opennomi-054-ui-smoke-api-33": {
+      "tests": 19,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "opennomi-054-ui-smoke-api-29": {
+      "tests": 19,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "built_source_commit": "55f4e4fcaa34a9afb7cce9b9e18a192400d472f7",
+  "merged_commit": "f9cac88a90f4e971fe9a9932c18ebfa759148d81",
+  "workflow_url": "https://github.com/nmm26301-maker/open-nomi/actions/runs/38250171074",
+  "signed_apk_sha256": "4f58d45e0ada98ca2074efe6f8db6c6a49a08b747180cca1a60059e05d3cd379",
+  "signed_apk_bytes": 89822445,
+  "certificate_sha256": "8132825a68acba5653aba326b84e301bb65b28664af0d0727d7a5f5b41ad1b8e",
+  "signature_v2": true,
+  "signature_v3": true,
+  "zipalign_16k": true,
+  "translation_ui_screenshots": "Reviewed API 29 and 33: Hello world. renders Chinese output.",
+  "signing_backup": "signing/OpenNomi-new-signing.enc.json",
+  "signing_backup_sha256": "0691bf97e096b598a71537e6f828423b94a2ba77a2039e81f4caeda267afb790",
+  "local_restore": "byte-identical; refuses existing output",
+  "installation": "Updates 0.53.0 with the same package and certificate; parallel to original voicetest package.",
+  "limitations": [
+    "First-use language models require network; Wi-Fi by default.",
+    "Real phone, Bluetooth headset and external account voice quality/latency not tested.",
+    "English media ASR uses Vosk; applications can block audio capture.",
+    "Bundled OCR is Chinese/English; Japanese text requires accessibility text or manual input."
+  ]
+}
