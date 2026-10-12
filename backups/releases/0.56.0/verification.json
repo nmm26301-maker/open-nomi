@@ -1,0 +1,59 @@
+{
+  "application_id": "com.opennomi.android",
+  "version_code": 56,
+  "version": "0.56.0",
+  "abis": [
+    "arm64-v8a"
+  ],
+  "source_commit": "2e47e7ac2e4f3e0519f71d4f044aae60edbc24e1",
+  "built_source_commit": "2e47e7ac2e4f3e0519f71d4f044aae60edbc24e1",
+  "merged_commit": "2e47e7ac2e4f3e0519f71d4f044aae60edbc24e1",
+  "workflow_url": "https://github.com/nmm26301-maker/open-nomi/actions/runs/38271122565",
+  "unit_tests": {
+    "tests": 159,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "android_smoke": {
+    "api29": {
+      "tests": 23,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "api33": {
+      "tests": 23,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "lint": {
+    "Warning": 47,
+    "Information": 3
+  },
+  "unsigned_sha256": "d94fd49c2b27123f6f9bea19bddf7965e6020fdf75724f0d414682b9941b089b",
+  "unsigned_bytes": 89785950,
+  "signed_apk_sha256": "07fa4ab34c05431c16a3090f4f0cda62e3e870895c9bc8190d18b18a8fdb7039",
+  "signed_apk_bytes": 89838829,
+  "certificate_sha256": "8132825a68acba5653aba326b84e301bb65b28664af0d0727d7a5f5b41ad1b8e",
+  "signature_v2": true,
+  "signature_v3": true,
+  "zipalign_16k": true,
+  "signing_backup": "signing/OpenNomi-new-signing.enc.json",
+  "signing_backup_sha256": "0691bf97e096b598a71537e6f828423b94a2ba77a2039e81f4caeda267afb790",
+  "validation_scope": [
+    "Both FAST and COMPLETE speech captured from a separate player UID without screen subtitles, actual Chinese output, and no restart after stop.",
+    "Japanese model download, actual native model reload without network, and Japanese-to-Chinese translation offline.",
+    "Overlay approval precedes projection; cancelling projection cannot start capture.",
+    "Backlog batch order/repeats, frozen retries and stale completion cancellation.",
+    "Prior unit, voice, UI and real Google translation checks."
+  ],
+  "limitations": [
+    "Real user phone and Bluetooth headset have not been tested.",
+    "No measured speech accuracy percentage or fixed end-to-end latency claim.",
+    "Player must permit AudioPlaybackCapture; models need network on first preparation.",
+    "A bounded queue rejects new speech during sustained overload with a visible warning."
+  ]
+}

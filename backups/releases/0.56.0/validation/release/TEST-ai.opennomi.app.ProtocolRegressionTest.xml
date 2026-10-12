@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ai.opennomi.app.ProtocolRegressionTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-12T15:35:35" hostname="runnervmmprz5" time="2.148">
+  <properties/>
+  <testcase name="waitsForHelloNegotiates24kAndFiltersWireEvents" classname="ai.opennomi.app.ProtocolRegressionTest" time="0.587"/>
+  <testcase name="closingBeforeHelloAckNeverReopensTheCancelledConnection" classname="ai.opennomi.app.ProtocolRegressionTest" time="0.614"/>
+  <testcase name="incompatibleAudioNeverReportsConnected" classname="ai.opennomi.app.ProtocolRegressionTest" time="0.11"/>
+  <testcase name="registeredVersionControlsHandshakeAndBothDirectionsOfAudio" classname="ai.opennomi.app.ProtocolRegressionTest" time="0.277"/>
+  <testcase name="receivesQueuedAudioBeforeThePlaybackDrainSignal" classname="ai.opennomi.app.ProtocolRegressionTest" time="0.055"/>
+  <testcase name="foreignSessionRepliesAndDuplicateHelloCannotReplaceTheCurrentConversation" classname="ai.opennomi.app.ProtocolRegressionTest" time="0.351"/>
+  <testcase name="textOnlyModelReplyReachesSpeechFallbackWithoutAnAudioPacket" classname="ai.opennomi.app.ProtocolRegressionTest" time="0.149"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

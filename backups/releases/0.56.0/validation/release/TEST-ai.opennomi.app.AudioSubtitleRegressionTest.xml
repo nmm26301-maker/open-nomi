@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ai.opennomi.app.AudioSubtitleRegressionTest" tests="14" skipped="0" failures="0" errors="0" timestamp="2026-10-12T15:35:33" hostname="runnervmmprz5" time="0.068">
+  <properties/>
+  <testcase name="confidenceIsRetainedForTheSpecificCompletedUtterance" classname="ai.opennomi.app.AudioSubtitleRegressionTest" time="0.028"/>
+  <testcase name="speechDuringTranslationKeepsEveryCompletedUtteranceInOrder" classname="ai.opennomi.app.AudioSubtitleRegressionTest" time="0.0"/>
+  <testcase name="normalSpeechNeverWaitsToFillABatch" classname="ai.opennomi.app.AudioSubtitleRegressionTest" time="0.009"/>
+  <testcase name="staleBatchCannotRemoveNewSpeechOrClearItsRetryDelay" classname="ai.opennomi.app.AudioSubtitleRegressionTest" time="0.005"/>
+  <testcase name="failedBatchRetriesExactlyItsOriginalTextDespiteNewSpeech" classname="ai.opennomi.app.AudioSubtitleRegressionTest" time="0.015"/>
+  <testcase name="longMonologueHasABoundaryButNormalPausesResetItsClock" classname="ai.opennomi.app.AudioSubtitleRegressionTest" time="0.0"/>
+  <testcase name="cancellationDiscardsPendingSpeechAndStaleCompletionsCannotRemoveNewSpeech" classname="ai.opennomi.app.AudioSubtitleRegressionTest" time="0.0"/>
+  <testcase name="aLongPhraseDoesNotPullInAnotherPhraseBeyondTheBatchLimit" classname="ai.opennomi.app.AudioSubtitleRegressionTest" time="0.0"/>
+  <testcase name="repeatedWordsAndLowConfidenceAreRetainedInABatch" classname="ai.opennomi.app.AudioSubtitleRegressionTest" time="0.001"/>
+  <testcase name="failureRetriesTheSameUtteranceBeforeNewSpeech" classname="ai.opennomi.app.AudioSubtitleRegressionTest" time="0.0"/>
+  <testcase name="fastAndCompleteModesUseDistinctMonologueBoundaries" classname="ai.opennomi.app.AudioSubtitleRegressionTest" time="0.001"/>
+  <testcase name="overflowIsExplicitRatherThanSilentlyReplacingSpeech" classname="ai.opennomi.app.AudioSubtitleRegressionTest" time="0.0"/>
+  <testcase name="repeatedSpokenSentencesRemainSeparateUtterances" classname="ai.opennomi.app.AudioSubtitleRegressionTest" time="0.0"/>
+  <testcase name="backlogBatchesOnlyAdjacentSpeechWithoutLosingOrReorderingIt" classname="ai.opennomi.app.AudioSubtitleRegressionTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
