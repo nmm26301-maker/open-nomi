@@ -24,6 +24,11 @@ object ScreenState {
     fun valid(id: Long) = state.value.active && state.value.session == id
     fun event(message: String) = update { it.copy(status=message, history=(it.history + message).takeLast(60)) }
 }
+/** Video subtitles do not need OCR every 900 ms; keep fresh frames for screen questions/tasks. */
+object ScreenCapturePacing {
+    fun intervalMs(translation:Boolean,audio:Boolean,busy:Boolean,agentRunning:Boolean):Long =
+        if(busy || agentRunning || (translation && !audio))900L else 2400L
+}
 /** Latest subtitle waits until the previous one has had enough time to be read. */
 class CaptionGate {
     private var current = ""; private var until = 0L; private var pending = ""

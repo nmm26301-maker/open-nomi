@@ -3,6 +3,7 @@ name: OpenNomi Android checks
 on:
   push:
     branches: [main]
+    paths-ignore: ['backups/**', 'validation/**', 'docs/**', 'README.md']
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -66,19 +67,19 @@ jobs:
           echo 'Unsigned verification output. Sign with the matching release key for the configured application ID before installation.' > build-handoff/README.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: opennomi-055-unsigned-and-signing-tools
+          name: opennomi-056-unsigned-and-signing-tools
           path: build-handoff/
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
-          name: opennomi-055-apk-parts
+          name: opennomi-056-apk-parts
           path: apk-transfer/opennomi-apk.part*
           if-no-files-found: error
           retention-days: 7
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: opennomi-055-check-reports
+          name: opennomi-056-check-reports
           path: |
             app/build/reports/
             app/build/test-results/
@@ -132,7 +133,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: opennomi-055-ui-smoke-api-${{ matrix.api }}
+          name: opennomi-056-ui-smoke-api-${{ matrix.api }}
           path: |
             ui-captures/
             app/build/reports/androidTests/

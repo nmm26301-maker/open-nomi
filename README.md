@@ -1,4 +1,6 @@
-# OpenNomi Android 0.55.0
+# OpenNomi Android 0.56.0
+
+0.56 优化视频字幕：新增更快显示／完整语句选择；翻译完成后立即处理下一条，积压时保持顺序合并相邻原文，减少请求次数；降低视频模式下不必要的画面采集和配置解密工作。视频入口放到翻译页首位，并补上悬浮窗授权引导和同一处模型准备进度。详见 [0.56 视频字幕优化](docs/0.56-video-optimization.md)。
 
 0.55 新增无字幕视频的声音翻译：选原声语言，直接识别播放器声音，并显示实时中文字幕与识别原文。新增日语、韩语、法语、德语、俄语、西班牙语模型，英语可选增强模型；修复连续语句被新内容覆盖和字幕阅读等待导致的延迟。首次准备模型后可离线使用。实际功能与限制见 [0.55 视频字幕说明](docs/0.55-video-subtitles.md)。
 
@@ -8,7 +10,7 @@
 
 ## 安装身份与签名
 
-0.55.0 沿用 0.53/0.54 的包名和发布签名，可覆盖升级。新版包名为 `com.opennomi.android`，版本代码 55，使用用户保留的新发布签名。它与旧版 `com.opennomi.android.voicetest` 并行安装，不会覆盖或清除旧版。新安装需重新授予权限、绑定设备、填写服务配置；旧版的本机聊天记忆、登录和设置不会自动迁移。不要为了安装新版卸载旧版。
+0.56.0 沿用 0.53–0.55 的包名和发布签名，可覆盖升级。新版包名为 `com.opennomi.android`，版本代码 56，使用用户保留的新发布签名。它与旧版 `com.opennomi.android.voicetest` 并行安装，不会覆盖或清除旧版。新安装需重新授予权限、绑定设备、填写服务配置；旧版的本机聊天记忆、登录和设置不会自动迁移。不要为了安装新版卸载旧版。
 
 签名私钥和密码只在外部签名步骤使用，源码与 Actions 日志不包含这些凭据。加密备份见本仓库 `backups/signing/new-signing-20261012/`，每版安装包和恢复校验文件归档于 `backups/releases/<版本>/`；恢复凭据单独保存，禁止提交仓库。没有原私钥时不能生成旧包名的覆盖升级包。
 
@@ -45,7 +47,7 @@ node --test airi-native-voice.test.cjs
 
 ## 手机查看编译
 
-打开 [Actions](https://github.com/nmm26301-maker/open-nomi/actions)，查看 OpenNomi Android checks。每次 main 更新自动编译，也可以 Run workflow 手动运行。产物含未签名 APK 的三个分片、签名工具和检查报告；未签名产物不能直接安装。下载并解压三个 apk-part 产物后，按 part00、part01、part02 顺序拼接为 APK，核对 unsigned-sha256.txt，再用原签名签名。OCR、英语识别和 native AAR 在构建时从官方来源恢复，逐文件核对 SHA-256，安装包仍包含离线数据。
+打开 [Actions](https://github.com/nmm26301-maker/open-nomi/actions)，查看 OpenNomi Android checks。每次 main 更新自动编译，也可以 Run workflow 手动运行。产物含未签名 APK 的全部分片、签名工具和检查报告；未签名产物不能直接安装。下载并解压 apk-parts 产物后，按 part00、part01 等编号顺序拼接全部分片，不预设固定数量，核对 unsigned-sha256.txt，再用原签名签名。OCR、英语识别和 native AAR 在构建时从官方来源恢复，逐文件核对 SHA-256，安装包仍包含离线数据。
 
 构建记录见仓库 Actions；旧版本验证记录仅适用于对应版本。API Key 在手机里填写；屏幕共享、Agent 与实时翻译的完整体验仍需 Android 13 真机测试。
 

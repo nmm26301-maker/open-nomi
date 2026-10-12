@@ -2,6 +2,7 @@ package ai.opennomi.app
 
 import ai.opennomi.app.screen.AudioSubtitleQueue
 import ai.opennomi.app.screen.AudioPhraseClock
+import ai.opennomi.app.screen.SubtitleTiming
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -41,5 +42,39 @@ class AudioSubtitleRegressionTest {
         val q=AudioSubtitleQueue();q.offer("uncertain",.4);q.offer("clear",.9)
         assertEquals(.4,q.next(0)!!.confidence!!,0.001);q.success(q.next(0)!!.id)
         assertEquals(.9,q.next(1)!!.confidence!!,0.001)
+    }
+    @Test fun backlogBatchesOnlyAdjacentSpeechWithoutLosingOrReorderingIt() {
+        val q=AudioSubtitleQueue();listOf("first","second","third","fourth").forEach{q.offer(it)}
+        val batch=q.nextBatch(0)!!;assertEquals("first\nsecond\nthird",batch.text)
+        q.success(batch);assertEquals("fourth",q.nextBatch(1)!!.text);assertEquals(1,q.size)
+    }
+    @Test fun normalSpeechNeverWaitsToFillABatch() {
+        val q=AudioSubtitleQueue();q.offer("first");q.offer("second")
+        assertEquals("first",q.nextBatch(0)!!.text)
+    }
+    @Test fun failedBatchRetriesExactlyItsOriginalTextDespiteNewSpeech() {
+        val q=AudioSubtitleQueue();listOf("first","second","third","fourth").forEach{q.offer(it)}
+        val batch=q.nextBatch(0)!!;q.failed(10);q.offer("fifth")
+        assertNull(q.nextBatch(1009));assertEquals(batch,q.nextBatch(1010))
+        q.success(batch);assertEquals("fourth",q.nextBatch(1011)!!.text)
+    }
+    @Test fun repeatedWordsAndLowConfidenceAreRetainedInABatch() {
+        val q=AudioSubtitleQueue();q.offer("no",.9);q.offer("no",.4);q.offer("yes",.8);q.offer("next",.9)
+        val batch=q.nextBatch(0)!!;assertEquals("no\nno\nyes",batch.text);assertEquals(.4,batch.confidence!!,.001)
+    }
+    @Test fun staleBatchCannotRemoveNewSpeechOrClearItsRetryDelay() {
+        val q=AudioSubtitleQueue();q.offer("old");val old=q.nextBatch(0)!!
+        q.reset();q.offer("new");val next=q.nextBatch(1)!!;q.failed(10);q.success(old)
+        assertNull(q.nextBatch(1009));assertEquals(next,q.nextBatch(1010))
+    }
+    @Test fun aLongPhraseDoesNotPullInAnotherPhraseBeyondTheBatchLimit() {
+        val q=AudioSubtitleQueue();q.offer("long ".repeat(80));repeat(3){q.offer("next")}
+        assertEquals(1,q.nextBatch(0)!!.utterances.size);assertEquals(4,q.size)
+    }
+    @Test fun fastAndCompleteModesUseDistinctMonologueBoundaries() {
+        val fast=AudioPhraseClock(SubtitleTiming.FAST.maximumMs);val full=AudioPhraseClock(SubtitleTiming.COMPLETE.maximumMs)
+        assertFalse(fast.update(true,0));assertFalse(full.update(true,0))
+        assertFalse(fast.update(true,3499));assertTrue(fast.update(true,3500));assertFalse(full.update(true,3500));assertTrue(full.update(true,5500))
+        assertEquals(SubtitleTiming.FAST,SubtitleTiming.selected("unrecognized preference"))
     }
 }

@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 /** Processes captured player PCM; partial hypotheses are previews, not settled translations. */
 class PlaybackHearing(private val context:Context,private val projection:MediaProjection,
-    private val modelRoot:File,private val result:(String,Double?)->Unit,
+    private val modelRoot:File,private val timing:SubtitleTiming,private val result:(String,Double?)->Unit,
     private val partial:(String)->Unit,private val error:(String)->Unit,private val stopped:()->Unit,private val ready:()->Unit) {
     private val running=AtomicBoolean(false)
     @Volatile private var recorder:AudioRecord?=null
@@ -29,6 +29,8 @@ class PlaybackHearing(private val context:Context,private val projection:MediaPr
                 if(Build.VERSION.SDK_INT<29)throw IllegalStateException("视频声音字幕需要 Android 10 以上")
                 model=Model(modelRoot.absolutePath);recognizer=Recognizer(model,16000f)
                 recognizer.setWords(true)
+                // Vosk uses seconds here; use its endpoint detector to retain natural pauses.
+                recognizer.setEndpointerDelays(5f,timing.endSilenceSeconds,20f)
                 if(!running.get())return@Thread
                 val min=AudioRecord.getMinBufferSize(16000,AudioFormat.CHANNEL_IN_MONO,AudioFormat.ENCODING_PCM_16BIT)
                 check(min>0){"系统不支持视频声音采样格式"}
@@ -42,7 +44,7 @@ class PlaybackHearing(private val context:Context,private val projection:MediaPr
                 recorder=capture
                 if(!running.get())return@Thread
                 capture.startRecording();ready()
-                val buffer=ByteArray(3200);val phrase=AudioPhraseClock()
+                val buffer=ByteArray(3200);val phrase=AudioPhraseClock(timing.maximumMs)
                 var quietSince=SystemClock.elapsedRealtime();var speechSince=quietSince
                 var lastPreview="";var lastPreviewAt=0L
                 fun emit(raw:String) {

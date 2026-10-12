@@ -49,7 +49,11 @@ class WorkspaceActivity:ComponentActivity() {
         }else {pendingVideo=false;ScreenState.event("未授权共享，当前没有读取屏幕")}
     }
     private val notifications=registerForActivityResult(ActivityResultContracts.RequestPermission()){launchShareGrant()}
-    private val microphone=registerForActivityResult(ActivityResultContracts.RequestPermission()){ok->if(ok)activateAudio() else ScreenState.event("未允许音频权限，仍可翻译屏幕文字")}
+    private val microphone=registerForActivityResult(ActivityResultContracts.RequestPermission()){ok->if(ok)requestVideo() else ScreenState.event("未允许音频权限，仍可翻译屏幕文字")}
+    private val subtitleOverlay=registerForActivityResult(ActivityResultContracts.StartActivityForResult()){
+        if(Settings.canDrawOverlays(this))requestVideo()
+        else ScreenState.event("需要允许悬浮窗，中文字幕才能显示在视频上方；允许后再开启视频字幕")
+    }
     private val handsFreePermissions=registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()){grants->
         if(grants[Manifest.permission.RECORD_AUDIO]==true) {
             (application as ai.opennomi.app.NomiApplication).cloudModel.voiceSettings.phoneControl=true
@@ -76,6 +80,16 @@ class WorkspaceActivity:ComponentActivity() {
         val service=ScreenShareService.instance ?: run {pendingVideo=true;startShare();return}
         service.toggleAudio()
         if(ScreenState.state.value.audio)moveTaskToBack(true)
+    }
+    private fun requestVideo() {
+        if(ScreenState.state.value.audio){ScreenShareService.instance?.toggleAudio();return}
+        if(!Settings.canDrawOverlays(this)) {
+            ScreenState.event("请允许悬浮窗，用于显示视频中文字幕")
+            subtitleOverlay.launch(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,Uri.parse("package:$packageName")))
+            return
+        }
+        if(ContextCompat.checkSelfPermission(this,Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED){microphone.launch(Manifest.permission.RECORD_AUDIO);return}
+        activateAudio()
     }
     private fun confirmStep(){moveTaskToBack(true);Handler(Looper.getMainLooper()).postDelayed({ScreenAssistant.confirm()},650)}
     @Composable private fun Workspace(){
@@ -178,11 +192,52 @@ class WorkspaceActivity:ComponentActivity() {
         var downloadOptions by remember{mutableStateOf(false)}
         var audioModel by remember{mutableStateOf(cfg.playbackModel)}
         var showOriginal by remember{mutableStateOf(cfg.subtitleOriginal)}
+        var timing by remember{mutableStateOf(cfg.subtitleTiming)}
+        var videoMessage by remember{mutableStateOf("")}
+        var videoPreparing by remember{mutableStateOf(false)}
         var input by remember{mutableStateOf("Hello, welcome to my channel.")}
         var output by remember{mutableStateOf("")}
         var busy by remember{mutableStateOf(false)}
         var running by remember{mutableStateOf<Job?>(null)}
         val progress by ScreenAssistant.phoneTranslator.status.collectAsStateWithLifecycle()
+        CardBlock("无字幕视频 · 实时中文字幕") {
+            Text("直接听视频原声，不需要视频自带字幕。先选原声语言，准备好模型后再播放。",fontSize=14.sp)
+            Text("原声语言 · 左右滑动选择",fontSize=12.sp)
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+                PlaybackModels.choices.forEach { model ->
+                    FilterChip(selected=audioModel==model.id,onClick={audioModel=model.id;cfg.playbackModel=model.id;refresh.intValue++},label={Text(model.label)},enabled=!state.audio && !busy)
+                }
+            }
+            val selected=PlaybackModels.selected(audioModel)
+            Text(if(PlaybackModels.ready(this@WorkspaceActivity,selected))"${selected.label}语音模型已准备好" else if(selected.id=="en")"英语模型已内置，首次会安装到本机" else "${selected.label}语音模型首次下载约 ${selected.sizeMb} MB，之后可离线识别",fontSize=12.sp)
+            Row(verticalAlignment=Alignment.CenterVertically){Text("显示识别原文，方便核对",Modifier.weight(1f),fontSize=13.sp);Switch(showOriginal,{showOriginal=it;cfg.subtitleOriginal=it;ScreenShareService.instance?.refreshOverlay()})}
+            Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
+                SubtitleTiming.entries.forEach{mode->FilterChip(selected=timing==mode.name,onClick={timing=mode.name;cfg.subtitleTiming=mode.name},label={Text(mode.label)},enabled=!state.audio)}
+            }
+            Text(if(timing==SubtitleTiming.FAST.name)"优先在停顿时出字幕；连续讲话约 3.5 秒分段，可能拆开长句。" else "连续讲话约 5.5 秒分段，保留更多句内上下文，显示会稍晚。",fontSize=12.sp)
+            WideButton(if(state.audio)"停止视频字幕" else "开启无字幕视频字幕") {
+                if(busy)ScreenState.event("请先等待或取消模型准备") else requestVideo()
+            }
+            TextButton(onClick={busy=true;videoPreparing=true;videoMessage="正在准备视频字幕模型";running=scope.launch {
+                try {
+                    val preparation=currentCoroutineContext()[Job]!!
+                    withContext(Dispatchers.IO){PlaybackModels.prepare(this@WorkspaceActivity,selected,cfg.translationCellular,{preparation.isActive},{message->scope.launch{if(preparation.isActive)videoMessage=message}})}
+                    if(cfg.phoneTranslation)ScreenAssistant.phoneTranslator.prepare(selected.language,cfg.translationCellular)
+                    videoMessage="${selected.label}语音和翻译模型已就绪，可以播放视频"
+                }catch(e:CancellationException){throw e}
+                catch(e:Exception){videoMessage=e.message ?: "视频字幕模型准备失败"}
+                finally{busy=false;videoPreparing=false;running=null}
+            }},enabled=!busy && !state.audio){Text("提前准备视频字幕模型")}
+            if(videoPreparing){LinearProgressIndicator(Modifier.fillMaxWidth());TextButton(onClick={running?.cancel();videoMessage="已取消模型准备，已安装模型保留"}){Text("取消视频模型准备")}}
+            if(videoMessage.isNotBlank())Text(videoMessage,fontSize=12.sp,color=MaterialTheme.colorScheme.primary)
+            Row(verticalAlignment=Alignment.CenterVertically){Text("允许移动网络下载模型",Modifier.weight(1f),fontSize=13.sp);Switch(cellular,{cellular=it;cfg.translationCellular=it},enabled=!busy && !state.audio)}
+            Text("默认只在 Wi-Fi 下载。原文会先显示；积压时合并相邻语句翻译以追赶进度。英语可选增强模型；口音、音乐和重叠讲话会影响识别。",fontSize=12.sp)
+            Text("播放应用必须允许系统捕获声音；受限视频无法强行读取。手机翻译在本机处理；选择连接页的在线模型或 LibreTranslate 时，会发送识别文字。",fontSize=12.sp)
+            if(state.audio)Text(state.status,color=MaterialTheme.colorScheme.primary)
+            if(state.notice.isNotBlank())Text(state.notice,color=MaterialTheme.colorScheme.error)
+            if(state.audioPreview.isNotBlank())Text("识别中：${state.audioPreview}",fontSize=12.sp)
+            if(state.caption.isNotBlank()){Text(state.caption);if(showOriginal && state.captionOriginal.isNotBlank())Text("原文：${state.captionOriginal}",fontSize=12.sp)}
+        }
         CardBlock("文字翻译 · 译成中文") {
             Row(verticalAlignment=Alignment.CenterVertically){
                 Column(Modifier.weight(1f)){Text("手机翻译 · 无需 API Key");Text("首次下载语言模型后可离线使用",fontSize=12.sp)}
@@ -222,36 +277,6 @@ class WorkspaceActivity:ComponentActivity() {
                 }},enabled=!busy){Text(if(source=="auto")"准备英语模型" else "准备所选语言模型")}
                 }
             }
-        }
-        CardBlock("无字幕视频 · 实时中文字幕") {
-            Text("直接听视频原声，不需要视频自带字幕。先选原声语言，准备好模型后再播放。",fontSize=14.sp)
-            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
-                PlaybackModels.choices.forEach { model ->
-                    FilterChip(selected=audioModel==model.id,onClick={audioModel=model.id;cfg.playbackModel=model.id;refresh.intValue++},label={Text(model.label)},enabled=!state.audio && !busy)
-                }
-            }
-            val selected=PlaybackModels.selected(audioModel)
-            Text(if(PlaybackModels.ready(this@WorkspaceActivity,selected))"${selected.label}语音模型已准备好" else if(selected.id=="en")"英语模型已内置，首次会安装到本机" else "${selected.label}语音模型首次下载约 ${selected.sizeMb} MB，之后可离线识别",fontSize=12.sp)
-            Row(verticalAlignment=Alignment.CenterVertically){Text("显示识别原文，方便核对",Modifier.weight(1f),fontSize=13.sp);Switch(showOriginal,{showOriginal=it;cfg.subtitleOriginal=it;ScreenShareService.instance?.refreshOverlay()})}
-            WideButton(if(state.audio)"停止视频字幕" else "开启无字幕视频字幕") {
-                if(ContextCompat.checkSelfPermission(this@WorkspaceActivity,Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED)activateAudio() else microphone.launch(Manifest.permission.RECORD_AUDIO)
-            }
-            TextButton(onClick={busy=true;output="";running=scope.launch {
-                try {
-                    withContext(Dispatchers.IO){PlaybackModels.prepare(this@WorkspaceActivity,selected,cfg.translationCellular,{isActive},{message->lifecycleScope.launch{output=message}})}
-                    if(cfg.phoneTranslation)ScreenAssistant.phoneTranslator.prepare(selected.language,cfg.translationCellular)
-                    output="${selected.label}语音和翻译模型已就绪，可以播放视频"
-                }catch(e:CancellationException){throw e}
-                catch(e:Exception){output=e.message ?: "视频字幕模型准备失败"}
-                finally{busy=false;running=null}
-            }},enabled=!busy && !state.audio){Text("提前准备视频字幕模型")}
-            Row(verticalAlignment=Alignment.CenterVertically){Text("允许移动网络下载模型",Modifier.weight(1f),fontSize=13.sp);Switch(cellular,{cellular=it;cfg.translationCellular=it},enabled=!busy && !state.audio)}
-            Text("默认只在 Wi-Fi 下载。完整语句依次翻译，识别中的原文会先显示；英语可选增强模型。口音、音乐和重叠讲话会影响识别。",fontSize=12.sp)
-            Text("播放应用必须允许系统捕获声音；受限视频无法强行读取。手机翻译在本机处理；选择连接页的在线模型或 LibreTranslate 时，会发送识别文字。",fontSize=12.sp)
-            if(state.audio)Text(state.status,color=MaterialTheme.colorScheme.primary)
-            if(state.notice.isNotBlank())Text(state.notice,color=MaterialTheme.colorScheme.error)
-            if(state.audioPreview.isNotBlank())Text("识别中：${state.audioPreview}",fontSize=12.sp)
-            if(state.caption.isNotBlank()){Text(state.caption);if(showOriginal && state.captionOriginal.isNotBlank())Text("原文：${state.captionOriginal}",fontSize=12.sp)}
         }
         CardBlock("画面文字 · 底部浮条") {
             Text("用于网页、画面里的外语文字和已有字幕；无字幕视频请使用上方视频声音模式。",fontSize=13.sp)

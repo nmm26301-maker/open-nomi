@@ -5,6 +5,12 @@ import org.junit.Test
 import org.junit.Assert.*
 
 class ScreenWorkspaceRegressionTest {
+    @Test fun audioOnlyCaptureSavesOcrWorkWhileQuestionsAndTasksKeepFastFrames() {
+        assertEquals(2400L,ScreenCapturePacing.intervalMs(true,true,false,false))
+        assertEquals(900L,ScreenCapturePacing.intervalMs(true,false,false,false))
+        assertEquals(900L,ScreenCapturePacing.intervalMs(true,true,true,false))
+        assertEquals(900L,ScreenCapturePacing.intervalMs(true,true,false,true))
+    }
     @Test fun subtitlesNeverReplaceUnreadText() {
         val gate=CaptionGate()
         assertEquals("first",gate.offer("first",0))

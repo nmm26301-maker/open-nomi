@@ -33,6 +33,7 @@ class WorkspaceSettings(context: Context) {
     var translationCellular: Boolean get()=prefs.getBoolean("translation-cellular",false);set(v){prefs.edit().putBoolean("translation-cellular",v).apply()}
     var playbackModel: String get()=prefs.getString("playback-model","en").orEmpty();set(v){prefs.edit().putString("playback-model",PlaybackModels.selected(v).id).apply()}
     var subtitleOriginal: Boolean get()=prefs.getBoolean("subtitle-original",true);set(v){prefs.edit().putBoolean("subtitle-original",v).apply()}
+    var subtitleTiming: String get()=prefs.getString("subtitle-timing",SubtitleTiming.FAST.name).orEmpty();set(v){prefs.edit().putString("subtitle-timing",SubtitleTiming.selected(v).name).apply()}
     var includeImage: Boolean get()=prefs.getBoolean("image",true);set(v){prefs.edit().putBoolean("image",v).apply()}
     private fun key(): javax.crypto.SecretKey {
         val store=KeyStore.getInstance("AndroidKeyStore").apply{load(null)}
@@ -57,7 +58,8 @@ class WorkspaceSettings(context: Context) {
     fun modelReady() = base.isNotBlank() && model.isNotBlank()
     fun translationReady() = phoneTranslation || modelReady() || libre.isNotBlank()
     fun translationFingerprint(): String = java.security.MessageDigest.getInstance("SHA-256")
-        .digest((base+"\n"+model+"\n"+translationModel+"\n"+apiKey+"\n"+libre+"\n"+libreKey+"\n"+phoneTranslation+"\n"+translationSource+"\n"+translationCellular+"\n"+playbackModel).toByteArray()).joinToString("") { "%02x".format(it) }
+        // Configuration polling needs change detection, not repeated hardware-key decryption.
+        .digest((base+"\n"+model+"\n"+translationModel+"\n"+prefs.getString("secret","")+"\n"+libre+"\n"+prefs.getString("libre-secret","")+"\n"+phoneTranslation+"\n"+translationSource+"\n"+translationCellular+"\n"+playbackModel).toByteArray()).joinToString("") { "%02x".format(it) }
     fun connection() = VisionConnection(base,model,apiKey)
     private fun fingerprint(): String = java.security.MessageDigest.getInstance("SHA-256").digest((base+"\n"+model+"\n"+apiKey).toByteArray()).joinToString("") { "%02x".format(it) }
     fun visionVerified() = modelReady() && prefs.getString("verified", "") == fingerprint()

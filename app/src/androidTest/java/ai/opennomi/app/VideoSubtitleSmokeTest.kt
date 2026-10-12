@@ -16,13 +16,39 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class VideoSubtitleSmokeTest {
-    @Test fun realCapturedPlayerAudioProducesChineseWithoutAnyScreenSubtitle()=runBlocking<Unit> {
+    @Test fun missingOverlayPermissionIsResolvedBeforeSharingStarts()=runBlocking<Unit> {
+        val app=ApplicationProvider.getApplicationContext<NomiApplication>()
+        val device=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        InstrumentationRegistry.getInstrumentation().runOnMainSync{ScreenShareService.instance?.stopSelf()}
+        withTimeout(10000){while(ScreenState.state.value.active)delay(100)}
+        device.executeShellCommand("pm grant ${app.packageName} android.permission.RECORD_AUDIO")
+        if(android.os.Build.VERSION.SDK_INT>=33)device.executeShellCommand("pm grant ${app.packageName} android.permission.POST_NOTIFICATIONS")
+        device.executeShellCommand("appops set ${app.packageName} SYSTEM_ALERT_WINDOW deny")
+        try {
+            ActivityScenario.launch<WorkspaceActivity>(Intent(app,WorkspaceActivity::class.java).putExtra("tab","translation")).use {
+                clickVideoStart(device)
+                assertTrue("Missing overlay permission must open its system settings",device.wait(Until.hasObject(By.pkg("com.android.settings")),10000))
+                assertFalse(ScreenState.state.value.active);assertFalse(ScreenState.state.value.audio)
+                device.executeShellCommand("appops set ${app.packageName} SYSTEM_ALERT_WINDOW allow")
+                device.pressBack()
+                val grant=device.wait(Until.findObject(By.res("android:id/button2")),10000)
+                assertNotNull("Returning after overlay approval must continue to projection permission",grant)
+                grant.click();delay(500)
+                assertFalse("Denying sharing must not start capture",ScreenState.state.value.active)
+            }
+        } finally {device.executeShellCommand("appops set ${app.packageName} SYSTEM_ALERT_WINDOW allow")}
+    }
+    @Test fun fastCapturedPlayerAudioProducesChineseWithoutAnyScreenSubtitle()=capturedPlayer(SubtitleTiming.FAST)
+    @Test fun completeCapturedPlayerAudioProducesChineseWithoutAnyScreenSubtitle()=capturedPlayer(SubtitleTiming.COMPLETE)
+    private fun capturedPlayer(timing:SubtitleTiming)=runBlocking<Unit> {
         val app=ApplicationProvider.getApplicationContext<NomiApplication>()
         val cfg=ScreenAssistant.settings();val old=cfg.playbackModel;val phone=cfg.phoneTranslation;val cellular=cfg.translationCellular
+        val oldTiming=cfg.subtitleTiming
         val device=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         val audio=app.getSystemService(AudioManager::class.java);val volume=audio.getStreamVolume(AudioManager.STREAM_MUSIC)
         try {
             cfg.playbackModel="en";cfg.phoneTranslation=true;cfg.translationCellular=true
+            cfg.subtitleTiming=timing.name
             withContext(Dispatchers.IO){PlaybackModels.prepare(app,PlaybackModels.selected("en"),true)}
             withTimeout(240000){ScreenAssistant.phoneTranslator.prepare("en",true)}
             device.executeShellCommand("pm grant ${app.packageName} android.permission.RECORD_AUDIO")
@@ -30,24 +56,7 @@ class VideoSubtitleSmokeTest {
             device.executeShellCommand("appops set ${app.packageName} SYSTEM_ALERT_WINDOW allow")
             audio.setStreamVolume(AudioManager.STREAM_MUSIC,audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC),0)
             ActivityScenario.launch<WorkspaceActivity>(Intent(app,WorkspaceActivity::class.java).putExtra("tab","translation")).use {
-                withTimeout(15000) {
-                    var clicked=false
-                    while(!clicked) {
-                        try {
-                            val button=device.findObject(By.text("开启无字幕视频字幕"))
-                            if(button!=null && button.visibleBounds.height()>0){button.click();clicked=true}
-                            else {
-                                val scroll=device.findObjects(By.scrollable(true)).firstOrNull{node->val bounds=node.visibleBounds;bounds.height()>bounds.width()}
-                                if(scroll!=null)scroll.scroll(Direction.DOWN,.65f)
-                                else device.swipe(device.displayWidth/10,device.displayHeight*3/4,device.displayWidth/10,device.displayHeight/3,25)
-                            }
-                        } catch(_:StaleObjectException) {
-                            // Compose may replace accessibility nodes during progress updates.
-                            // Reacquire the button on the next iteration; the timeout still fails a missing control.
-                        }
-                        if(!clicked)delay(200)
-                    }
-                }
+                clickVideoStart(device)
                 val grant=device.wait(Until.findObject(By.res("android:id/button1")),10000)
                 assertNotNull("MediaProjection permission dialog must appear",grant);grant.click()
                 withTimeout(60000){while(!ScreenState.state.value.audio || !ScreenState.state.value.status.contains("已就绪"))delay(200)}
@@ -64,9 +73,30 @@ class VideoSubtitleSmokeTest {
             InstrumentationRegistry.getInstrumentation().runOnMainSync{ScreenShareService.instance?.stopSelf()}
             device.executeShellCommand("am force-stop ai.opennomi.playbackfixture")
             audio.setStreamVolume(AudioManager.STREAM_MUSIC,volume,0)
-            cfg.playbackModel=old;cfg.phoneTranslation=phone;cfg.translationCellular=cellular
+            cfg.playbackModel=old;cfg.phoneTranslation=phone;cfg.translationCellular=cellular;cfg.subtitleTiming=oldTiming
         }
     }
+    private suspend fun clickVideoStart(device:UiDevice) {
+        withTimeout(15000) {
+            var clicked=false
+            while(!clicked) {
+                try {
+                    val button=device.findObject(By.text("开启无字幕视频字幕"))
+                    if(button!=null && button.visibleBounds.height()>0){button.click();clicked=true}
+                    else {
+                val scroll=device.findObjects(By.scrollable(true)).firstOrNull{node->val bounds=node.visibleBounds;bounds.height()>bounds.width()}
+                if(scroll!=null)scroll.scroll(Direction.DOWN,.65f)
+                else device.swipe(device.displayWidth/10,device.displayHeight*3/4,device.displayWidth/10,device.displayHeight/3,25)
+                    }
+                } catch(_:StaleObjectException) {
+                    // Compose may replace accessibility nodes during progress updates.
+                    // Reacquire the button on the next iteration; the timeout still fails a missing control.
+                }
+                if(!clicked)delay(200)
+            }
+        }
+    }
+
     @Test fun realJapaneseModelInstallsAndSurvivesOfflineReload()=runBlocking<Unit> {
         val app=ApplicationProvider.getApplicationContext<NomiApplication>()
         val spec=PlaybackModels.selected("ja")

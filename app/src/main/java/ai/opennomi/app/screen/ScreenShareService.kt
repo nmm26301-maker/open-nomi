@@ -74,7 +74,8 @@ class ScreenShareService: Service() {
         val image=runCatching{r.acquireLatestImage()}.getOrNull() ?: return
         var bitmap: Bitmap?=null
         try {
-            val now=System.currentTimeMillis();if(ScreenState.ownForeground || !ScreenState.valid(session) || now-lastFrame<(if(ScreenState.state.value.translation)900 else 2400))return
+            val state=ScreenState.state.value
+            val now=System.currentTimeMillis();if(ScreenState.ownForeground || !ScreenState.valid(session) || now-lastFrame<ScreenCapturePacing.intervalMs(state.translation,state.audio,state.busy,state.agentRunning))return
             lastFrame=now
             val plane=image.planes[0];val rowWidth=plane.rowStride/plane.pixelStride
             val padded=Bitmap.createBitmap(rowWidth,image.height,Bitmap.Config.ARGB_8888);padded.copyPixelsFromBuffer(plane.buffer)
@@ -118,21 +119,21 @@ class ScreenShareService: Service() {
         val currentConfig=ScreenAssistant.settings().translationFingerprint()
         if(currentConfig!=translationConfig){translations.reset();audioQueue.reset();audioContext="";translationConfig=currentConfig}
         val audio=ScreenState.state.value.audio
-        val utterance=if(audio)audioQueue.next(System.currentTimeMillis()) else null
+        val utterance=if(audio)audioQueue.nextBatch(SystemClock.elapsedRealtime()) else null
         val line=if(audio)utterance?.text ?: return else translations.next(System.currentTimeMillis()) ?: return
         val id=session;val generation=translationGeneration;val config=translationConfig
         translationJob=scope.launch {
-            val modelProgress=if(ScreenAssistant.settings().phoneTranslation)launch {
+            val modelProgress=if(!audio && ScreenAssistant.settings().phoneTranslation)launch {
                 ScreenAssistant.phoneTranslator.status.collect { progress ->
                     if(ScreenState.valid(id) && generation==translationGeneration && ScreenState.state.value.translation)
                         ScreenState.update{it.copy(notice=progress)}
                 }
             } else null
             try {
-                val text=translations.cached(line) ?: withContext(Dispatchers.IO){ScreenAssistant.translate(line,if(audio)audioSource else null,if(audio)audioContext else "")}
+                val text=(if(audio)null else translations.cached(line)) ?: withContext(Dispatchers.IO){ScreenAssistant.translate(line,if(audio)audioSource else null,if(audio)audioContext else "")}
                 if(ScreenState.valid(id) && generation==translationGeneration && config==ScreenAssistant.settings().translationFingerprint() && ScreenState.state.value.translation){
                     if(audio && utterance!=null) {
-                        audioQueue.success(utterance.id)
+                        audioQueue.success(utterance)
                         audioContext=(audioContext+"\n"+line).takeLast(600)
                         // Audio captions follow speech immediately, without the OCR reading-delay gate.
                         val warning=if((utterance.confidence ?: 1.0)<.55)"这句原声识别不确定，请对照原文" else if(audioQueue.size>=4)"字幕正在追赶播放进度，可降低播放速度" else ""
@@ -146,11 +147,14 @@ class ScreenShareService: Service() {
             } catch(e:CancellationException){throw e}
             catch(t:Throwable){
                 if(ScreenState.valid(id) && generation==translationGeneration){
-                    if(audio)audioQueue.failed(System.currentTimeMillis()) else translations.failed(System.currentTimeMillis())
+                    if(audio)audioQueue.failed(SystemClock.elapsedRealtime()) else translations.failed(System.currentTimeMillis())
                     val error="翻译暂未完成：${t.message ?: "网络不可用"} · 正在等待重试，翻译保持开启"
                     ScreenState.update{it.copy(notice=error)};ScreenState.event(error)
                 }
-            } finally {modelProgress?.cancel();if(generation==translationGeneration)translationJob=null}
+            } finally {
+                modelProgress?.cancel()
+                if(generation==translationGeneration){translationJob=null;if(audio)main.post{pumpTranslation()}}
+            }
         }
     }
     fun toggleAudio() {
@@ -176,7 +180,7 @@ class ScreenShareService: Service() {
                     try{ScreenAssistant.phoneTranslator.prepare(model.language,cfg.translationCellular)}finally{progress.cancel()}
                 }
                 if(!valid())return@launch
-                playback=PlaybackHearing(this@ScreenShareService,p,root,
+                playback=PlaybackHearing(this@ScreenShareService,p,root,SubtitleTiming.selected(cfg.subtitleTiming),
                     {text,confidence->main.post{if(valid()){
                         if(!audioQueue.offer(text,confidence))ScreenState.update{it.copy(notice="翻译速度暂时跟不上；这句未加入字幕，请降低播放速度后重试")}
                         pumpTranslation()

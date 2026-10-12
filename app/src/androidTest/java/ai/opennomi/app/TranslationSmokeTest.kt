@@ -55,10 +55,12 @@ class TranslationSmokeTest {
             assertFalse(cfg.modelReady());assertTrue(cfg.apiKey.isBlank())
             withTimeout(240000){ScreenAssistant.phoneTranslator.prepare("en",true)}
             ActivityScenario.launch<WorkspaceActivity>(Intent(context,WorkspaceActivity::class.java).putExtra("tab","translation")).use { scenario ->
-                assertTrue(device.wait(Until.hasObject(By.text("文字翻译 · 译成中文")),10000))
-                repeat(4){
-                    if(!device.hasObject(By.text("翻译为中文")))
-                        device.findObjects(By.scrollable(true)).firstOrNull{it.visibleBounds.height()>it.visibleBounds.width()}?.scroll(Direction.DOWN,.5f)
+                withTimeout(20000) {
+                    while(!device.hasObject(By.text("翻译为中文"))) {
+                        try{device.findObjects(By.scrollable(true)).firstOrNull{it.visibleBounds.height()>it.visibleBounds.width()}?.scroll(Direction.DOWN,.5f)}
+                        catch(_:StaleObjectException){}
+                        delay(200)
+                    }
                 }
                 assertNotNull(device.findObject(By.text("翻译为中文")))
                 val field=device.findObject(By.clazz("android.widget.EditText"));assertNotNull(field)
