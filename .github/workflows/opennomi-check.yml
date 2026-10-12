@@ -7,6 +7,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: opennomi-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -67,20 +71,8 @@ jobs:
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
-          name: opennomi-054-apk-part-00
-          path: apk-transfer/opennomi-apk.part00
-          if-no-files-found: error
-          retention-days: 7
-      - uses: actions/upload-artifact@v4
-        with:
-          name: opennomi-054-apk-part-01
-          path: apk-transfer/opennomi-apk.part01
-          if-no-files-found: error
-          retention-days: 7
-      - uses: actions/upload-artifact@v4
-        with:
-          name: opennomi-054-apk-part-02
-          path: apk-transfer/opennomi-apk.part02
+          name: opennomi-054-apk-parts
+          path: apk-transfer/opennomi-apk.part*
           if-no-files-found: error
           retention-days: 7
       - uses: actions/upload-artifact@v4
