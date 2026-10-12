@@ -1,0 +1,42 @@
+{
+  "unsigned_sha256": "faaf924c4cf292d20f4c3cf142433f5a2713ae615f4e774584881453ffb9dc79",
+  "tests": {
+    "tests": 139,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "lint_warnings": 46,
+  "version": "0.53.0",
+  "version_code": 53,
+  "application_id": "com.opennomi.android",
+  "abi": "arm64-v8a",
+  "built_source_commit": "7cdf0aca80a2ead01b182326f986174f794a2b11",
+  "merged_commit": "ba670da3513e6b1adde2a07d3f81bc831c9bc1b5",
+  "workflow_url": "https://github.com/nmm26301-maker/open-nomi/actions/runs/38189928233",
+  "signed_apk_sha256": "ec1c1c8ff127e9639398a2325202b435d98d37be706094b16922899f9cb2fc56",
+  "signed_apk_bytes": 71365423,
+  "certificate_sha256": "8132825a68acba5653aba326b84e301bb65b28664af0d0727d7a5f5b41ad1b8e",
+  "signature_v2": true,
+  "signature_v3": true,
+  "zipalign_16k": true,
+  "android_smoke": {
+    "opennomi-053-ui-smoke-api-29": {
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "opennomi-053-ui-smoke-api-33": {
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "installation": "Parallel to com.opennomi.android.voicetest; app data is isolated and not migrated.",
+  "limitations": [
+    "Real phone, Bluetooth headset and external account voice quality/latency not tested."
+  ],
+  "signing_backup": "Existing encrypted backup remains in the Zizai private backup branch; no private key/password/recovery key in this public repo."
+}

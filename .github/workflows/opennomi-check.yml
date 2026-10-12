@@ -59,7 +59,7 @@ jobs:
           if [ -d "$ANDROID_HOME/build-tools/35.0.0/lib64" ]; then
             cp -R "$ANDROID_HOME/build-tools/35.0.0/lib64" build-handoff/signing-tools/
           fi
-          echo 'Unsigned verification output. It must be signed with the original key before installation.' > build-handoff/README.txt
+          echo 'Unsigned verification output. Sign with the matching release key for the configured application ID before installation.' > build-handoff/README.txt
       - uses: actions/upload-artifact@v4
         with:
           name: opennomi-053-unsigned-and-signing-tools
