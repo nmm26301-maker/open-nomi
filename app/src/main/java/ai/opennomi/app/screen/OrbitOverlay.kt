@@ -53,6 +53,7 @@ class OrbitOverlay(private val service:ScreenShareService) {
         button("小智语音聊天 · 开始 / 暂停"){prompt(true)}
         button("输入问题问这页"){prompt(false)}
         button("翻译开关"){service.toggleTranslation()}
+        button("无字幕视频 · 语言与字幕"){closePanel();service.startActivity(Intent(service,WorkspaceActivity::class.java).putExtra("tab","translation").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))}
         button("关闭浮条提示"){ScreenState.update{it.copy(notice="")}}
         button("保存页面文字"){ScreenAssistant.savePage()}
         button("工作台 · 原图 / 任务 / 记忆"){closePanel();service.startActivity(Intent(service,WorkspaceActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))}
@@ -63,10 +64,11 @@ class OrbitOverlay(private val service:ScreenShareService) {
     fun render(state:WorkspaceState){
         ball?.mode=when{state.voiceOn->if(state.voiceStatus.contains("回应"))4 else 1;state.busy->2;state.proposed!=null->3;state.audio->1;state.status.contains("完成")->4;else->0}
         description?.text=(if(state.voiceOn)"小智：${state.voiceStatus}\n" else "")+state.status+"\n"+state.reply.take(600)
-        val line=if(state.notice.isNotBlank()) state.notice+(if(state.translation && state.caption.isNotBlank())"\n\n${state.caption}" else "") else if(state.translation)state.caption else ""
+        val subtitle=state.caption+(if(state.audio && ScreenAssistant.settings().subtitleOriginal && state.captionOriginal.isNotBlank())"\n原文：${state.captionOriginal.take(360)}" else "")+(if(state.audio && state.audioPreview.isNotBlank())"\n识别中：${state.audioPreview.take(180)}" else "")
+        val line=if(state.notice.isNotBlank()) state.notice+(if(state.translation && state.caption.isNotBlank())"\n\n$subtitle" else "") else if(state.translation)subtitle else ""
         if(line.isNotBlank()){
-            if(caption==null){val text=TextView(service).apply{setTextColor(0xFFE9F3FF.toInt());textSize=14f;maxLines=7;setPadding(dp(18),dp(12),dp(18),dp(12));background=bg();setOnClickListener{runCatching{wm.removeView(this)};caption=null;updateRegions()}}
-                caption=text;runCatching{wm.addView(text,layout(service.resources.displayMetrics.widthPixels-dp(24),WindowManager.LayoutParams.WRAP_CONTENT,Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply{y=dp(14);flags=flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;alpha=.78f})}}
+            if(caption==null){val text=TextView(service).apply{setTextColor(0xFFE9F3FF.toInt());textSize=15f;maxLines=8;setPadding(dp(18),dp(12),dp(18),dp(12));background=bg();setOnClickListener{runCatching{wm.removeView(this)};caption=null;updateRegions()}}
+                caption=text;runCatching{wm.addView(text,layout(service.resources.displayMetrics.widthPixels-dp(24),WindowManager.LayoutParams.WRAP_CONTENT,Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply{y=dp(14);flags=flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;alpha=.92f})}}
             caption?.text=line+(if(state.translation && state.caption.isNotBlank() && ScreenAssistant.settings().phoneTranslation)"\n由 Google 翻译" else "");caption?.post{updateRegions()}
         } else {caption?.let{runCatching{wm.removeView(it)}};caption=null;updateRegions()}
     }
