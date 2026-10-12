@@ -2,7 +2,8 @@ package ai.opennomi.app
 
 import android.content.Intent
 import android.net.ConnectivityManager
-import android.view.WindowManager
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.view.inputmethod.InputMethodManager
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -17,6 +18,7 @@ import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.io.FileOutputStream
 import java.util.concurrent.TimeUnit
 
 @RunWith(AndroidJUnit4::class)
@@ -50,6 +52,7 @@ class TranslationSmokeTest {
         val device=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         try {
             cfg.phoneTranslation=true;cfg.translationSource="en";cfg.translationCellular=true
+            assertFalse(cfg.modelReady());assertTrue(cfg.apiKey.isBlank())
             withTimeout(240000){ScreenAssistant.phoneTranslator.prepare("en",true)}
             ActivityScenario.launch<WorkspaceActivity>(Intent(context,WorkspaceActivity::class.java).putExtra("tab","translation")).use { scenario ->
                 assertTrue(device.wait(Until.hasObject(By.text("文字翻译 · 译成中文")),10000))
@@ -65,9 +68,19 @@ class TranslationSmokeTest {
                 withTimeout(30000){while(!device.hasObject(By.textContains("世界"))){device.findObjects(By.scrollable(true)).firstOrNull{it.visibleBounds.height()>it.visibleBounds.width()}?.scroll(Direction.DOWN,.25f);delay(300)}}
                 assertNotNull(device.findObject(By.textContains("世界")))
                 assertNotNull(device.findObject(By.text("由 Google 翻译")))
-                scenario.onActivity{it.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)}
                 val output=File(context.getExternalFilesDir(null),"translation-workspace.png")
-                assertTrue(device.takeScreenshot(output));device.executeShellCommand("cp ${output.absolutePath} /data/local/tmp/translation-workspace.png")
+                // Render our own synthetic test page; retain production FLAG_SECURE.
+                // UiDevice screenshots can return null for protected windows.
+                scenario.onActivity { activity ->
+                    val view=activity.window.decorView
+                    val capture=Bitmap.createBitmap(view.width,view.height,Bitmap.Config.ARGB_8888)
+                    try {
+                        view.draw(Canvas(capture))
+                        FileOutputStream(output).use { assertTrue(capture.compress(Bitmap.CompressFormat.PNG,100,it)) }
+                    } finally {capture.recycle()}
+                }
+                assertTrue(output.length()>0)
+                device.executeShellCommand("cp ${output.absolutePath} /data/local/tmp/translation-workspace.png")
             }
         } finally {cfg.phoneTranslation=phone;cfg.translationSource=source;cfg.translationCellular=cellular}
     }
