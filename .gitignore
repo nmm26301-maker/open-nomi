@@ -4,6 +4,8 @@ local.properties
 **/build/
 *.jks
 *.keystore
+SIGNING-CREDENTIALS.json
+*signing-recovery-key.json
 .DS_Store
 
 # Restored by scripts/restore-build-assets.py with SHA-256 verification

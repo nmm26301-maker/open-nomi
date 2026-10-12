@@ -12,6 +12,10 @@ class VoiceSettings(context: Context) {
     var fastResponse: Boolean
         get() = prefs.getBoolean("fast_response", true)
         set(value) = prefs.edit().putBoolean("fast_response", value).apply()
+    var endpointMillis: Long
+        get() = VoiceSessionPolicy.endpointMillis(
+            if(prefs.contains("endpoint_millis"))prefs.getLong("endpoint_millis",700L) else null,fastResponse)
+        set(value) { require(value in setOf(480L,700L,1200L));prefs.edit().putLong("endpoint_millis",value).apply() }
     var realtimeConversation: Boolean
         get() = prefs.getBoolean("offline_duplex", true)
         set(value) = prefs.edit().putBoolean("offline_duplex", value).apply()
