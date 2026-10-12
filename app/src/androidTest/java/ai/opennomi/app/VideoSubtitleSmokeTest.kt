@@ -30,8 +30,20 @@ class VideoSubtitleSmokeTest {
             device.executeShellCommand("appops set ${app.packageName} SYSTEM_ALERT_WINDOW allow")
             audio.setStreamVolume(AudioManager.STREAM_MUSIC,audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC),0)
             ActivityScenario.launch<WorkspaceActivity>(Intent(app,WorkspaceActivity::class.java).putExtra("tab","translation")).use {
-                withTimeout(15000){while(!device.hasObject(By.text("开启无字幕视频字幕"))){device.findObjects(By.scrollable(true)).firstOrNull{it.visibleBounds.height()>it.visibleBounds.width()}?.scroll(Direction.DOWN,.5f);delay(200)}}
-                device.findObject(By.text("开启无字幕视频字幕")).click()
+                withTimeout(15000) {
+                    var clicked=false
+                    while(!clicked) {
+                        try {
+                            val button=device.findObject(By.text("开启无字幕视频字幕"))
+                            if(button!=null && button.visibleBounds.height()>0){button.click();clicked=true}
+                            else device.swipe(device.displayWidth/2,device.displayHeight*3/4,device.displayWidth/2,device.displayHeight/3,25)
+                        } catch(_:StaleObjectException) {
+                            // Compose may replace accessibility nodes during progress updates.
+                            // Reacquire the button on the next iteration; the timeout still fails a missing control.
+                        }
+                        if(!clicked)delay(200)
+                    }
+                }
                 val grant=device.wait(Until.findObject(By.res("android:id/button1")),10000)
                 assertNotNull("MediaProjection permission dialog must appear",grant);grant.click()
                 withTimeout(60000){while(!ScreenState.state.value.audio || !ScreenState.state.value.status.contains("已就绪"))delay(200)}
