@@ -36,7 +36,11 @@ class VideoSubtitleSmokeTest {
                         try {
                             val button=device.findObject(By.text("开启无字幕视频字幕"))
                             if(button!=null && button.visibleBounds.height()>0){button.click();clicked=true}
-                            else device.swipe(device.displayWidth/2,device.displayHeight*3/4,device.displayWidth/2,device.displayHeight/3,25)
+                            else {
+                                val scroll=device.findObjects(By.scrollable(true)).firstOrNull{node->val bounds=node.visibleBounds;bounds.height()>bounds.width()}
+                                if(scroll!=null)scroll.scroll(Direction.DOWN,.65f)
+                                else device.swipe(device.displayWidth/10,device.displayHeight*3/4,device.displayWidth/10,device.displayHeight/3,25)
+                            }
                         } catch(_:StaleObjectException) {
                             // Compose may replace accessibility nodes during progress updates.
                             // Reacquire the button on the next iteration; the timeout still fails a missing control.
