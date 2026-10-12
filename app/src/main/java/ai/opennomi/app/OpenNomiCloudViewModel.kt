@@ -314,7 +314,7 @@ class OpenNomiCloudViewModel(app: Application, private val memories:ai.opennomi.
                 if(generation!=turn || !active)return@launch
                 _status.value = if (realtime) "我在听，可以随时开口" else "我在听，说完自动回复"
                 client?.sendListen("start", if (realtime) "realtime" else "manual")
-                if (!audio.startRecording(realtime,silenceMillis=if(voiceSettings.fastResponse)480 else 700)) recoverVoice("麦克风暂不可用，正在重试")
+                if (!audio.startRecording(realtime,silenceMillis=voiceSettings.endpointMillis)) recoverVoice("麦克风暂不可用，正在重试")
             } catch(e:CancellationException){throw e}
             catch(e:Exception){if(generation==turn && active)recoverVoice("音频路由未就绪：${e.message}")}
         }
@@ -377,6 +377,9 @@ class OpenNomiCloudViewModel(app: Application, private val memories:ai.opennomi.
         }
     }
     override fun onStt(text: String) {
+        if(VoiceSessionPolicy.ignoreTranscript(text,_heard.value,
+            !screenRouting && !awaitingBargeTranscript &&
+                _state.value in setOf(ConversationState.THINKING,ConversationState.SPEAKING)))return
         if(screenRouting && taskControlListening) {
             taskCaptureWatchdog?.cancel();taskCaptureWatchdog=null
             val control=VoiceCommands.parse(text)
@@ -409,7 +412,6 @@ class OpenNomiCloudViewModel(app: Application, private val memories:ai.opennomi.
             }
             return
         }
-        if(active && realtime && _state.value==ConversationState.SPEAKING && text==_heard.value)return
         // A server transcript may beat the local barge-in callback. Keep those words.
         if(active && realtime && !screenRouting && _state.value==ConversationState.SPEAKING) {
             client?.sendAbort();clearSpeech();audio.stopAllPlayback()
@@ -421,7 +423,7 @@ class OpenNomiCloudViewModel(app: Application, private val memories:ai.opennomi.
         if (realtime && _state.value == ConversationState.LISTENING) prepareTurn()
         awaitingBargeTranscript=false;bargeWatchdog?.cancel();bargeWatchdog=null
         memoryRevision=memory.value.revision
-        _heard.value = text; _state.value = ConversationState.THINKING; _emotion.value = "thinking"; _status.value = "让我想一想"
+        _heard.value = text.trim(); _state.value = ConversationState.THINKING; _emotion.value = "thinking"; _status.value = "让我想一想"
         var goal=VoiceTasks.agentGoal(text)
         val sequence=if(goal==null)VoiceTasks.parse(text) else null
         val command=if(sequence==null && goal==null)VoiceCommands.parse(text) else null

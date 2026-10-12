@@ -94,7 +94,7 @@ fun OpenNomiApp(vm: OpenNomiCloudViewModel, onTalk: () -> Unit) {
                         Text("OpenNomi", fontSize = 25.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 5.dp)) {
                             Box(Modifier.size(6.dp).clip(CircleShape).background(if (connected) Mint else Secondary))
-                            Text("  0.52 · ${if(phoneControl) "手机语音控制" else if (connecting) "连接中" else if (connected) "在线" else "未连接"}", color = Secondary, fontSize = 12.sp)
+                            Text("  0.53 · ${if(phoneControl) "手机语音控制" else if (connecting) "连接中" else if (connected) "在线" else "未连接"}", color = Secondary, fontSize = 12.sp)
                         }
                     }
                     Text(voiceLabel, color = Mint, fontSize = 12.sp, modifier = Modifier.padding(end = 10.dp))
@@ -273,13 +273,21 @@ private fun SettingsDialog(vm: OpenNomiCloudViewModel, reduceMotion: Boolean, on
     var realtime by remember { mutableStateOf(vm.voiceSettings.realtimeConversation) }
     var alternateDialog by remember {mutableStateOf(false)}
     var fastResponse by remember {mutableStateOf(vm.voiceSettings.fastResponse)}
+    var endpointMillis by remember {mutableLongStateOf(vm.voiceSettings.endpointMillis)}
     var systemSpeech by remember { mutableStateOf(vm.voiceSettings.systemSpeechFallback) }
     if(alternateDialog) {VoiceEndpointDialog(vm,{alternateDialog=false});return}
     AlertDialog(onDismissRequest = onClose, title = { Text("NOMI 设置") }, text = {
         Column(Modifier.verticalScroll(rememberScrollState())) {
             SettingSwitch("语音控制优先", "首页可直接切换聊天或手机控制；控制模式不播放聊天回复", phoneControl) { phoneControl=it;vm.setPhoneControl(it) }
             SettingSwitch("连续对话", "回复后继续听你说话", continuous) { continuous = it; vm.voiceSettings.continuousConversation = it; vm.pauseConversation() }
-            SettingSwitch("快速回复", "缩短说完后的等待；句中停顿较长时可关闭", fastResponse) {fastResponse=it;vm.voiceSettings.fastResponse=it;vm.pauseConversation()}
+            SettingSwitch("快速分句播放", "FishAudio 遇到较长句子时，可在逗号处提前开始合成", fastResponse) {fastResponse=it;vm.voiceSettings.fastResponse=it;vm.voiceSettings.endpointMillis=endpointMillis;vm.pauseConversation()}
+            Text("说完等待",fontSize=15.sp)
+            Text("经常被抢话可选从容；双向对话的结束时机由语音服务判断",fontSize=12.sp,color=Secondary)
+            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+                listOf(480L to "敏捷",700L to "自然",1200L to "从容").forEach { (millis,label) ->
+                    FilterChip(selected=endpointMillis==millis,onClick={endpointMillis=millis;vm.voiceSettings.endpointMillis=millis;vm.pauseConversation()},label={Text(label)})
+                }
+            }
             TextButton(onClick={alternateDialog=true}) {Text("备用语音接口 · ${if(vm.endpointSettings.enabled)"已启用" else "小智默认"}")}
             SettingSwitch("允许打断", "手机支持回声消除时，可开口打断", realtime) { realtime = it; vm.voiceSettings.realtimeConversation = it; vm.pauseConversation() }
             TextButton(onClick = { settingsContext.startActivity(Intent(settingsContext, ai.opennomi.app.voice.FishAudioActivity::class.java)); onClose() }) { Text("FishAudio 独立朗读、音色与申请") }
@@ -289,7 +297,7 @@ private fun SettingsDialog(vm: OpenNomiCloudViewModel, reduceMotion: Boolean, on
             TextButton(onClick = onAccount) { Text("设备绑定与账号") }
             Text("设备：${vm.deviceId()}", fontSize = 11.sp, color = Secondary)
             TextButton(onClick = { vm.disconnect(); vm.connect(); onClose() }) { Text("重新连接") }
-            Text("OpenNomi 0.52 · 独立手机语音控制", fontSize = 12.sp, color = Secondary)
+            Text("OpenNomi 0.53 · 独立手机语音控制", fontSize = 12.sp, color = Secondary)
         }
     }, confirmButton = { TextButton(onClick = onClose) { Text("完成") } })
 }

@@ -20,6 +20,56 @@ import java.util.concurrent.atomic.AtomicInteger
 
 @RunWith(AndroidJUnit4::class)
 class ConversationRecoverySmokeTest {
+    @Test fun emptyAndRepeatedSttKeepTheCurrentReplyAndRelaxedPauseSurvivesReload() = runBlocking {
+        val context=ApplicationProvider.getApplicationContext<NomiApplication>()
+        val memory=ConversationMemory();memory.enabled(false)
+        val model=withContext(Dispatchers.Main.immediate){OpenNomiCloudViewModel(context,memory)}
+        val endpoint=model.endpointSettings.connection();val enabled=model.endpointSettings.enabled
+        val phone=model.voiceSettings.phoneControl;val realtime=model.voiceSettings.realtimeConversation
+        val prefs=context.getSharedPreferences("open_nomi_voice",0)
+        val hadPause=prefs.contains("endpoint_millis");val oldPause=model.voiceSettings.endpointMillis
+        val server=MockWebServer();server.start()
+        val closed=CompletableDeferred<Unit>();val opened=CompletableDeferred<WebSocket>()
+        server.enqueue(MockResponse().withWebSocketUpgrade(object:WebSocketListener(){
+            override fun onOpen(ws:WebSocket,response:Response){opened.complete(ws)}
+            override fun onClosing(ws:WebSocket,code:Int,reason:String){ws.close(code,reason)}
+            override fun onClosed(ws:WebSocket,code:Int,reason:String){closed.complete(Unit)}
+            override fun onMessage(ws:WebSocket,text:String){
+                val event=JSONObject(text)
+                if(event.optString("type")=="hello")ws.send("""{"type":"hello","session_id":"stt-test"}""")
+            }
+        }))
+        try {
+            UiDevice.getInstance(InstrumentationRegistry.getInstrumentation()).executeShellCommand("pm grant ${context.packageName} android.permission.RECORD_AUDIO")
+            model.voiceSettings.phoneControl=false;model.voiceSettings.realtimeConversation=false
+            model.voiceSettings.endpointMillis=1200L
+            assertEquals(1200L,ai.opennomi.app.voice.VoiceSettings(context).endpointMillis)
+            model.endpointSettings.save(VoiceEndpoint(server.url("/").toString().replaceFirst("http://","ws://")),true)
+            withContext(Dispatchers.Main.immediate){model.connect()}
+            withTimeout(15000){model.connected.first{it}}
+            withContext(Dispatchers.Main.immediate){
+                model.toggleListening()
+                model.onStt("你好")
+                model.onResponseText("你好，我在听。")
+                model.onStt("  ")
+                model.onStt(" 你好 ")
+                assertEquals("你好",model.heard.value)
+                assertEquals("你好，我在听。",model.response.value)
+                assertEquals(ConversationState.THINKING,model.state.value)
+                model.onTtsState("start")
+                model.onStt("\t")
+                assertEquals(ConversationState.SPEAKING,model.state.value)
+                assertEquals("你好",model.heard.value)
+            }
+        } finally {
+            withContext(Dispatchers.Main.immediate){model.disconnect()}
+            if(opened.isCompleted && withTimeoutOrNull(5000){closed.await()}==null)opened.await().cancel()
+            model.endpointSettings.save(endpoint,enabled)
+            model.voiceSettings.phoneControl=phone;model.voiceSettings.realtimeConversation=realtime
+            if(hadPause)model.voiceSettings.endpointMillis=oldPause else prefs.edit().remove("endpoint_millis").commit()
+            server.shutdown()
+        }
+    }
     @Test fun foregroundContinuousChatReopensListeningAfterSocketLoss() = recovery(false)
     @Test fun manualPauseCancelsAQueuedForegroundReconnect() = recovery(true)
     private fun recovery(pause:Boolean) = runBlocking {

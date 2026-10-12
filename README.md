@@ -1,10 +1,12 @@
-# OpenNomi Android 0.41
+# OpenNomi Android 0.53.0
 
-0.41 加入手机视觉接入、真实图片能力测试和 Agent / 翻译无响应修复。**0.41 已完成云编译，17 项单元测试通过，lint 0 错误 / 32 条警告；可安装包已使用原签名校验。真机和用户账号测试待完成。** 见 [0.41 说明与验证边界](docs/0.41-vision-connection.md) 和 [手机申请与配置指南](docs/phone-setup-guide.md)。此前 0.40 已发布功能见 [屏幕工作台说明](docs/0.40-screen-workspace.md)。
+本次更新重点是连续语音体验：过滤空白识别事件与同一回答期间重复发送的最终识别结果，新增三档说完等待，并将 FishAudio 快速分句播放与麦克风停顿时间分开设置。详情见 [0.53 语音体验与安装说明](docs/0.53-voice-experience.md)。
 
-原声 NOMI 与 AIRI 保留；英语视频识别、中英文 OCR 数据随包附带。智能看图与 Agent 规划需要视觉模型服务。NOMI 已连接时也可用于文字问答和翻译。
+## 安装身份与签名
 
-默认发布 ARM64 版本，适用于 Mi 10 Pro 等 64 位 Android 手机。其他 ABI 可通过 `-POPENNOMI_ABIS=arm64-v8a,armeabi-v7a,x86,x86_64` 构建。
+新版包名为 `com.opennomi.android`，版本代码 53，使用用户保留的新发布签名。它与旧版 `com.opennomi.android.voicetest` 并行安装，不会覆盖或清除旧版。新安装需重新授予权限、绑定设备、填写服务配置；旧版的本机聊天记忆、登录和设置不会自动迁移。不要为了安装新版卸载旧版。
+
+签名私钥和密码只在外部签名步骤使用，源码与 Actions 日志不包含这些凭据。加密备份见 `Zizai` 私有仓库的 `backup/opennomi-0.52.0-20261012` 分支（`backups/OpenNomi-0.52.0/new-signing-20261012/`）；恢复凭据单独保存，禁止提交仓库。没有原私钥时不能生成旧包名的覆盖升级包。
 
 # 0.39 基础行为
 
@@ -41,4 +43,4 @@ node --test airi-native-voice.test.cjs
 
 打开 [Actions](https://github.com/nmm26301-maker/open-nomi/actions)，查看 OpenNomi Android checks。每次 main 更新自动编译，也可以 Run workflow 手动运行。产物含未签名 APK 的三个分片、签名工具和检查报告；未签名产物不能直接安装。下载并解压三个 apk-part 产物后，按 part00、part01、part02 顺序拼接为 APK，核对 unsigned-sha256.txt，再用原签名签名。OCR、英语识别和 native AAR 在构建时从官方来源恢复，逐文件核对 SHA-256，安装包仍包含离线数据。
 
-最近通过的构建：[0.41 云编译和检查](https://github.com/nmm26301-maker/open-nomi/actions/runs/37192741357)。API Key 在手机里填写；屏幕共享、Agent 与实时翻译的完整体验仍需 Android 13 真机测试。
+构建记录见仓库 Actions；旧版本验证记录仅适用于对应版本。API Key 在手机里填写；屏幕共享、Agent 与实时翻译的完整体验仍需 Android 13 真机测试。

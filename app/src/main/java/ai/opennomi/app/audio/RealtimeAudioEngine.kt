@@ -86,10 +86,10 @@ class RealtimeAudioEngine(
             record = input
             val active = input; val activeEcho = echo; val activeNoise = noise
             scope.launch {
-                val encoder = if (encodeCapture) OpusEncoder(SAMPLE_RATE, CHANNELS, OpusApplication.OPUS_APPLICATION_VOIP).apply { bitrate = 24000 } else null
-                val gate = SpeechGate(silenceMillis,if(realtime)3 else 6) { SystemClock.elapsedRealtime() }
-                val frame = ShortArray(FRAME_SAMPLES); val encoded = ByteArray(1500)
                 try {
+                    val encoder = if (encodeCapture) OpusEncoder(SAMPLE_RATE, CHANNELS, OpusApplication.OPUS_APPLICATION_VOIP).apply { bitrate = 24000 } else null
+                    val gate = SpeechGate(silenceMillis,if(concurrentCapture)3 else 6) { SystemClock.elapsedRealtime() }
+                    val frame = ShortArray(FRAME_SAMPLES); val encoded = ByteArray(1500)
                     while (run == captureGeneration.get()) {
                         var offset = 0
                         while (offset < frame.size && run == captureGeneration.get()) {
