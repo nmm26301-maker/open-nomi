@@ -3,6 +3,7 @@ package ai.opennomi.app
 import android.content.Intent
 import android.net.ConnectivityManager
 import android.view.WindowManager
+import android.view.inputmethod.InputMethodManager
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -52,12 +53,16 @@ class TranslationSmokeTest {
             withTimeout(240000){ScreenAssistant.phoneTranslator.prepare("en",true)}
             ActivityScenario.launch<WorkspaceActivity>(Intent(context,WorkspaceActivity::class.java).putExtra("tab","translation")).use { scenario ->
                 assertTrue(device.wait(Until.hasObject(By.text("文字翻译 · 译成中文")),10000))
-                UiScrollable(UiSelector().scrollable(true)).scrollTextIntoView("翻译为中文")
+                repeat(4){
+                    if(!device.hasObject(By.text("翻译为中文")))
+                        device.findObjects(By.scrollable(true)).firstOrNull{it.visibleBounds.height()>it.visibleBounds.width()}?.scroll(Direction.DOWN,.5f)
+                }
                 assertNotNull(device.findObject(By.text("翻译为中文")))
                 val field=device.findObject(By.clazz("android.widget.EditText"));assertNotNull(field)
                 field.text="Hello world."
+                scenario.onActivity{it.getSystemService(InputMethodManager::class.java).hideSoftInputFromWindow(it.window.decorView.windowToken,0)}
                 device.findObject(By.text("翻译为中文")).click()
-                withTimeout(30000){while(!device.hasObject(By.textContains("世界"))){device.findObject(By.scrollable(true))?.scroll(Direction.DOWN,.25f);delay(300)}}
+                withTimeout(30000){while(!device.hasObject(By.textContains("世界"))){device.findObjects(By.scrollable(true)).firstOrNull{it.visibleBounds.height()>it.visibleBounds.width()}?.scroll(Direction.DOWN,.25f);delay(300)}}
                 assertNotNull(device.findObject(By.textContains("世界")))
                 assertNotNull(device.findObject(By.text("由 Google 翻译")))
                 scenario.onActivity{it.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)}

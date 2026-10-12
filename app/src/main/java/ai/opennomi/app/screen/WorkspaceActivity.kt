@@ -175,6 +175,7 @@ class WorkspaceActivity:ComponentActivity() {
         var phone by remember{mutableStateOf(cfg.phoneTranslation)}
         var source by remember{mutableStateOf(cfg.translationSource)}
         var cellular by remember{mutableStateOf(cfg.translationCellular)}
+        var downloadOptions by remember{mutableStateOf(false)}
         var input by remember{mutableStateOf("Hello, welcome to my channel.")}
         var output by remember{mutableStateOf("")}
         var busy by remember{mutableStateOf(false)}
@@ -191,15 +192,7 @@ class WorkspaceActivity:ComponentActivity() {
                         FilterChip(selected=source==code,onClick={source=code;cfg.translationSource=code;output=""},label={Text(label)},enabled=!busy)
                     }
                 }
-                Row(verticalAlignment=Alignment.CenterVertically){Text("允许移动网络下载模型",Modifier.weight(1f),fontSize=13.sp);Switch(cellular,{cellular=it;cfg.translationCellular=it},enabled=!busy)}
-                Text("默认只在 Wi-Fi 下载。每种语言模型约 30 MB；模型服务不可达时会显示原因。文字在本机翻译；SDK 会发送运行统计数据。",fontSize=12.sp)
                 Text(progress,fontSize=12.sp,color=MaterialTheme.colorScheme.primary)
-                TextButton(onClick={busy=true;output="";running=scope.launch {
-                    try {ScreenAssistant.phoneTranslator.prepare(if(source=="auto")"en" else source,cellular);output="语言模型已准备好，可以翻译"}
-                    catch(e:CancellationException){throw e}
-                    catch(e:Exception){output=e.message ?: "模型准备未完成"}
-                    finally{busy=false;running=null}
-                }},enabled=!busy){Text(if(source=="auto")"准备英语模型" else "准备所选语言模型")}
             } else {
                 Text("当前使用连接页保存的模型或 LibreTranslate 服务。",fontSize=13.sp)
                 TextButton(onClick={tab.value="settings"}){Text("配置在线翻译服务")}
@@ -214,6 +207,19 @@ class WorkspaceActivity:ComponentActivity() {
             if(busy){LinearProgressIndicator(Modifier.fillMaxWidth());TextButton(onClick={running?.cancel();output="已取消本次翻译"}){Text("取消")}}
             if(output.isNotBlank())SelectionContainer {Text(output)}
             if(phone)Text("由 Google 翻译",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            if(phone) {
+                TextButton(onClick={downloadOptions=!downloadOptions},enabled=!busy){Text(if(downloadOptions)"收起模型与下载设置" else "模型与下载设置")}
+                if(downloadOptions) {
+                Row(verticalAlignment=Alignment.CenterVertically){Text("允许移动网络下载模型",Modifier.weight(1f),fontSize=13.sp);Switch(cellular,{cellular=it;cfg.translationCellular=it},enabled=!busy)}
+                Text("默认只在 Wi-Fi 下载。每种语言模型约 30 MB；模型服务不可达时会显示原因。文字在本机翻译；SDK 会发送运行统计数据。",fontSize=12.sp)
+                TextButton(onClick={busy=true;output="";running=scope.launch {
+                    try {ScreenAssistant.phoneTranslator.prepare(if(source=="auto")"en" else source,cellular);output="语言模型已准备好，可以翻译"}
+                    catch(e:CancellationException){throw e}
+                    catch(e:Exception){output=e.message ?: "模型准备未完成"}
+                    finally{busy=false;running=null}
+                }},enabled=!busy){Text(if(source=="auto")"准备英语模型" else "准备所选语言模型")}
+                }
+            }
         }
         CardBlock("实时翻译 · 底部浮条") {
             Text("先用上方原文试译，再开启共享。页面文字通过 OCR 或无障碍读取；中文跳过，译文显示在底部。",fontSize=14.sp)
