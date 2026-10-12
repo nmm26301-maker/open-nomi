@@ -44,3 +44,7 @@ node --test airi-native-voice.test.cjs
 打开 [Actions](https://github.com/nmm26301-maker/open-nomi/actions)，查看 OpenNomi Android checks。每次 main 更新自动编译，也可以 Run workflow 手动运行。产物含未签名 APK 的三个分片、签名工具和检查报告；未签名产物不能直接安装。下载并解压三个 apk-part 产物后，按 part00、part01、part02 顺序拼接为 APK，核对 unsigned-sha256.txt，再用原签名签名。OCR、英语识别和 native AAR 在构建时从官方来源恢复，逐文件核对 SHA-256，安装包仍包含离线数据。
 
 构建记录见仓库 Actions；旧版本验证记录仅适用于对应版本。API Key 在手机里填写；屏幕共享、Agent 与实时翻译的完整体验仍需 Android 13 真机测试。
+
+## 完整发布备份
+
+0.53.0 的已签名 APK、逐片与完整校验清单、恢复脚本，以及本版所需签名和密码的加密副本已归档到 [backups/releases/0.53.0](backups/releases/0.53.0/)。统一签名备份在 [backups/signing/new-signing-20261012](backups/signing/new-signing-20261012/)。解密钥匙单独保存，不提交仓库。
