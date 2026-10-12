@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ai.opennomi.app.LiveTranslationRegressionTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-12T14:45:26" hostname="runnervmmprz5" time="0.028">
+  <properties/>
+  <testcase name="configResetDiscardsCacheAndRetryDelay" classname="ai.opennomi.app.LiveTranslationRegressionTest" time="0.004"/>
+  <testcase name="ttsStartsEvenWithoutPrecedingSttButCannotWakePausedSession" classname="ai.opennomi.app.LiveTranslationRegressionTest" time="0.001"/>
+  <testcase name="mixedChinesePageKeepsForeignSubtitleInsteadOfSkippingEntirePage" classname="ai.opennomi.app.LiveTranslationRegressionTest" time="0.018"/>
+  <testcase name="latestSubtitleSurvivesInFlightRequestWithoutBuildingBacklog" classname="ai.opennomi.app.LiveTranslationRegressionTest" time="0.0"/>
+  <testcase name="englishAndKoreanAreForeignButChineseNumbersAreAlreadyChinese" classname="ai.opennomi.app.LiveTranslationRegressionTest" time="0.0"/>
+  <testcase name="voiceFramesDoNotEnterSilentTranslationOrFinishedTurn" classname="ai.opennomi.app.LiveTranslationRegressionTest" time="0.0"/>
+  <testcase name="retryRetainsLatestSubtitleAndRecoversAfterDelay" classname="ai.opennomi.app.LiveTranslationRegressionTest" time="0.0"/>
+  <testcase name="japaneseKanaIsNotDiscardedAsMostlyChinese" classname="ai.opennomi.app.LiveTranslationRegressionTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

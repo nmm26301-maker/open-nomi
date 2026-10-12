@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ai.opennomi.app.AudioSubtitleRegressionTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-12T14:45:24" hostname="runnervmmprz5" time="0.04">
+  <properties/>
+  <testcase name="confidenceIsRetainedForTheSpecificCompletedUtterance" classname="ai.opennomi.app.AudioSubtitleRegressionTest" time="0.028"/>
+  <testcase name="speechDuringTranslationKeepsEveryCompletedUtteranceInOrder" classname="ai.opennomi.app.AudioSubtitleRegressionTest" time="0.001"/>
+  <testcase name="longMonologueHasABoundaryButNormalPausesResetItsClock" classname="ai.opennomi.app.AudioSubtitleRegressionTest" time="0.001"/>
+  <testcase name="cancellationDiscardsPendingSpeechAndStaleCompletionsCannotRemoveNewSpeech" classname="ai.opennomi.app.AudioSubtitleRegressionTest" time="0.006"/>
+  <testcase name="failureRetriesTheSameUtteranceBeforeNewSpeech" classname="ai.opennomi.app.AudioSubtitleRegressionTest" time="0.0"/>
+  <testcase name="overflowIsExplicitRatherThanSilentlyReplacingSpeech" classname="ai.opennomi.app.AudioSubtitleRegressionTest" time="0.0"/>
+  <testcase name="repeatedSpokenSentencesRemainSeparateUtterances" classname="ai.opennomi.app.AudioSubtitleRegressionTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

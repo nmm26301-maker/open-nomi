@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ai.opennomi.app.ConversationMemoryRegressionTest" tests="20" skipped="0" failures="0" errors="0" timestamp="2026-10-12T14:45:24" hostname="runnervmmprz5" time="0.721">
+  <properties/>
+  <testcase name="pinDoesNotInvalidateAnUnrelatedAnswerAlreadyInFlight" classname="ai.opennomi.app.ConversationMemoryRegressionTest" time="0.011"/>
+  <testcase name="oldVersionWithoutPinFlagsStillLoads" classname="ai.opennomi.app.ConversationMemoryRegressionTest" time="0.001"/>
+  <testcase name="emojiIsNotBrokenAtStorageLimits" classname="ai.opennomi.app.ConversationMemoryRegressionTest" time="0.003"/>
+  <testcase name="completedTurnsSurviveAProcessReload" classname="ai.opennomi.app.ConversationMemoryRegressionTest" time="0.018"/>
+  <testcase name="unpinnedChatCanAgeOutAndClearingAlsoRemovesPins" classname="ai.opennomi.app.ConversationMemoryRegressionTest" time="0.062"/>
+  <testcase name="escapedControlCharactersStillReloadWithoutLosingStoredChats" classname="ai.opennomi.app.ConversationMemoryRegressionTest" time="0.309"/>
+  <testcase name="pinnedChatSurvivesRollingHistoryAndReload" classname="ai.opennomi.app.ConversationMemoryRegressionTest" time="0.032"/>
+  <testcase name="pinLimitDoesNotEvictExistingImportantChats" classname="ai.opennomi.app.ConversationMemoryRegressionTest" time="0.003"/>
+  <testcase name="blankOrUnfinishedTurnsCannotBecomeMemories" classname="ai.opennomi.app.ConversationMemoryRegressionTest" time="0.0"/>
+  <testcase name="HistoryIsQuotedAsDataAndDoesNotReplaceTheCurrentRequest" classname="ai.opennomi.app.ConversationMemoryRegressionTest" time="0.0"/>
+  <testcase name="persistenceFailureDoesNotPublishAnUnsavedMemory" classname="ai.opennomi.app.ConversationMemoryRegressionTest" time="0.0"/>
+  <testcase name="recentContextHasASmallBudgetAndKeepsTheActualQuestion" classname="ai.opennomi.app.ConversationMemoryRegressionTest" time="0.048"/>
+  <testcase name="clearRemovesRecallAfterReload" classname="ai.opennomi.app.ConversationMemoryRegressionTest" time="0.0"/>
+  <testcase name="longHistoryIsBoundedByCountAndTextSize" classname="ai.opennomi.app.ConversationMemoryRegressionTest" time="0.186"/>
+  <testcase name="clearAndDisableRejectRepliesAlreadyInFlight" classname="ai.opennomi.app.ConversationMemoryRegressionTest" time="0.001"/>
+  <testcase name="pinnedAndRecentContextStillFitsThePromptBudget" classname="ai.opennomi.app.ConversationMemoryRegressionTest" time="0.019"/>
+  <testcase name="disabledMemoryNeitherRecordsNorAddsOldContext" classname="ai.opennomi.app.ConversationMemoryRegressionTest" time="0.001"/>
+  <testcase name="corruptOrUnsupportedDataDoesNotCrashStartup" classname="ai.opennomi.app.ConversationMemoryRegressionTest" time="0.0"/>
+  <testcase name="olderRelevantFactsCanBeRetrievedOutsideTheRecentWindow" classname="ai.opennomi.app.ConversationMemoryRegressionTest" time="0.001"/>
+  <testcase name="damagedStorageCannotBypassThePinLimit" classname="ai.opennomi.app.ConversationMemoryRegressionTest" time="0.018"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
