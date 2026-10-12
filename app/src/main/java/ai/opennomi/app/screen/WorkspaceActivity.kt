@@ -40,13 +40,13 @@ import kotlinx.coroutines.*
 import ai.opennomi.app.ui.EmotionBallView
 
 class WorkspaceActivity:ComponentActivity() {
-    private var tab=mutableStateOf("vision");private var refresh=mutableIntStateOf(0)
+    private var tab=mutableStateOf("vision");private var refresh=mutableIntStateOf(0);private var pendingVideo=false
     private val capture=registerForActivityResult(ActivityResultContracts.StartActivityForResult()){r->
         if(r.resultCode==RESULT_OK && r.data!=null){
             runCatching{ContextCompat.startForegroundService(this,Intent(this,ScreenShareService::class.java).setAction(ScreenShareService.START).putExtra("grant",r.data))}
-                .onSuccess{lifecycleScope.launch{delay(500);if(ScreenState.state.value.active)moveTaskToBack(true)}}
+                .onSuccess{lifecycleScope.launch{withTimeoutOrNull(5000){while(!ScreenState.state.value.active)delay(100)};if(ScreenState.state.value.active){if(pendingVideo){pendingVideo=false;activateAudio()}else moveTaskToBack(true)}else{pendingVideo=false;ScreenState.event("共享准备失败，请重试")}}}
                 .onFailure{ScreenState.event("系统未能启动共享，请重新授权并检查应用权限")}
-        }else ScreenState.event("未授权共享，当前没有读取屏幕")
+        }else {pendingVideo=false;ScreenState.event("未授权共享，当前没有读取屏幕")}
     }
     private val notifications=registerForActivityResult(ActivityResultContracts.RequestPermission()){launchShareGrant()}
     private val microphone=registerForActivityResult(ActivityResultContracts.RequestPermission()){ok->if(ok)activateAudio() else ScreenState.event("未允许音频权限，仍可翻译屏幕文字")}
@@ -73,7 +73,7 @@ class WorkspaceActivity:ComponentActivity() {
         capture.launch(request)
     }
     private fun activateAudio() {
-        val service=ScreenShareService.instance ?: run {ScreenState.event("请先开启屏幕共享");return}
+        val service=ScreenShareService.instance ?: run {pendingVideo=true;startShare();return}
         service.toggleAudio()
         if(ScreenState.state.value.audio)moveTaskToBack(true)
     }
@@ -83,7 +83,7 @@ class WorkspaceActivity:ComponentActivity() {
         val cfg=remember{ScreenAssistant.settings()}
         MaterialTheme(colorScheme=darkColorScheme(primary=Color(0xFF7DD3FC),secondary=Color(0xFFC084FC),background=Color(0xFF070F19),surface=Color(0xFF142131),onSurface=Color(0xFFF0F5FC))){
             Surface(Modifier.fillMaxSize(),color=MaterialTheme.colorScheme.background){Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)){
-                Row(Modifier.fillMaxWidth().padding(18.dp),verticalAlignment=Alignment.CenterVertically){TextButton(onClick={finish()}){Text("‹")};Column(Modifier.weight(1f)){Text("OpenNomi",fontSize=24.sp,fontWeight=FontWeight.SemiBold);Text(if(state.active)"● 屏幕共享中" else "屏幕互动工作台 · 0.54",fontSize=12.sp,color=MaterialTheme.colorScheme.primary)};if(state.active)TextButton(onClick={ScreenShareService.instance?.stopSelf()}){Text("停止",color=Color(0xFFF87171))}}
+                Row(Modifier.fillMaxWidth().padding(18.dp),verticalAlignment=Alignment.CenterVertically){TextButton(onClick={finish()}){Text("‹")};Column(Modifier.weight(1f)){Text("OpenNomi",fontSize=24.sp,fontWeight=FontWeight.SemiBold);Text(if(state.active)"● 屏幕共享中" else "屏幕互动工作台 · ${ai.opennomi.app.BuildConfig.VERSION_NAME}",fontSize=12.sp,color=MaterialTheme.colorScheme.primary)};if(state.active)TextButton(onClick={ScreenShareService.instance?.stopSelf()}){Text("停止",color=Color(0xFFF87171))}}
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal=16.dp),horizontalArrangement=Arrangement.spacedBy(8.dp)){
                     listOf("vision" to "看屏幕","tasks" to "Agent","translation" to "翻译","fragments" to "碎片本","memory" to "记忆","settings" to "连接","help" to "申请指南").forEach{(key,label)->FilterChip(selected=tab.value==key,onClick={tab.value=key},label={Text(label)})}
                 }
@@ -176,6 +176,8 @@ class WorkspaceActivity:ComponentActivity() {
         var source by remember{mutableStateOf(cfg.translationSource)}
         var cellular by remember{mutableStateOf(cfg.translationCellular)}
         var downloadOptions by remember{mutableStateOf(false)}
+        var audioModel by remember{mutableStateOf(cfg.playbackModel)}
+        var showOriginal by remember{mutableStateOf(cfg.subtitleOriginal)}
         var input by remember{mutableStateOf("Hello, welcome to my channel.")}
         var output by remember{mutableStateOf("")}
         var busy by remember{mutableStateOf(false)}
@@ -221,20 +223,43 @@ class WorkspaceActivity:ComponentActivity() {
                 }
             }
         }
-        CardBlock("实时翻译 · 底部浮条") {
-            Text("先用上方原文试译，再开启共享。页面文字通过 OCR 或无障碍读取；中文跳过，译文显示在底部。",fontSize=14.sp)
-            WideButton(if(state.translation)"暂停实时翻译" else "开启实时翻译"){
-                val service=ScreenShareService.instance
-                if(service==null)ScreenState.event("请先在看屏幕页开启共享")
-                else if(!state.translation && !cfg.translationReady()){tab.value="settings";ScreenState.event("开启手机翻译，或连接模型／翻译服务")}
-                else {service.toggleTranslation();if(ScreenState.state.value.translation)moveTaskToBack(true)}
+        CardBlock("无字幕视频 · 实时中文字幕") {
+            Text("直接听视频原声，不需要视频自带字幕。先选原声语言，准备好模型后再播放。",fontSize=14.sp)
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+                PlaybackModels.choices.forEach { model ->
+                    FilterChip(selected=audioModel==model.id,onClick={audioModel=model.id;cfg.playbackModel=model.id;refresh.intValue++},label={Text(model.label)},enabled=!state.audio && !busy)
+                }
             }
-            WideButton(if(state.audio)"切回屏幕文字" else "翻译视频声音（英语）"){
+            val selected=PlaybackModels.selected(audioModel)
+            Text(if(PlaybackModels.ready(this@WorkspaceActivity,selected))"${selected.label}语音模型已准备好" else if(selected.id=="en")"英语模型已内置，首次会安装到本机" else "${selected.label}语音模型首次下载约 ${selected.sizeMb} MB，之后可离线识别",fontSize=12.sp)
+            Row(verticalAlignment=Alignment.CenterVertically){Text("显示识别原文，方便核对",Modifier.weight(1f),fontSize=13.sp);Switch(showOriginal,{showOriginal=it;cfg.subtitleOriginal=it;ScreenShareService.instance?.refreshOverlay()})}
+            WideButton(if(state.audio)"停止视频字幕" else "开启无字幕视频字幕") {
                 if(ContextCompat.checkSelfPermission(this@WorkspaceActivity,Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED)activateAudio() else microphone.launch(Manifest.permission.RECORD_AUDIO)
             }
-            Text("英语语音识别模型已内置。声音捕获取决于播放 App 的系统录音许可。日语等画面文字优先用无障碍读取；当前 OCR 内置中英文。",fontSize=12.sp)
+            TextButton(onClick={busy=true;output="";running=scope.launch {
+                try {
+                    withContext(Dispatchers.IO){PlaybackModels.prepare(this@WorkspaceActivity,selected,cfg.translationCellular,{isActive},{message->lifecycleScope.launch{output=message}})}
+                    if(cfg.phoneTranslation)ScreenAssistant.phoneTranslator.prepare(selected.language,cfg.translationCellular)
+                    output="${selected.label}语音和翻译模型已就绪，可以播放视频"
+                }catch(e:CancellationException){throw e}
+                catch(e:Exception){output=e.message ?: "视频字幕模型准备失败"}
+                finally{busy=false;running=null}
+            }},enabled=!busy && !state.audio){Text("提前准备视频字幕模型")}
+            Row(verticalAlignment=Alignment.CenterVertically){Text("允许移动网络下载模型",Modifier.weight(1f),fontSize=13.sp);Switch(cellular,{cellular=it;cfg.translationCellular=it},enabled=!busy && !state.audio)}
+            Text("默认只在 Wi-Fi 下载。完整语句依次翻译，识别中的原文会先显示；英语可选增强模型。口音、音乐和重叠讲话会影响识别。",fontSize=12.sp)
+            Text("播放应用必须允许系统捕获声音；受限视频无法强行读取。手机翻译在本机处理；选择连接页的在线模型或 LibreTranslate 时，会发送识别文字。",fontSize=12.sp)
+            if(state.audio)Text(state.status,color=MaterialTheme.colorScheme.primary)
             if(state.notice.isNotBlank())Text(state.notice,color=MaterialTheme.colorScheme.error)
-            if(state.caption.isNotBlank())Text(state.caption)
+            if(state.audioPreview.isNotBlank())Text("识别中：${state.audioPreview}",fontSize=12.sp)
+            if(state.caption.isNotBlank()){Text(state.caption);if(showOriginal && state.captionOriginal.isNotBlank())Text("原文：${state.captionOriginal}",fontSize=12.sp)}
+        }
+        CardBlock("画面文字 · 底部浮条") {
+            Text("用于网页、画面里的外语文字和已有字幕；无字幕视频请使用上方视频声音模式。",fontSize=13.sp)
+            WideButton(if(state.translation)"暂停实时翻译" else "开启画面文字翻译") {
+                val service=ScreenShareService.instance
+                if(service==null)ScreenState.event("请先在看屏幕页开启共享")
+                else {service.toggleTranslation();if(ScreenState.state.value.translation)moveTaskToBack(true)}
+            }
         }
         CardBlock("最近译文") {val rows=remember(refresh.intValue,state.caption){MemoryStore(this@WorkspaceActivity).use{it.list("translation")}};if(rows.isEmpty())Text("尚无译文");rows.take(10).forEach{Text(it.text,fontSize=13.sp);HorizontalDivider()}}
     }
@@ -430,7 +455,7 @@ class WorkspaceActivity:ComponentActivity() {
             TextButton(onClick={tab.value="help"}){Text("需要申请什么？")}
         }
         CardBlock("已接入的组件"){
-            Text("Tesseract4Android 4.9.0 · 中英文离线 OCR\nVosk 0.3.75 · 英语离线语音识别\nOpen-AutoGLM · 动作协议接入\nLibreTranslate · 开源服务接口接入\nML Kit · 手机语言识别与翻译 SDK\n原有 Emotion Ball · 球球动效",fontSize=13.sp)
+            Text("Tesseract4Android 4.9.0 · 中英文离线 OCR\nVosk 0.3.75 · 多语言视频原声识别\nOpen-AutoGLM · 动作协议接入\nLibreTranslate · 开源服务接口接入\nML Kit · 手机语言识别与翻译 SDK\n原有 Emotion Ball · 球球动效",fontSize=13.sp)
             Text("语言识别模型随包提供，翻译语言模型首次下载后可离线使用。视觉模型与在线服务仍需单独配置。",fontSize=12.sp)
         }
     }

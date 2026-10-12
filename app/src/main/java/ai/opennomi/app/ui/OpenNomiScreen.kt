@@ -94,7 +94,7 @@ fun OpenNomiApp(vm: OpenNomiCloudViewModel, onTalk: () -> Unit) {
                         Text("OpenNomi", fontSize = 25.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 5.dp)) {
                             Box(Modifier.size(6.dp).clip(CircleShape).background(if (connected) Mint else Secondary))
-                            Text("  0.54 · ${if(phoneControl) "手机语音控制" else if (connecting) "连接中" else if (connected) "在线" else "未连接"}", color = Secondary, fontSize = 12.sp)
+                            Text("  ${ai.opennomi.app.BuildConfig.VERSION_NAME} · ${if(phoneControl) "手机语音控制" else if (connecting) "连接中" else if (connected) "在线" else "未连接"}", color = Secondary, fontSize = 12.sp)
                         }
                     }
                     Text(voiceLabel, color = Mint, fontSize = 12.sp, modifier = Modifier.padding(end = 10.dp))
@@ -297,7 +297,7 @@ private fun SettingsDialog(vm: OpenNomiCloudViewModel, reduceMotion: Boolean, on
             TextButton(onClick = onAccount) { Text("设备绑定与账号") }
             Text("设备：${vm.deviceId()}", fontSize = 11.sp, color = Secondary)
             TextButton(onClick = { vm.disconnect(); vm.connect(); onClose() }) { Text("重新连接") }
-            Text("OpenNomi 0.54 · 独立手机语音控制", fontSize = 12.sp, color = Secondary)
+            Text("OpenNomi ${ai.opennomi.app.BuildConfig.VERSION_NAME} · 独立手机语音控制", fontSize = 12.sp, color = Secondary)
         }
     }, confirmButton = { TextButton(onClick = onClose) { Text("完成") } })
 }

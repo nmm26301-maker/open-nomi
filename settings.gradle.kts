@@ -13,4 +13,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "OpenNomiAndroid"
-include(":app")
+include(":app", ":playback-fixture")
