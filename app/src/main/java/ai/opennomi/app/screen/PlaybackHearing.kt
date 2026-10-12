@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 /** Processes captured player PCM; partial hypotheses are previews, not settled translations. */
 class PlaybackHearing(private val context:Context,private val projection:MediaProjection,
     private val modelRoot:File,private val result:(String,Double?)->Unit,
-    private val partial:(String)->Unit,private val error:(String)->Unit,private val stopped:()->Unit) {
+    private val partial:(String)->Unit,private val error:(String)->Unit,private val stopped:()->Unit,private val ready:()->Unit) {
     private val running=AtomicBoolean(false)
     @Volatile private var recorder:AudioRecord?=null
     fun start() {
@@ -41,7 +41,7 @@ class PlaybackHearing(private val context:Context,private val projection:MediaPr
                 check(capture.state==AudioRecord.STATE_INITIALIZED){"系统未能建立声音录制"}
                 recorder=capture
                 if(!running.get())return@Thread
-                capture.startRecording()
+                capture.startRecording();ready()
                 val buffer=ByteArray(3200);val phrase=AudioPhraseClock()
                 var quietSince=SystemClock.elapsedRealtime();var speechSince=quietSince
                 var lastPreview="";var lastPreviewAt=0L
