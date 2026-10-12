@@ -26,6 +26,7 @@ class PlaybackHearing(private val context:Context,private val projection:MediaPr
         Thread({
             var model:Model?=null;var recognizer:Recognizer?=null
             try {
+                if(Build.VERSION.SDK_INT<29)throw IllegalStateException("视频声音字幕需要 Android 10 以上")
                 model=Model(modelRoot.absolutePath);recognizer=Recognizer(model,16000f)
                 recognizer.setWords(true)
                 if(!running.get())return@Thread
