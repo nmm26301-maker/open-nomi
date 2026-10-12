@@ -13,3 +13,6 @@ app/libs/*.aar
 app/src/main/assets/tessdata/
 app/src/main/assets/playback-model/
 build-handoff/
+
+__pycache__/
+playback-fixture/src/main/res/raw/speech.wav

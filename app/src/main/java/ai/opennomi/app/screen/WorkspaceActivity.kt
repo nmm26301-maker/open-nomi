@@ -44,7 +44,7 @@ class WorkspaceActivity:ComponentActivity() {
     private val capture=registerForActivityResult(ActivityResultContracts.StartActivityForResult()){r->
         if(r.resultCode==RESULT_OK && r.data!=null){
             runCatching{ContextCompat.startForegroundService(this,Intent(this,ScreenShareService::class.java).setAction(ScreenShareService.START).putExtra("grant",r.data))}
-                .onSuccess{lifecycleScope.launch{repeat(30){if(ScreenState.state.value.active)return@repeat;delay(100)};if(ScreenState.state.value.active){if(pendingVideo){pendingVideo=false;activateAudio()}else moveTaskToBack(true)}else{pendingVideo=false;ScreenState.event("共享准备失败，请重试")}}}
+                .onSuccess{lifecycleScope.launch{withTimeoutOrNull(5000){while(!ScreenState.state.value.active)delay(100)};if(ScreenState.state.value.active){if(pendingVideo){pendingVideo=false;activateAudio()}else moveTaskToBack(true)}else{pendingVideo=false;ScreenState.event("共享准备失败，请重试")}}}
                 .onFailure{ScreenState.event("系统未能启动共享，请重新授权并检查应用权限")}
         }else {pendingVideo=false;ScreenState.event("未授权共享，当前没有读取屏幕")}
     }
@@ -83,7 +83,7 @@ class WorkspaceActivity:ComponentActivity() {
         val cfg=remember{ScreenAssistant.settings()}
         MaterialTheme(colorScheme=darkColorScheme(primary=Color(0xFF7DD3FC),secondary=Color(0xFFC084FC),background=Color(0xFF070F19),surface=Color(0xFF142131),onSurface=Color(0xFFF0F5FC))){
             Surface(Modifier.fillMaxSize(),color=MaterialTheme.colorScheme.background){Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)){
-                Row(Modifier.fillMaxWidth().padding(18.dp),verticalAlignment=Alignment.CenterVertically){TextButton(onClick={finish()}){Text("‹")};Column(Modifier.weight(1f)){Text("OpenNomi",fontSize=24.sp,fontWeight=FontWeight.SemiBold);Text(if(state.active)"● 屏幕共享中" else "屏幕互动工作台 · 0.54",fontSize=12.sp,color=MaterialTheme.colorScheme.primary)};if(state.active)TextButton(onClick={ScreenShareService.instance?.stopSelf()}){Text("停止",color=Color(0xFFF87171))}}
+                Row(Modifier.fillMaxWidth().padding(18.dp),verticalAlignment=Alignment.CenterVertically){TextButton(onClick={finish()}){Text("‹")};Column(Modifier.weight(1f)){Text("OpenNomi",fontSize=24.sp,fontWeight=FontWeight.SemiBold);Text(if(state.active)"● 屏幕共享中" else "屏幕互动工作台 · ${ai.opennomi.app.BuildConfig.VERSION_NAME}",fontSize=12.sp,color=MaterialTheme.colorScheme.primary)};if(state.active)TextButton(onClick={ScreenShareService.instance?.stopSelf()}){Text("停止",color=Color(0xFFF87171))}}
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal=16.dp),horizontalArrangement=Arrangement.spacedBy(8.dp)){
                     listOf("vision" to "看屏幕","tasks" to "Agent","translation" to "翻译","fragments" to "碎片本","memory" to "记忆","settings" to "连接","help" to "申请指南").forEach{(key,label)->FilterChip(selected=tab.value==key,onClick={tab.value=key},label={Text(label)})}
                 }
