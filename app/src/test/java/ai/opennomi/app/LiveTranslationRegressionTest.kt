@@ -26,6 +26,15 @@ class LiveTranslationRegressionTest {
         assertEquals("Welcome to my channel",TranslationText.foreignLines("推荐\nWelcome to my channel\n已点赞\n2026"))
         assertEquals("",TranslationText.foreignLines("这是中文页面\n12345"))
     }
+    @Test fun japaneseKanaIsNotDiscardedAsMostlyChinese() {
+        val text="今日は世界の天気を見ます"
+        assertEquals(text,TranslationText.foreignLines(text));assertFalse(TranslationText.chineseOnly(text))
+    }
+    @Test fun englishAndKoreanAreForeignButChineseNumbersAreAlreadyChinese() {
+        assertFalse(TranslationText.chineseOnly("Hello world"))
+        assertFalse(TranslationText.chineseOnly("안녕하세요"))
+        assertTrue(TranslationText.chineseOnly("今天 20 度"))
+    }
     @Test fun ttsStartsEvenWithoutPrecedingSttButCannotWakePausedSession() {
         assertTrue(VoiceReplyGate.startsPlayback(true,ConversationState.LISTENING,"start"))
         assertTrue(VoiceReplyGate.startsPlayback(true,ConversationState.THINKING,"sentence_start"))

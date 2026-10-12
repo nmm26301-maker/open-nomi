@@ -291,6 +291,10 @@ class OpenNomiCloudViewModel(app: Application, private val memories:ai.opennomi.
         if (!_connected.value) {
             if (_pendingStart.value) {
                 _pendingStart.value = false
+                conversationRequested = false
+                _backgroundConversation.value = false
+                reconnectJob?.cancel(); reconnectJob = null
+                recoveryJob?.cancel(); recoveryJob = null
                 _status.value = if (_connecting.value) "正在连接，连接后点开始说话" else "点击开始说话"
             } else connect(startWhenReady = true)
             return

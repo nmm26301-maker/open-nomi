@@ -12,6 +12,7 @@ import android.os.*
 import androidx.core.app.NotificationCompat
 import ai.opennomi.app.R
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.collect
 import java.io.ByteArrayOutputStream
 
 class ScreenShareService: Service() {
@@ -95,7 +96,7 @@ class ScreenShareService: Service() {
     fun refreshOverlay(){overlay?.show()}
     fun toggleTranslation() {
         val on=!ScreenState.state.value.translation
-        if(on && !ScreenAssistant.settings().modelReady() && ScreenAssistant.settings().libre.isBlank()){ScreenState.event("请在连接页填写视觉模型或翻译服务，翻译与原声对话分别运行");return}
+        if(on && !ScreenAssistant.settings().translationReady()){ScreenState.event("请在翻译页开启手机翻译，或填写模型／翻译服务");return}
         translationGeneration++;translationJob?.cancel();translationJob=null
         captions=CaptionGate();translations.reset()
         if(!on){playback?.close();playback=null}
@@ -115,8 +116,14 @@ class ScreenShareService: Service() {
         val line=translations.next(System.currentTimeMillis()) ?: return
         val id=session;val generation=translationGeneration;val config=translationConfig
         translationJob=scope.launch {
+            val modelProgress=if(ScreenAssistant.settings().phoneTranslation)launch {
+                ScreenAssistant.phoneTranslator.status.collect { progress ->
+                    if(ScreenState.valid(id) && generation==translationGeneration && ScreenState.state.value.translation)
+                        ScreenState.update{it.copy(notice=progress)}
+                }
+            } else null
             try {
-                val text=translations.cached(line) ?: withContext(Dispatchers.IO){ScreenAssistant.translate(line)}
+                val text=translations.cached(line) ?: withContext(Dispatchers.IO){ScreenAssistant.translate(line,if(ScreenState.state.value.audio)"en" else null)}
                 if(ScreenState.valid(id) && generation==translationGeneration && config==ScreenAssistant.settings().translationFingerprint() && ScreenState.state.value.translation){
                     translations.success(line,text)
                     captions.offer(text,System.currentTimeMillis())?.let{result->ScreenState.update{it.copy(caption=result)}}
@@ -129,7 +136,7 @@ class ScreenShareService: Service() {
                     val error="翻译暂未完成：${t.message ?: "网络不可用"} · 正在等待重试，翻译保持开启"
                     ScreenState.update{it.copy(notice=error)};ScreenState.event(error)
                 }
-            } finally {if(generation==translationGeneration)translationJob=null}
+            } finally {modelProgress?.cancel();if(generation==translationGeneration)translationJob=null}
         }
     }
     fun toggleAudio() {

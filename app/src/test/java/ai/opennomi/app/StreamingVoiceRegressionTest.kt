@@ -55,6 +55,24 @@ class StreamingVoiceRegressionTest {
         val text="中".repeat(20)+"1,000"+"文".repeat(20)
         assertTrue(SpeechChunks(fastStart=true).take(text).isEmpty())
     }
+    @Test fun fastResponseStartsACompletePhraseWithoutWaitingForMoreTokens() {
+        val chunks=SpeechChunks(fastStart=true);val prefix="中".repeat(20)+"，"
+        assertEquals(listOf(prefix),chunks.take(prefix))
+        assertTrue(chunks.take(prefix).isEmpty())
+        assertTrue(chunks.take(prefix+"接下来还在生成").isEmpty())
+        assertEquals(listOf("接下来还在生成。"),chunks.take(prefix+"接下来还在生成。"))
+    }
+    @Test fun fastResponseWaitsForTheDigitAfterATrailingComma() {
+        val chunks=SpeechChunks(fastStart=true);val prefix="中".repeat(20)+"1,"
+        assertTrue(chunks.take(prefix).isEmpty())
+        assertTrue(chunks.take(prefix+"000").isEmpty())
+        assertEquals(listOf(prefix+"000。"),chunks.take(prefix+"000。"))
+    }
+    @Test fun shortClausesStillWaitForACompleteSentenceOrFlush() {
+        val chunks=SpeechChunks(fastStart=true)
+        assertTrue(chunks.take("好的，").isEmpty())
+        assertEquals(listOf("好的，我在听。"),chunks.take("好的，我在听。"))
+    }
     @Test fun excessiveReplyTextIsRejectedBeforeQueueing() {
         assertTrue(runCatching{SpeechChunks().take("中".repeat(12001),true)}.isFailure)
     }
