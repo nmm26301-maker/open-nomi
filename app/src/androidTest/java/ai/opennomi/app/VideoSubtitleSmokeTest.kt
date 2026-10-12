@@ -31,7 +31,8 @@ class VideoSubtitleSmokeTest {
                 assertFalse(ScreenState.state.value.active);assertFalse(ScreenState.state.value.audio)
                 device.executeShellCommand("appops set ${app.packageName} SYSTEM_ALERT_WINDOW allow")
                 repeat(3){if(device.currentPackageName=="com.android.settings"){device.pressBack();delay(500)}}
-                val grant=device.wait(Until.findObject(By.res("android:id/button2")),10000)
+                // SystemUI uses a negative button on API 29 and a neutral cancel button on API 33.
+                val grant=device.wait(Until.findObject(By.res(java.util.regex.Pattern.compile("android:id/button[23]"))),10000)
                 assertNotNull("Returning after overlay approval must continue to projection permission: ${ScreenState.state.value.status}, package=${device.currentPackageName}",grant)
                 grant.click();delay(500)
                 assertFalse("Denying sharing must not start capture",ScreenState.state.value.active)
