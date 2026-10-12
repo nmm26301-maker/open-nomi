@@ -13,8 +13,8 @@ android {
         minSdk = 26
         targetSdk = 35
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        versionCode = providers.gradleProperty("OPENNOMI_VERSION_CODE").orElse("53").get().toInt()
-        versionName = providers.gradleProperty("OPENNOMI_VERSION_NAME").orElse("0.53.0").get()
+        versionCode = providers.gradleProperty("OPENNOMI_VERSION_CODE").orElse("54").get().toInt()
+        versionName = providers.gradleProperty("OPENNOMI_VERSION_NAME").orElse("0.54.0").get()
 
         ndk { abiFilters += providers.gradleProperty("OPENNOMI_ABIS").orElse("arm64-v8a").get().split(",") }
         vectorDrawables { useSupportLibrary = true }
@@ -61,6 +61,8 @@ android {
 }
 
 dependencies {
+    implementation("com.google.mlkit:translate:17.0.3")
+    implementation("com.google.mlkit:language-id:17.0.6")
     implementation("androidx.camera:camera-camera2:1.4.2")
     implementation("androidx.camera:camera-lifecycle:1.4.2")
     implementation("androidx.camera:camera-view:1.4.2")

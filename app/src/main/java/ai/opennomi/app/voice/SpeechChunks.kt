@@ -12,9 +12,10 @@ class SpeechChunks(private val fastStart:Boolean = false) {
             val punctuation = (consumed until limit).firstOrNull { text[it] in "。！？；.!?;\n" &&
                 !(text[it] == '.' && ((!flush && it+1==text.length) ||
                     (it > 0 && it+1 < text.length && text[it-1].isDigit() && text[it+1].isDigit()))) }
-            val phrase = if(fastStart && punctuation==null && limit-consumed>=36)
+            val phrase = if(fastStart && punctuation==null && limit-consumed>=18)
                 (consumed+17 until limit).firstOrNull { text[it] in "，、：," &&
-                    !(text[it]==',' && it>0 && it+1<text.length && text[it-1].isDigit() && text[it+1].isDigit()) }
+                    !(text[it]==',' && it>0 && text[it-1].isDigit() &&
+                        ((it+1==text.length && !flush) || (it+1<text.length && text[it+1].isDigit()))) }
                 else null
             var end = punctuation?.plus(1) ?: phrase?.plus(1) ?: when {
                 limit < text.length || limit-consumed == 150 -> limit

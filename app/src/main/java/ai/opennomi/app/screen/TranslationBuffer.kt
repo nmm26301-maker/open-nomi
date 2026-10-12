@@ -23,8 +23,12 @@ class TranslationBuffer {
 }
 
 object TranslationText {
+    fun chineseOnly(text:String):Boolean {
+        val letters=text.filter{it.isLetter()}
+        return letters.isNotEmpty() && letters.all{it in '\u4e00'..'\u9fff'}
+    }
     fun foreignLines(text: String): String = text.lineSequence().map(String::trim).filter { line ->
         val letters=line.count{it.isLetter()};val han=line.count{it in '\u4e00'..'\u9fff'}
-        letters>=2 && (han==0 || han<letters*.55)
+        letters>=2 && (han==0 || han<letters*.55 || line.any{it in '\u3040'..'\u30ff' || it in '\uac00'..'\ud7af'})
     }.toList().takeLast(5).joinToString("\n").take(1000)
 }

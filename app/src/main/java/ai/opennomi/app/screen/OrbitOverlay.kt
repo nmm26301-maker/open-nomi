@@ -67,7 +67,7 @@ class OrbitOverlay(private val service:ScreenShareService) {
         if(line.isNotBlank()){
             if(caption==null){val text=TextView(service).apply{setTextColor(0xFFE9F3FF.toInt());textSize=14f;maxLines=7;setPadding(dp(18),dp(12),dp(18),dp(12));background=bg();setOnClickListener{runCatching{wm.removeView(this)};caption=null;updateRegions()}}
                 caption=text;runCatching{wm.addView(text,layout(service.resources.displayMetrics.widthPixels-dp(24),WindowManager.LayoutParams.WRAP_CONTENT,Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply{y=dp(14);flags=flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;alpha=.78f})}}
-            caption?.text=line;caption?.post{updateRegions()}
+            caption?.text=line+(if(state.translation && state.caption.isNotBlank() && ScreenAssistant.settings().phoneTranslation)"\n由 Google 翻译" else "");caption?.post{updateRegions()}
         } else {caption?.let{runCatching{wm.removeView(it)}};caption=null;updateRegions()}
     }
     private fun updateRegions(){regions=listOfNotNull(ball,panel,caption).map{v->val pos=IntArray(2);v.getLocationOnScreen(pos);Rect(pos[0],pos[1],pos[0]+v.width,pos[1]+v.height)}}
