@@ -30,9 +30,9 @@ class VideoSubtitleSmokeTest {
                 assertTrue("Missing overlay permission must open its system settings",device.wait(Until.hasObject(By.pkg("com.android.settings")),10000))
                 assertFalse(ScreenState.state.value.active);assertFalse(ScreenState.state.value.audio)
                 device.executeShellCommand("appops set ${app.packageName} SYSTEM_ALERT_WINDOW allow")
-                device.pressBack()
+                repeat(3){if(device.currentPackageName=="com.android.settings"){device.pressBack();delay(500)}}
                 val grant=device.wait(Until.findObject(By.res("android:id/button2")),10000)
-                assertNotNull("Returning after overlay approval must continue to projection permission",grant)
+                assertNotNull("Returning after overlay approval must continue to projection permission: ${ScreenState.state.value.status}, package=${device.currentPackageName}",grant)
                 grant.click();delay(500)
                 assertFalse("Denying sharing must not start capture",ScreenState.state.value.active)
             }

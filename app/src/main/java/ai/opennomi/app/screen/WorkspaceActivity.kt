@@ -40,7 +40,7 @@ import kotlinx.coroutines.*
 import ai.opennomi.app.ui.EmotionBallView
 
 class WorkspaceActivity:ComponentActivity() {
-    private var tab=mutableStateOf("vision");private var refresh=mutableIntStateOf(0);private var pendingVideo=false
+    private var tab=mutableStateOf("vision");private var refresh=mutableIntStateOf(0);private var pendingVideo=false;private var pendingOverlay=false
     private val capture=registerForActivityResult(ActivityResultContracts.StartActivityForResult()){r->
         if(r.resultCode==RESULT_OK && r.data!=null){
             runCatching{ContextCompat.startForegroundService(this,Intent(this,ScreenShareService::class.java).setAction(ScreenShareService.START).putExtra("grant",r.data))}
@@ -51,8 +51,8 @@ class WorkspaceActivity:ComponentActivity() {
     private val notifications=registerForActivityResult(ActivityResultContracts.RequestPermission()){launchShareGrant()}
     private val microphone=registerForActivityResult(ActivityResultContracts.RequestPermission()){ok->if(ok)requestVideo() else ScreenState.event("未允许音频权限，仍可翻译屏幕文字")}
     private val subtitleOverlay=registerForActivityResult(ActivityResultContracts.StartActivityForResult()){
-        if(Settings.canDrawOverlays(this))requestVideo()
-        else ScreenState.event("需要允许悬浮窗，中文字幕才能显示在视频上方；允许后再开启视频字幕")
+        if(pendingOverlay){pendingOverlay=false;if(Settings.canDrawOverlays(this))requestVideo()
+        else ScreenState.event("需要允许悬浮窗，中文字幕才能显示在视频上方；允许后再开启视频字幕")}
     }
     private val handsFreePermissions=registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()){grants->
         if(grants[Manifest.permission.RECORD_AUDIO]==true) {
@@ -64,7 +64,7 @@ class WorkspaceActivity:ComponentActivity() {
     }
     private val image=registerForActivityResult(ActivityResultContracts.GetContent()){uri->if(uri!=null)import(uri,"")}
     override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);window.addFlags(WindowManager.LayoutParams.FLAG_SECURE);ScreenAssistant.init(this);tab.value=intent.getStringExtra("tab") ?: "vision";handleShare(intent);setContent{Workspace()}}
-    override fun onResume(){super.onResume();refresh.intValue++;ScreenShareService.instance?.refreshOverlay()}
+    override fun onResume(){super.onResume();refresh.intValue++;ScreenShareService.instance?.refreshOverlay();if(pendingOverlay && Settings.canDrawOverlays(this)){pendingOverlay=false;requestVideo()}}
     override fun onNewIntent(intent:Intent){super.onNewIntent(intent);setIntent(intent);intent.getStringExtra("tab")?.let{tab.value=it};handleShare(intent)}
     private fun handleShare(intent:Intent){if(intent.action!=Intent.ACTION_SEND)return;val text=intent.getStringExtra(Intent.EXTRA_TEXT).orEmpty();if(intent.type?.startsWith("image/")==true){val uri=if(android.os.Build.VERSION.SDK_INT>=33)intent.getParcelableExtra(Intent.EXTRA_STREAM,Uri::class.java) else  @Suppress("DEPRECATION") (intent.getParcelableExtra(Intent.EXTRA_STREAM) as? Uri);if(uri!=null)import(uri,text)}else if(text.isNotBlank()){MemoryStore(this).use{it.add(if(Regex("https?://").containsMatchIn(text))"link" else "text",text,"系统分享")};tab.value="fragments";refresh.intValue++};intent.action=null}
     private fun import(uri:Uri,text:String){lifecycleScope.launch{try{withContext(Dispatchers.IO){MemoryStore(this@WorkspaceActivity).use{it.importImage(uri,text)}};tab.value="fragments";refresh.intValue++;ScreenState.event("已保存原图，图片字节保持原样")}catch(t:Throwable){ScreenState.event(t.message ?: "图片导入失败")}}}
@@ -84,6 +84,7 @@ class WorkspaceActivity:ComponentActivity() {
     private fun requestVideo() {
         if(ScreenState.state.value.audio){ScreenShareService.instance?.toggleAudio();return}
         if(!Settings.canDrawOverlays(this)) {
+            pendingOverlay=true
             ScreenState.event("请允许悬浮窗，用于显示视频中文字幕")
             subtitleOverlay.launch(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,Uri.parse("package:$packageName")))
             return
@@ -199,9 +200,15 @@ class WorkspaceActivity:ComponentActivity() {
         var output by remember{mutableStateOf("")}
         var busy by remember{mutableStateOf(false)}
         var running by remember{mutableStateOf<Job?>(null)}
+        var mode by remember{mutableStateOf("video")}
         val progress by ScreenAssistant.phoneTranslator.status.collectAsStateWithLifecycle()
-        CardBlock("无字幕视频 · 实时中文字幕") {
+        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){
+            listOf("video" to "视频字幕","text" to "文字翻译","screen" to "画面文字").forEach{(key,label)->FilterChip(selected=mode==key,onClick={mode=key},label={Text(label)},enabled=!busy)}
+        }
+        if(mode=="video")CardBlock("无字幕视频 · 实时中文字幕") {
             Text("直接听视频原声，不需要视频自带字幕。先选原声语言，准备好模型后再播放。",fontSize=14.sp)
+            Row(verticalAlignment=Alignment.CenterVertically){Text("手机翻译 · 无需 API Key",Modifier.weight(1f),fontSize=13.sp);Switch(phone,{phone=it;cfg.phoneTranslation=it},enabled=!state.audio && !busy)}
+            if(!phone)TextButton(onClick={tab.value="settings"}){Text("配置在线翻译服务")}
             Text("原声语言 · 左右滑动选择",fontSize=12.sp)
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
                 PlaybackModels.choices.forEach { model ->
@@ -238,10 +245,10 @@ class WorkspaceActivity:ComponentActivity() {
             if(state.audioPreview.isNotBlank())Text("识别中：${state.audioPreview}",fontSize=12.sp)
             if(state.caption.isNotBlank()){Text(state.caption);if(showOriginal && state.captionOriginal.isNotBlank())Text("原文：${state.captionOriginal}",fontSize=12.sp)}
         }
-        CardBlock("文字翻译 · 译成中文") {
+        if(mode=="text")CardBlock("文字翻译 · 译成中文") {
             Row(verticalAlignment=Alignment.CenterVertically){
                 Column(Modifier.weight(1f)){Text("手机翻译 · 无需 API Key");Text("首次下载语言模型后可离线使用",fontSize=12.sp)}
-                Switch(phone,{phone=it;cfg.phoneTranslation=it;output=""},enabled=!busy)
+                Switch(phone,{phone=it;cfg.phoneTranslation=it;output=""},enabled=!busy && !state.audio)
             }
             if(phone) {
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
@@ -278,7 +285,7 @@ class WorkspaceActivity:ComponentActivity() {
                 }
             }
         }
-        CardBlock("画面文字 · 底部浮条") {
+        if(mode=="screen")CardBlock("画面文字 · 底部浮条") {
             Text("用于网页、画面里的外语文字和已有字幕；无字幕视频请使用上方视频声音模式。",fontSize=13.sp)
             WideButton(if(state.translation)"暂停实时翻译" else "开启画面文字翻译") {
                 val service=ScreenShareService.instance

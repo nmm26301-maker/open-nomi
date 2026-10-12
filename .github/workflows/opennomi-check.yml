@@ -3,7 +3,7 @@ name: OpenNomi Android checks
 on:
   push:
     branches: [main]
-    paths-ignore: ['backups/**', 'validation/**', 'docs/**', 'README.md']
+    paths-ignore: ['backups/**', 'validation/*-release-verification.json', 'docs/**', 'README.md']
   pull_request:
     branches: [main]
   workflow_dispatch:
