@@ -1,0 +1,10 @@
+{
+  "backup_commit": "0419e11dbbb6ef02cb9a4e3ea6750a8017cfa23d",
+  "apk_readback_byte_identical": true,
+  "apk_sha256": "07fa4ab34c05431c16a3090f4f0cda62e3e870895c9bc8190d18b18a8fdb7039",
+  "apk_bytes": 89838829,
+  "encrypted_signing_readback_byte_identical": true,
+  "encrypted_signing_sha256": "0691bf97e096b598a71537e6f828423b94a2ba77a2039e81f4caeda267afb790",
+  "recovered_keystore_passwords_certificate_match": true,
+  "certificate_sha256": "8132825a68acba5653aba326b84e301bb65b28664af0d0727d7a5f5b41ad1b8e"
+}
