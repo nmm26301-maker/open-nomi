@@ -51,11 +51,14 @@ class TranslationSmokeTest {
             cfg.phoneTranslation=true;cfg.translationSource="en";cfg.translationCellular=true
             withTimeout(240000){ScreenAssistant.phoneTranslator.prepare("en",true)}
             ActivityScenario.launch<WorkspaceActivity>(Intent(context,WorkspaceActivity::class.java).putExtra("tab","translation")).use { scenario ->
-                assertTrue(device.wait(Until.hasObject(By.text("翻译为中文")),10000))
+                assertTrue(device.wait(Until.hasObject(By.text("文字翻译 · 译成中文")),10000))
+                UiScrollable(UiSelector().scrollable(true)).scrollTextIntoView("翻译为中文")
+                assertNotNull(device.findObject(By.text("翻译为中文")))
                 val field=device.findObject(By.clazz("android.widget.EditText"));assertNotNull(field)
                 field.text="Hello world."
                 device.findObject(By.text("翻译为中文")).click()
-                assertTrue(device.wait(Until.hasObject(By.textContains("世界")),30000))
+                withTimeout(30000){while(!device.hasObject(By.textContains("世界"))){device.findObject(By.scrollable(true))?.scroll(Direction.DOWN,.25f);delay(300)}}
+                assertNotNull(device.findObject(By.textContains("世界")))
                 assertNotNull(device.findObject(By.text("由 Google 翻译")))
                 scenario.onActivity{it.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)}
                 val output=File(context.getExternalFilesDir(null),"translation-workspace.png")
