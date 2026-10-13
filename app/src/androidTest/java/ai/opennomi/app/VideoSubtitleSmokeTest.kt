@@ -102,9 +102,29 @@ class VideoSubtitleSmokeTest {
                     withTimeout(60000){while(!ScreenState.state.value.status.contains("已就绪"))delay(100)}
                     withTimeout(60000){while(!ScreenState.state.value.captionOriginal.contains("zero") || !ScreenState.state.value.caption.any{it in '\u4e00'..'\u9fff'})delay(200)}
                     delay(1500);assertTrue("A late stop callback from the old capturer must not stop the resynced one",ScreenState.state.value.audio)
+                    // Actual live video controls precede the collapsed model settings.
+                    val output=java.io.File(app.getExternalFilesDir(null),"video-live-workspace.png")
+                    scenario.onActivity{activity->
+                        val view=activity.window.decorView
+                        val bitmap=android.graphics.Bitmap.createBitmap(view.width,view.height,android.graphics.Bitmap.Config.ARGB_8888)
+                        try{view.draw(android.graphics.Canvas(bitmap));java.io.FileOutputStream(output).use{assertTrue(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,it))}}finally{bitmap.recycle()}
+                    }
+                    device.executeShellCommand("cp ${output.absolutePath} /data/local/tmp/video-live-workspace.png")
+                    val sharingSession=ScreenState.state.value.session
+                    scenario.onActivity{activity->activity.startActivity(Intent(activity,WorkspaceActivity::class.java).putExtra("tab","translation").putExtra("translation-mode","history").addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))}
+                    clickText(device,"暂停视频字幕，回看译文")
+                    assertFalse("Pause must not enable OCR translation implicitly",ScreenState.state.value.translation)
+                    assertFalse(ScreenState.state.value.audio);assertTrue(ScreenState.state.value.captionHistory.contains(recorded))
+                    delay(1500);assertEquals("Paused captions must not be replaced by OCR or late audio results","",ScreenState.state.value.caption)
+                    clickText(device,"继续视频字幕")
+                    assertEquals("Resume must reuse the approved screen sharing session",sharingSession,ScreenState.state.value.session)
+                    withTimeout(60000){while(!ScreenState.state.value.audio || !ScreenState.state.value.status.contains("已就绪"))delay(100)}
+                    withTimeout(60000){while(!ScreenState.state.value.captionOriginal.contains("zero") || !ScreenState.state.value.caption.any{it in '\u4e00'..'\u9fff'})delay(200)}
+                    assertTrue("History resume must produce actual Chinese from the player again",ScreenState.state.value.caption.any{it in '\u4e00'..'\u9fff'})
                 }
                 InstrumentationRegistry.getInstrumentation().runOnMainSync{ScreenShareService.instance!!.toggleAudio()}
                 assertFalse(ScreenState.state.value.audio)
+                assertFalse("Pausing video must stop translation instead of falling back to OCR",ScreenState.state.value.translation)
                 assertFalse("Pausing subtitles must retain this sharing session's recent text",ScreenState.state.value.captionHistory.isEmpty())
                 delay(1500);assertFalse("Old capture callbacks must not restart the cancelled session",ScreenState.state.value.audio)
             }
@@ -131,6 +151,19 @@ class VideoSubtitleSmokeTest {
             cfg.playbackModel=old;cfg.phoneTranslation=phone;cfg.translationCellular=cellular;cfg.subtitleTiming=oldTiming
             withTimeout(10000){while(ScreenState.state.value.active)delay(100)}
             assertTrue("Stopping sharing must clear recent captured text",ScreenState.state.value.captionHistory.isEmpty())
+        }
+    }
+    private suspend fun clickText(device:UiDevice,label:String) {
+        withTimeout(15000) {
+            var clicked=false
+            while(!clicked) {
+                try {
+                    val button=device.findObject(By.text(label))
+                    if(button!=null && button.visibleBounds.height()>0){button.click();clicked=true}
+                    else device.findObjects(By.scrollable(true)).firstOrNull{it.visibleBounds.height()>it.visibleBounds.width()}?.scroll(Direction.DOWN,.3f)
+                }catch(_:StaleObjectException){}
+                if(!clicked)delay(200)
+            }
         }
     }
     private suspend fun clickVideoStart(device:UiDevice) {

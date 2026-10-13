@@ -183,7 +183,7 @@ class ScreenShareService: Service() {
         audioPreparation?.cancel();audioPreparation=null;playback?.close();playback=null
         translations.reset();audioQueue.reset();audioCaptions.reset();audioContext="";captions=CaptionGate()
         updateAudioQueueState()
-        if(ScreenState.state.value.audio && !restart){ScreenState.update{it.copy(audio=false,caption="",captionOriginal="",audioPreview="",notice="",status="已停止视频字幕，切回屏幕文字翻译")};return}
+        if(ScreenState.state.value.audio && !restart){ScreenState.pauseVideo();return}
         if(!ScreenState.state.value.translation)toggleTranslation()
         if(!ScreenState.state.value.translation)return
         if(Build.VERSION.SDK_INT<29){ScreenState.event("无字幕视频声音翻译需要 Android 10 以上");return}
@@ -209,13 +209,13 @@ class ScreenShareService: Service() {
                     }}},
                     {text->main.post{if(valid())ScreenState.update{it.copy(audioPreview=text)}}},
                     {message->main.post{if(valid()){ScreenState.update{it.copy(notice=message)};ScreenState.event(message)}}},
-                    {main.post{if(valid()){translationGeneration++;translationJob?.cancel();translationJob=null;audioQueue.reset();audioCaptions.reset();ScreenState.update{it.copy(audio=false,audioPreview="",status="视频声音捕获已停止，请重新开启字幕")}}}},
+                    {main.post{if(valid()){translationGeneration++;translationJob?.cancel();translationJob=null;audioQueue.reset();audioCaptions.reset();ScreenState.pauseVideo(notice=ScreenState.state.value.notice,status="视频声音捕获已停止，请重新开启字幕")}}},
                     {main.post{if(valid())ScreenState.update{it.copy(notice="",status="${model.label}视频字幕已就绪 · 请播放无字幕视频")}}}
                 )
                 ScreenState.update{it.copy(notice="正在加载原声识别器，请就绪后播放视频")}
                 playback!!.start()
             }catch(e:CancellationException){throw e}
-            catch(t:Throwable){if(valid()){ScreenState.update{it.copy(audio=false,audioPreview="",notice=t.message ?: "视频字幕准备失败")};ScreenState.event("视频字幕准备失败，请检查语言模型和音频权限后重试")}}
+            catch(t:Throwable){if(valid()){ScreenState.pauseVideo(notice=t.message ?: "视频字幕准备失败",status="视频字幕准备失败，请检查语言模型和音频权限后重试")}}
             finally {if(playbackGeneration==generation)audioPreparation=null}
         }
     }

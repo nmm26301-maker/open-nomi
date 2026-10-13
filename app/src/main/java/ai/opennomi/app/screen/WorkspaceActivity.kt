@@ -204,6 +204,7 @@ class WorkspaceActivity:ComponentActivity() {
         var output by remember{mutableStateOf("")}
         var busy by remember{mutableStateOf(false)}
         var running by remember{mutableStateOf<Job?>(null)}
+        var videoOptions by remember{mutableStateOf(false)}
         var mode by translationMode
         val progress by ScreenAssistant.phoneTranslator.status.collectAsStateWithLifecycle()
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)){
@@ -211,6 +212,26 @@ class WorkspaceActivity:ComponentActivity() {
         }
         if(mode=="video")CardBlock("无字幕视频 · 实时中文字幕") {
             Text("直接听视频原声，不需要视频自带字幕。先选原声语言，准备好模型后再播放。",fontSize=14.sp)
+            WideButton(if(state.audio)"暂停视频字幕" else if(state.active && state.captionHistory.isNotEmpty())"继续视频字幕" else "开启无字幕视频字幕") {
+                if(busy)ScreenState.event("请先等待或取消模型准备") else requestVideo()
+            }
+            if(state.audio) {
+                Text(state.status,color=MaterialTheme.colorScheme.primary)
+                Text("待完成翻译 ${state.audioQueued} 段 · 等待显示 ${state.captionQueued} 条",fontSize=12.sp)
+                TextButton(onClick={ScreenShareService.instance?.resyncAudio()}){Text("重新同步当前声音")}
+                Text("重新同步会跳过积压语句，已完成的近期译文保留。",fontSize=12.sp)
+            }
+            TextButton(onClick={mode="history"}){Text("查看近期视频译文（${state.captionHistory.size}）")}
+            if(state.notice.isNotBlank())Text(state.notice,color=MaterialTheme.colorScheme.error)
+            if(state.caption.isNotBlank()) {
+                SelectionContainer{Text(state.caption)}
+                if(showOriginal && state.captionOriginal.isNotBlank())Text("原文：${state.captionOriginal}",fontSize=12.sp)
+                if(phone)Text("由 Google 翻译",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if(state.audioPreview.isNotBlank())Text("识别中：${state.audioPreview}",fontSize=12.sp)
+            Row(verticalAlignment=Alignment.CenterVertically){Text("显示识别原文，方便核对",Modifier.weight(1f),fontSize=13.sp);Switch(showOriginal,{showOriginal=it;cfg.subtitleOriginal=it;ScreenShareService.instance?.refreshOverlay()})}
+            if(state.audio)TextButton(onClick={videoOptions=!videoOptions}){Text(if(videoOptions)"收起语言与模型设置" else "展开语言与模型设置")}
+            if(!state.audio || videoOptions) {
             Row(verticalAlignment=Alignment.CenterVertically){Text("手机翻译 · 无需 API Key",Modifier.weight(1f),fontSize=13.sp);Switch(phone,{phone=it;cfg.phoneTranslation=it},enabled=!state.audio && !busy)}
             if(!phone)TextButton(onClick={tab.value="settings"}){Text("配置在线翻译服务")}
             Text("原声语言 · 左右滑动选择",fontSize=12.sp)
@@ -221,14 +242,10 @@ class WorkspaceActivity:ComponentActivity() {
             }
             val selected=PlaybackModels.selected(audioModel)
             Text(if(PlaybackModels.ready(this@WorkspaceActivity,selected))"${selected.label}语音模型已准备好" else if(selected.id=="en")"英语模型已内置，首次会安装到本机" else "${selected.label}语音模型首次下载约 ${selected.sizeMb} MB，之后可离线识别",fontSize=12.sp)
-            Row(verticalAlignment=Alignment.CenterVertically){Text("显示识别原文，方便核对",Modifier.weight(1f),fontSize=13.sp);Switch(showOriginal,{showOriginal=it;cfg.subtitleOriginal=it;ScreenShareService.instance?.refreshOverlay()})}
             Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
                 SubtitleTiming.entries.forEach{mode->FilterChip(selected=timing==mode.name,onClick={timing=mode.name;cfg.subtitleTiming=mode.name},label={Text(mode.label)},enabled=!state.audio)}
             }
             Text(if(timing==SubtitleTiming.FAST.name)"连续讲话约 3.5 秒后优先等短停顿分段；不停顿时最多额外等 1.2 秒。" else "约 5.5 秒后优先等短停顿分段，保留更多上下文；不停顿时最多额外等 1.2 秒。",fontSize=12.sp)
-            WideButton(if(state.audio)"停止视频字幕" else "开启无字幕视频字幕") {
-                if(busy)ScreenState.event("请先等待或取消模型准备") else requestVideo()
-            }
             TextButton(onClick={busy=true;videoPreparing=true;videoMessage="正在准备视频字幕模型";running=scope.launch {
                 try {
                     val preparation=currentCoroutineContext()[Job]!!
@@ -244,20 +261,12 @@ class WorkspaceActivity:ComponentActivity() {
             Row(verticalAlignment=Alignment.CenterVertically){Text("允许移动网络下载模型",Modifier.weight(1f),fontSize=13.sp);Switch(cellular,{cellular=it;cfg.translationCellular=it},enabled=!busy && !state.audio)}
             Text("默认只在 Wi-Fi 下载。原文会先显示；积压时合并相邻语句翻译以追赶进度。英语可选增强模型；口音、音乐和重叠讲话会影响识别。",fontSize=12.sp)
             Text("播放应用必须允许系统捕获声音；受限视频无法强行读取。手机翻译在本机处理；选择连接页的在线模型或 LibreTranslate 时，会发送识别文字。",fontSize=12.sp)
-            if(state.audio)Text(state.status,color=MaterialTheme.colorScheme.primary)
-            if(state.audio) {
-                Text("待完成翻译 ${state.audioQueued} 段 · 等待显示 ${state.captionQueued} 条",fontSize=12.sp)
-                TextButton(onClick={ScreenShareService.instance?.resyncAudio()}){Text("重新同步当前声音")}
-                Text("字幕明显落后时可重新同步，会跳过积压语句；已完成的近期译文保留。",fontSize=12.sp)
             }
-            if(state.notice.isNotBlank())Text(state.notice,color=MaterialTheme.colorScheme.error)
-            if(state.audioPreview.isNotBlank())Text("识别中：${state.audioPreview}",fontSize=12.sp)
-            if(state.caption.isNotBlank()){Text(state.caption);if(showOriginal && state.captionOriginal.isNotBlank())Text("原文：${state.captionOriginal}",fontSize=12.sp)}
-            TextButton(onClick={mode="history"}){Text("查看近期视频译文（${state.captionHistory.size}）")}
         }
         if(mode=="history")CardBlock("本次共享 · 近期视频译文") {
             Text("保留最近 20 条原文和译文，只在本次共享中暂存。停止共享后清空；暂停视频字幕后仍可回看。",fontSize=12.sp)
             if(state.audio)TextButton(onClick={ScreenShareService.instance?.toggleAudio()}){Text("暂停视频字幕，回看译文")}
+            else if(state.active)WideButton("继续视频字幕"){requestVideo()}
             if(state.captionHistory.isEmpty())Text("还没有视频译文。开启视频字幕并播放后会出现在这里。")
             state.captionHistory.asReversed().forEach{caption->
                 Text(caption.language,fontSize=12.sp,color=MaterialTheme.colorScheme.primary)

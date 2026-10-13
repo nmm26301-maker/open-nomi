@@ -20,6 +20,9 @@ object ScreenState {
     @Volatile var frame: ScreenFrame? = null
     @Synchronized fun update(block: (WorkspaceState) -> WorkspaceState) { mutable.value = block(mutable.value) }
     fun begin(): Long { val id = generation.incrementAndGet(); frame = null; mutable.value = WorkspaceState(active=true, session=id, status="屏幕共享中 · 内容保留在本机"); return id }
+    fun pauseVideo(notice:String="",status:String="视频字幕已暂停 · 共享仍开启，可继续字幕") = update {
+        it.copy(audio=false,translation=false,caption="",captionOriginal="",audioPreview="",audioQueued=0,captionQueued=0,notice=notice,status=status)
+    }
     fun end() { generation.incrementAndGet(); frame = null; update { it.copy(active=false, session=generation.get(), busy=false, translation=false, audio=false, page=Page(), proposed=null, proposedPage=null, agentRunning=false, voiceTaskConfirmation=false, caption="",captionOriginal="",audioPreview="", notice="", captionHistory=emptyList(),audioQueued=0,captionQueued=0, status="共享已停止") } }
     fun valid(id: Long) = state.value.active && state.value.session == id
     fun event(message: String) = update { it.copy(status=message, history=(it.history + message).takeLast(60)) }

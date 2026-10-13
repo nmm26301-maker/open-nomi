@@ -6,6 +6,20 @@ import org.junit.Test
 
 class AudioCaptionRegressionTest {
     private fun caption(text:String)=AudioCaption(text,"source $text",.9,"英语")
+    @Test fun pausingVideoKeepsTheShareAndHistoryWithoutFallingBackToOcrTranslation() {
+        val id=ScreenState.begin();val recent=caption("已经完成")
+        ScreenState.update{it.copy(audio=true,translation=true,caption="当前",captionOriginal="current",audioPreview="partial",audioQueued=4,captionQueued=2,captionHistory=listOf(recent))}
+        ScreenState.pauseVideo();val state=ScreenState.state.value
+        assertTrue(state.active);assertEquals(id,state.session);assertFalse(state.audio);assertFalse(state.translation)
+        assertEquals(listOf(recent),state.captionHistory);assertEquals("",state.caption);assertEquals("",state.captionOriginal);assertEquals("",state.audioPreview);assertEquals(0,state.audioQueued);assertEquals(0,state.captionQueued)
+        ScreenState.end()
+    }
+    @Test fun aCaptureFailurePreservesItsExplanationAndCompletedHistoryWhileDisablingTranslation() {
+        ScreenState.begin();val recent=caption("保留");ScreenState.update{it.copy(audio=true,translation=true,captionHistory=listOf(recent))}
+        ScreenState.pauseVideo(notice="播放应用禁止捕获",status="请重新开启字幕")
+        assertFalse(ScreenState.state.value.translation);assertEquals("播放应用禁止捕获",ScreenState.state.value.notice);assertEquals("请重新开启字幕",ScreenState.state.value.status);assertEquals(listOf(recent),ScreenState.state.value.captionHistory)
+        ScreenState.end()
+    }
     @Test fun firstSubtitleAppearsImmediately() {
         val p=AudioCaptionPresenter();val first=caption("你好");assertEquals(first,p.offer(first,100));assertEquals(0,p.size)
     }
