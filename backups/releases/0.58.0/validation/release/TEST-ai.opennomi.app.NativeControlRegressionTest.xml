@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ai.opennomi.app.NativeControlRegressionTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-13T05:57:05" hostname="runnervmmprz5" time="0.012">
+  <properties/>
+  <testcase name="unsafeOrIncompleteChainsNeverFallThroughToAnAgent" classname="ai.opennomi.app.NativeControlRegressionTest" time="0.006"/>
+  <testcase name="systemSilenceCanRestartWithoutIncreasingFailureBackoff" classname="ai.opennomi.app.NativeControlRegressionTest" time="0.003"/>
+  <testcase name="providerFailuresBackOffAndStopAfterFiveRetries" classname="ai.opennomi.app.NativeControlRegressionTest" time="0.0"/>
+  <testcase name="volumeLimitsAndIndependentCommands" classname="ai.opennomi.app.NativeControlRegressionTest" time="0.0"/>
+  <testcase name="naturalGoalCanLaunchTheNamedAppBeforeObservingFromTheAssistantHome" classname="ai.opennomi.app.NativeControlRegressionTest" time="0.001"/>
+  <testcase name="quotedInputIsDataAndConfirmationIsASeparateTurn" classname="ai.opennomi.app.NativeControlRegressionTest" time="0.0"/>
+  <testcase name="directControlDoesNotRequireCloudConversationOrAnAgentGoal" classname="ai.opennomi.app.NativeControlRegressionTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

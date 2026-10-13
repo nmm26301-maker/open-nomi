@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ai.opennomi.app.VisionApiRegressionTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-13T05:57:09" hostname="runnervmmprz5" time="0.041">
+  <properties/>
+  <testcase name="credentialsCannotHideInAddress" classname="ai.opennomi.app.VisionApiRegressionTest" time="0.003"/>
+  <testcase name="realHttpRequestCarriesImageAndReadsSmallResponse" classname="ai.opennomi.app.VisionApiRegressionTest" time="0.021"/>
+  <testcase name="acceptsBaseOrFullEndpointWithoutDuplicatingPath" classname="ai.opennomi.app.VisionApiRegressionTest" time="0.0"/>
+  <testcase name="errorDoesNotEchoProviderBodyOrSecret" classname="ai.opennomi.app.VisionApiRegressionTest" time="0.015"/>
+  <testcase name="glmDisablesThinkingAndUsesDocumentedBase64" classname="ai.opennomi.app.VisionApiRegressionTest" time="0.001"/>
+  <testcase name="parsesContentPartsAndRejectsEmptyReasoningOnlyReply" classname="ai.opennomi.app.VisionApiRegressionTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,142 @@
+name: OpenNomi Android checks
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['backups/**', 'validation/*-release-verification.json', 'docs/**', 'README.md']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: opennomi-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - name: Install required Android components
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Restore verified offline OCR and speech assets
+        run: python3 scripts/restore-build-assets.py
+      - name: Java frame and AIRI hearing regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/opennomi-frame-tests /tmp/opennomi-hearing-tests
+          javac -encoding UTF-8 -d /tmp/opennomi-frame-tests app/src/main/java/ai/opennomi/app/screen/FrameReadiness.java validation/FrameReadinessRegression.java
+          java -cp /tmp/opennomi-frame-tests FrameReadinessRegression
+          mapfile -t hearing_stubs < <(find tests-hearing-stubs -name '*.java')
+          javac -encoding UTF-8 -d /tmp/opennomi-hearing-tests "${hearing_stubs[@]}" app/src/main/java/ai/opennomi/app/web/AiriNativeHearing.java AiriHearingRegression.java
+          java -cp /tmp/opennomi-hearing-tests ai.opennomi.app.web.AiriHearingRegression
+          node airi-native-voice.test.cjs
+      - name: Compile Android, unit tests and lint
+        run: gradle :app:assembleRelease :app:testReleaseUnitTest :app:lintRelease -Pkotlin.incremental=false --no-daemon
+      - name: Stage unsigned result and official signing tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build-handoff/signing-tools
+          cp app/build/outputs/apk/release/*-unsigned.apk build-handoff/
+          mkdir -p apk-transfer
+          split -b 24M -d build-handoff/*-unsigned.apk apk-transfer/opennomi-apk.part
+          sha256sum build-handoff/*-unsigned.apk > build-handoff/unsigned-sha256.txt
+          rm build-handoff/*-unsigned.apk
+          cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" build-handoff/signing-tools/
+          cp "$ANDROID_HOME/build-tools/35.0.0/zipalign" build-handoff/signing-tools/
+          if [ -d "$ANDROID_HOME/build-tools/35.0.0/lib64" ]; then
+            cp -R "$ANDROID_HOME/build-tools/35.0.0/lib64" build-handoff/signing-tools/
+          fi
+          echo 'Unsigned verification output. Sign with the matching release key for the configured application ID before installation.' > build-handoff/README.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: opennomi-058-unsigned-and-signing-tools
+          path: build-handoff/
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: opennomi-058-apk-parts
+          path: apk-transfer/opennomi-apk.part*
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: opennomi-058-check-reports
+          path: |
+            app/build/reports/
+            app/build/test-results/
+          retention-days: 7
+
+  ui-smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [29, 33]
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - run: python3 scripts/restore-build-assets.py
+      - name: Prepare pinned public speech capture fixture
+        run: python3 scripts/prepare-playback-fixture.py
+      - name: Build external player fixture
+        run: gradle :playback-fixture:assembleDebug --no-daemon
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api }}
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          script: |
+            adb install -r playback-fixture/build/outputs/apk/debug/playback-fixture-debug.apk
+            gradle :app:connectedDebugAndroidTest -POPENNOMI_ABIS=x86_64 -Pkotlin.incremental=false --no-daemon
+            mkdir -p ui-captures
+            adb pull /data/local/tmp/fish-workstation.png ui-captures/fish-workstation.png
+            adb pull /data/local/tmp/conversation-home.png ui-captures/conversation-home.png
+            adb pull /data/local/tmp/conversation-memory.png ui-captures/conversation-memory.png
+            adb pull /data/local/tmp/translation-workspace.png ui-captures/translation-workspace.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: opennomi-058-ui-smoke-api-${{ matrix.api }}
+          overwrite: true
+          path: |
+            ui-captures/
+            app/build/reports/androidTests/
+            app/build/outputs/androidTest-results/
+          retention-days: 7
