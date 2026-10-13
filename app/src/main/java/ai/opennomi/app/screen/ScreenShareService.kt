@@ -178,12 +178,15 @@ class ScreenShareService: Service() {
     private fun updateAudioQueueState(){ScreenState.update{it.copy(audioQueued=audioQueue.size,captionQueued=audioCaptions.size)}}
     fun resyncAudio(){if(ScreenState.state.value.audio)toggleAudio(restart=true)}
     fun toggleAudio(restart:Boolean=false) {
+        val pausing=ScreenState.state.value.audio && !restart
         playbackGeneration++;val generation=playbackGeneration
         translationGeneration++;translationJob?.cancel();translationJob=null
+        // Publish pause immediately; native AudioRecord.stop can take time to return.
+        if(pausing)ScreenState.pauseVideo()
         audioPreparation?.cancel();audioPreparation=null;playback?.close();playback=null
         translations.reset();audioQueue.reset();audioCaptions.reset();audioContext="";captions=CaptionGate()
         updateAudioQueueState()
-        if(ScreenState.state.value.audio && !restart){ScreenState.pauseVideo();return}
+        if(pausing)return
         if(!ScreenState.state.value.translation)toggleTranslation()
         if(!ScreenState.state.value.translation)return
         if(Build.VERSION.SDK_INT<29){ScreenState.event("无字幕视频声音翻译需要 Android 10 以上");return}
