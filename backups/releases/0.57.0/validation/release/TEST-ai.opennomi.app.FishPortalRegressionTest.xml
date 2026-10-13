@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ai.opennomi.app.FishPortalRegressionTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-13T05:10:00" hostname="runnervmmprz5" time="0.001">
+  <properties/>
+  <testcase name="displayedHostNeverContainsOAuthSecrets" classname="ai.opennomi.app.FishPortalRegressionTest" time="0.001"/>
+  <testcase name="refusesAppLaunchAndLocalSchemes" classname="ai.opennomi.app.FishPortalRegressionTest" time="0.0"/>
+  <testcase name="accountAndOAuthLinksStayEligibleForInternalNavigation" classname="ai.opennomi.app.FishPortalRegressionTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

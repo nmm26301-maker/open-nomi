@@ -1,0 +1,62 @@
+{
+  "application_id": "com.opennomi.android",
+  "version_code": 57,
+  "version": "0.57.0",
+  "abis": [
+    "arm64-v8a"
+  ],
+  "source_commit": "8b28a1174d7c43923f1e3d5a1fbfa432f326e0be",
+  "built_source_commit": "8b28a1174d7c43923f1e3d5a1fbfa432f326e0be",
+  "merged_commit": "8b28a1174d7c43923f1e3d5a1fbfa432f326e0be",
+  "workflow_url": "https://github.com/nmm26301-maker/open-nomi/actions/runs/38349856338",
+  "unit_tests": {
+    "tests": 169,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "android_smoke": {
+    "api29": {
+      "tests": 23,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "api33": {
+      "tests": 23,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "lint": {
+    "Warning": 47,
+    "Information": 3
+  },
+  "unsigned_sha256": "f984fac38cac1e4bb562ee7928b351630a51e0c5cffabb7ca8c6d6563df424c8",
+  "unsigned_bytes": 89802334,
+  "signed_apk_sha256": "223acb8d9f1fcf205a15ab373437dec5cd43e5f2af2fcfef53b2b13cd38c46ac",
+  "signed_apk_bytes": 89855213,
+  "certificate_sha256": "8132825a68acba5653aba326b84e301bb65b28664af0d0727d7a5f5b41ad1b8e",
+  "signature_v2": true,
+  "signature_v3": true,
+  "zipalign_16k": true,
+  "signing_backup": "signing/OpenNomi-new-signing.enc.json",
+  "signing_backup_sha256": "0691bf97e096b598a71537e6f828423b94a2ba77a2039e81f4caeda267afb790",
+  "validation_scope": [
+    "Both FAST and COMPLETE speech captured from a separate player UID without screen subtitles, actual Chinese output, and no restart after stop.",
+    "Japanese model download, actual native model reload without network, and Japanese-to-Chinese translation offline.",
+    "Overlay approval precedes projection; cancelling projection cannot start capture.",
+    "Backlog batch order/repeats, frozen retries and stale completion cancellation.",
+    "Visible recent real-capture translations, pause retention and clearing after sharing stops.",
+    "Pause-aware bounded phrase clock, conservative confidence and ordered bounded caption display.",
+    "Capture reader remains valid while the worker is blocked during stop and is released after the worker returns.",
+    "Prior unit, voice, UI and real Google translation checks."
+  ],
+  "limitations": [
+    "Real user phone and Bluetooth headset have not been tested.",
+    "No measured speech accuracy percentage or fixed end-to-end latency claim.",
+    "Player must permit AudioPlaybackCapture; models need network on first preparation.",
+    "A bounded queue rejects new speech during sustained overload with a visible warning."
+  ]
+}
