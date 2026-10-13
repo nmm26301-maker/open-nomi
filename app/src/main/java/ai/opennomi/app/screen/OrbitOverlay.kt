@@ -22,7 +22,7 @@ class OrbitOverlay(private val service:ScreenShareService) {
         if(!Settings.canDrawOverlays(service)){ScreenState.event("共享已开启；允许悬浮窗后可显示球球");return}
         val dm=service.resources.displayMetrics
         params=layout(dp(74),dp(74),Gravity.TOP or Gravity.LEFT).apply{x=dm.widthPixels-dp(84);y=dm.heightPixels/2}
-        val orb=GalaxyOrb(service);ball=orb
+        val orb=GalaxyOrb(service).apply{contentDescription="OpenNomi 悬浮菜单";importantForAccessibility=View.IMPORTANT_FOR_ACCESSIBILITY_YES};ball=orb
         var downX=0f;var downY=0f;var originX=0;var originY=0;var downTime=0L;var moved=false
         val detector=GestureDetector(service,object:GestureDetector.SimpleOnGestureListener(){
             override fun onDown(e:MotionEvent)=true

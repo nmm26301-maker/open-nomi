@@ -69,8 +69,17 @@ class VideoSubtitleSmokeTest {
                 val recorded=ScreenState.state.value.captionHistory.last{it.original.contains("zero") && it.translated.any{c->c in '\u4e00'..'\u9fff'}}
                 assertNotNull("Completed Vosk words must retain their confidence",recorded.confidence)
                 if(timing==SubtitleTiming.FAST) {
-                    device.executeShellCommand("am start --activity-clear-top --activity-single-top -n ${app.packageName}/ai.opennomi.app.screen.WorkspaceActivity --es tab translation --es translation-mode history")
-                    assertTrue("Recent intent must switch a reused workspace to its history page",device.wait(Until.hasObject(By.text("本次共享 · 近期视频译文")),10000))
+                    // Exercise the real overlay entry while the external player owns the foreground.
+                    val orb=device.wait(Until.findObject(By.desc("OpenNomi 悬浮菜单")),10000)
+                    assertNotNull("Capture must expose its accessible floating menu",orb);orb.click()
+                    val recent=device.wait(Until.findObject(By.text("查看近期视频译文")),10000)
+                    assertNotNull("The overlay must offer recent captured translations",recent);recent.click()
+                    assertTrue("Recent entry must bring the workspace forward",device.wait(Until.hasObject(By.pkg(app.packageName)),10000))
+                    withTimeout(15000){while(!device.hasObject(By.text("本次共享 · 近期视频译文"))){
+                        try{device.findObjects(By.scrollable(true)).firstOrNull{it.visibleBounds.height()>it.visibleBounds.width()}?.scroll(Direction.DOWN,.3f)}catch(_:StaleObjectException){}
+                        delay(200)
+                    }}
+                    assertNotNull("Recent entry must switch a reused workspace to its history page",device.findObject(By.text("本次共享 · 近期视频译文")))
                     withTimeout(15000){while(!device.hasObject(By.text(recorded.translated))){
                         try{device.findObjects(By.scrollable(true)).firstOrNull{it.visibleBounds.height()>it.visibleBounds.width()}?.scroll(Direction.DOWN,.4f)}catch(_:StaleObjectException){}
                         delay(200)

@@ -69,7 +69,10 @@ class TranslationSmokeTest {
                 field.text="Hello world."
                 scenario.onActivity{it.getSystemService(InputMethodManager::class.java).hideSoftInputFromWindow(it.window.decorView.windowToken,0)}
                 device.findObject(By.text("翻译为中文")).click()
-                withTimeout(30000){while(!device.hasObject(By.textContains("世界"))){device.findObjects(By.scrollable(true)).firstOrNull{it.visibleBounds.height()>it.visibleBounds.width()}?.scroll(Direction.DOWN,.25f);delay(300)}}
+                withTimeout(30000){while(!device.hasObject(By.textContains("世界"))){
+                    try{device.findObjects(By.scrollable(true)).firstOrNull{it.visibleBounds.height()>it.visibleBounds.width()}?.scroll(Direction.DOWN,.25f)}catch(_:StaleObjectException){}
+                    delay(300)
+                }}
                 assertNotNull(device.findObject(By.textContains("世界")))
                 assertNotNull(device.findObject(By.text("由 Google 翻译")))
                 val output=File(context.getExternalFilesDir(null),"translation-workspace.png")
