@@ -134,6 +134,7 @@ jobs:
         if: always()
         with:
           name: opennomi-057-ui-smoke-api-${{ matrix.api }}
+          overwrite: true
           path: |
             ui-captures/
             app/build/reports/androidTests/

@@ -69,8 +69,8 @@ class VideoSubtitleSmokeTest {
                 val recorded=ScreenState.state.value.captionHistory.last{it.original.contains("zero") && it.translated.any{c->c in '\u4e00'..'\u9fff'}}
                 assertNotNull("Completed Vosk words must retain their confidence",recorded.confidence)
                 if(timing==SubtitleTiming.FAST) {
-                    device.executeShellCommand("am start -n ${app.packageName}/ai.opennomi.app.screen.WorkspaceActivity --es tab translation --es translation-mode history")
-                    assertTrue(device.wait(Until.hasObject(By.text("本次共享 · 近期视频译文")),10000))
+                    device.executeShellCommand("am start --activity-clear-top --activity-single-top -n ${app.packageName}/ai.opennomi.app.screen.WorkspaceActivity --es tab translation --es translation-mode history")
+                    assertTrue("Recent intent must switch a reused workspace to its history page",device.wait(Until.hasObject(By.text("本次共享 · 近期视频译文")),10000))
                     withTimeout(15000){while(!device.hasObject(By.text(recorded.translated))){
                         try{device.findObjects(By.scrollable(true)).firstOrNull{it.visibleBounds.height()>it.visibleBounds.width()}?.scroll(Direction.DOWN,.4f)}catch(_:StaleObjectException){}
                         delay(200)

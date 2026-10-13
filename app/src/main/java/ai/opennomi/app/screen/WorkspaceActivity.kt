@@ -98,13 +98,15 @@ class WorkspaceActivity:ComponentActivity() {
     @Composable private fun Workspace(){
         val state by ScreenState.state.collectAsStateWithLifecycle()
         val cfg=remember{ScreenAssistant.settings()}
+        val contentScroll=rememberScrollState()
+        LaunchedEffect(tab.value,translationMode.value){contentScroll.scrollTo(0)}
         MaterialTheme(colorScheme=darkColorScheme(primary=Color(0xFF7DD3FC),secondary=Color(0xFFC084FC),background=Color(0xFF070F19),surface=Color(0xFF142131),onSurface=Color(0xFFF0F5FC))){
             Surface(Modifier.fillMaxSize(),color=MaterialTheme.colorScheme.background){Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)){
                 Row(Modifier.fillMaxWidth().padding(18.dp),verticalAlignment=Alignment.CenterVertically){TextButton(onClick={finish()}){Text("‹")};Column(Modifier.weight(1f)){Text("OpenNomi",fontSize=24.sp,fontWeight=FontWeight.SemiBold);Text(if(state.active)"● 屏幕共享中" else "屏幕互动工作台 · ${ai.opennomi.app.BuildConfig.VERSION_NAME}",fontSize=12.sp,color=MaterialTheme.colorScheme.primary)};if(state.active)TextButton(onClick={ScreenShareService.instance?.stopSelf()}){Text("停止",color=Color(0xFFF87171))}}
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal=16.dp),horizontalArrangement=Arrangement.spacedBy(8.dp)){
                     listOf("vision" to "看屏幕","tasks" to "Agent","translation" to "翻译","fragments" to "碎片本","memory" to "记忆","settings" to "连接","help" to "申请指南").forEach{(key,label)->FilterChip(selected=tab.value==key,onClick={tab.value=key},label={Text(label)})}
                 }
-                Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(18.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
+                Column(Modifier.weight(1f).verticalScroll(contentScroll).padding(18.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
                     CardBlock("状态"){Text(state.status,fontSize=14.sp);if(state.busy)LinearProgressIndicator(Modifier.fillMaxWidth().padding(top=8.dp))}
                     when(tab.value){"vision"->Vision(state);"tasks"->Tasks(state);"translation"->Translation(state);"fragments"->Fragments();"memory"->Memories();"help"->Help();else->Connection(cfg)}
                 }
@@ -250,6 +252,7 @@ class WorkspaceActivity:ComponentActivity() {
         }
         if(mode=="history")CardBlock("本次共享 · 近期视频译文") {
             Text("保留最近 20 条原文和译文，只在本次共享中暂存。停止共享后清空；暂停视频字幕后仍可回看。",fontSize=12.sp)
+            if(state.audio)TextButton(onClick={ScreenShareService.instance?.toggleAudio()}){Text("暂停视频字幕，回看译文")}
             if(state.captionHistory.isEmpty())Text("还没有视频译文。开启视频字幕并播放后会出现在这里。")
             state.captionHistory.asReversed().forEach{caption->
                 Text(caption.language,fontSize=12.sp,color=MaterialTheme.colorScheme.primary)
