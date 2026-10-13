@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ai.opennomi.app.HandsFreeRegressionTest" tests="15" skipped="0" failures="0" errors="0" timestamp="2026-10-13T10:55:12" hostname="runnervmmprz5" time="0.05">
+  <properties/>
+  <testcase name="multipleLikesCanBeSelectedUsingSpokenOrdinals" classname="ai.opennomi.app.HandsFreeRegressionTest" time="0.001"/>
+  <testcase name="riskyButtonsRequireAnExplicitVoiceConfirmation" classname="ai.opennomi.app.HandsFreeRegressionTest" time="0.009"/>
+  <testcase name="alreadyLikedButtonsAreNotToggledOff" classname="ai.opennomi.app.HandsFreeRegressionTest" time="0.005"/>
+  <testcase name="userCanOperateWithoutTouchingConfirmationOrButtons" classname="ai.opennomi.app.HandsFreeRegressionTest" time="0.001"/>
+  <testcase name="backgroundConversationSurvivesReplyEvenWhenSingleTurnPreferenceWasSaved" classname="ai.opennomi.app.HandsFreeRegressionTest" time="0.001"/>
+  <testcase name="questionsAndNegationsNeverTurnIntoHardwareActions" classname="ai.opennomi.app.HandsFreeRegressionTest" time="0.019"/>
+  <testcase name="applicationsOpenByNameAndSpokenOrdinalsDoNotBecomeButtonClicks" classname="ai.opennomi.app.HandsFreeRegressionTest" time="0.005"/>
+  <testcase name="firstAudioPacketExtendsTheMissingAudioDeadlineForLongReplies" classname="ai.opennomi.app.HandsFreeRegressionTest" time="0.0"/>
+  <testcase name="textOnlyAndVisionRepliesHaveARealFallbackContent" classname="ai.opennomi.app.HandsFreeRegressionTest" time="0.001"/>
+  <testcase name="duplicateRecognitionDuringExecutionIsIgnoredButTheNextUtteranceIsAccepted" classname="ai.opennomi.app.HandsFreeRegressionTest" time="0.0"/>
+  <testcase name="partialAndSilentRepliesCannotBeSavedAsCompletedChat" classname="ai.opennomi.app.HandsFreeRegressionTest" time="0.0"/>
+  <testcase name="recoveryCannotRestartListeningOverANewerReplyOrAfterPause" classname="ai.opennomi.app.HandsFreeRegressionTest" time="0.0"/>
+  <testcase name="appMatchingUsesOnlyInstalledExactNamesAndPreservesDuplicateChoices" classname="ai.opennomi.app.HandsFreeRegressionTest" time="0.001"/>
+  <testcase name="foregroundContinuousChatRecoversButPauseAndSingleTurnDoNot" classname="ai.opennomi.app.HandsFreeRegressionTest" time="0.0"/>
+  <testcase name="inputTextPreservesSpacesAndDoesNotSubmitTheForm" classname="ai.opennomi.app.HandsFreeRegressionTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,65 @@
+{
+  "application_id": "com.opennomi.android",
+  "version_code": 59,
+  "version": "0.59.0",
+  "abis": [
+    "arm64-v8a"
+  ],
+  "source_commit": "601b04ec6e9217593f38b1d55e0507384740d84e",
+  "built_source_commit": "601b04ec6e9217593f38b1d55e0507384740d84e",
+  "merged_commit": "601b04ec6e9217593f38b1d55e0507384740d84e",
+  "workflow_url": "https://github.com/nmm26301-maker/open-nomi/actions/runs/38386348895",
+  "unit_tests": {
+    "tests": 177,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "android_smoke": {
+    "api29": {
+      "tests": 23,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "api33": {
+      "tests": 23,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "lint": {
+    "Warning": 47,
+    "Information": 3
+  },
+  "unsigned_sha256": "cc4c8968c4cc82a633a2aed9b01087b5d93b001cf62ca2be26e78ee0064f5fcb",
+  "unsigned_bytes": 89802334,
+  "signed_apk_sha256": "44f0a5c77092c1e0797a8bcec7b9be01fb71d3179f1c219ab7f34c761f438548",
+  "signed_apk_bytes": 89855213,
+  "certificate_sha256": "8132825a68acba5653aba326b84e301bb65b28664af0d0727d7a5f5b41ad1b8e",
+  "signature_v2": true,
+  "signature_v3": true,
+  "zipalign_16k": true,
+  "signing_backup": "signing/OpenNomi-new-signing.enc.json",
+  "signing_backup_sha256": "0691bf97e096b598a71537e6f828423b94a2ba77a2039e81f4caeda267afb790",
+  "validation_scope": [
+    "Exact on-device phrase cache: language/text isolation, bounded LRU, clearing and stale completion guard.",
+    "Actual model output reused for an exact repeat, then cleared on close; real offline native translator reload.",
+    "FAST and COMPLETE speech capture from a separate player UID without screen subtitles and actual Chinese output.",
+    "Real overlay history entry; manual resync button restarts capture and continues Chinese captions, retains recent history, ignores old capture stop callbacks.",
+    "Japanese model download, native model reload and translation without network.",
+    "MediaProjection cancellation and overlay approval order.",
+    "Blocked frame worker during stop retains ImageReader until queued native work returns, then releases resources.",
+    "Pause disables audio and translation, preserves the share session and history, clears unfinished captions and keeps capture failure explanations.",
+    "Actual pause and resume from the recent view, with Chinese output after resuming the same approved sharing session.",
+    "Existing queue ordering, display backpressure, voice and UI regressions."
+  ],
+  "limitations": [
+    "Real user phone and Bluetooth headset have not been tested.",
+    "No measured speech accuracy percentage, speedup factor or fixed end-to-end latency claim.",
+    "Player must permit AudioPlaybackCapture; models need network on first preparation.",
+    "User-triggered resync intentionally skips unfinished speech and waiting captions; completed recent translations remain.",
+    "A bounded queue rejects new speech under sustained overload with a visible warning."
+  ]
+}

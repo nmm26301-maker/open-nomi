@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ai.opennomi.app.StreamingVoiceRegressionTest" tests="19" skipped="0" failures="0" errors="0" timestamp="2026-10-13T10:55:14" hostname="runnervmmprz5" time="1.726">
+  <properties/>
+  <testcase name="cumulativeAndSentenceEventsAreReadOnlyOnce" classname="ai.opennomi.app.StreamingVoiceRegressionTest" time="0.003"/>
+  <testcase name="fastResponseCanStartAnUnfinishedLongPhraseAtAComma" classname="ai.opennomi.app.StreamingVoiceRegressionTest" time="0.0"/>
+  <testcase name="fastResponseNeverSplitsTheThousandsSeparatorInANumber" classname="ai.opennomi.app.StreamingVoiceRegressionTest" time="0.001"/>
+  <testcase name="unfinishedTextWaitsUntilAnExplicitFlush" classname="ai.opennomi.app.StreamingVoiceRegressionTest" time="0.001"/>
+  <testcase name="alternateEndpointAcceptsSecureRemoteAndPrivateLanAddresses" classname="ai.opennomi.app.StreamingVoiceRegressionTest" time="0.0"/>
+  <testcase name="alternateEndpointRejectsUnsupportedProtocolAndCredentialUrls" classname="ai.opennomi.app.StreamingVoiceRegressionTest" time="0.0"/>
+  <testcase name="startsTheFirstSentenceBeforeTheReplyEnds" classname="ai.opennomi.app.StreamingVoiceRegressionTest" time="0.0"/>
+  <testcase name="pcmSamplesSurviveOddHttpChunks" classname="ai.opennomi.app.StreamingVoiceRegressionTest" time="0.001"/>
+  <testcase name="excessiveReplyTextIsRejectedBeforeQueueing" classname="ai.opennomi.app.StreamingVoiceRegressionTest" time="0.002"/>
+  <testcase name="pcmServiceErrorsAndWrongContentTypesNeverReachTheSpeaker" classname="ai.opennomi.app.StreamingVoiceRegressionTest" time="0.052"/>
+  <testcase name="compressedOrContainerAudioIsRejectedEvenIfTheSignatureIsSplit" classname="ai.opennomi.app.StreamingVoiceRegressionTest" time="0.0"/>
+  <testcase name="cancellationStopsAnInFlightPcmDownload" classname="ai.opennomi.app.StreamingVoiceRegressionTest" time="0.11"/>
+  <testcase name="aDecimalPointSplitBetweenTokensIsNotSpokenAsASentenceEnd" classname="ai.opennomi.app.StreamingVoiceRegressionTest" time="0.0"/>
+  <testcase name="fastResponseWaitsForTheDigitAfterATrailingComma" classname="ai.opennomi.app.StreamingVoiceRegressionTest" time="0.001"/>
+  <testcase name="preservesEmojiAndBoundsLongUnpunctuatedSentences" classname="ai.opennomi.app.StreamingVoiceRegressionTest" time="0.0"/>
+  <testcase name="fastResponseStartsACompletePhraseWithoutWaitingForMoreTokens" classname="ai.opennomi.app.StreamingVoiceRegressionTest" time="0.001"/>
+  <testcase name="truncatedOrEmptyPcmFailsAtEof" classname="ai.opennomi.app.StreamingVoiceRegressionTest" time="0.0"/>
+  <testcase name="shortClausesStillWaitForACompleteSentenceOrFlush" classname="ai.opennomi.app.StreamingVoiceRegressionTest" time="0.0"/>
+  <testcase name="pcmIsDeliveredBeforeHttpEofAndUsesTheDocumentedContract" classname="ai.opennomi.app.StreamingVoiceRegressionTest" time="1.548"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
