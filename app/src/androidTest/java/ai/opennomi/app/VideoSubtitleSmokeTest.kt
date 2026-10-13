@@ -66,8 +66,21 @@ class VideoSubtitleSmokeTest {
                 assertTrue(ScreenState.state.value.audio)
                 assertTrue(ScreenState.state.value.captionOriginal.contains("zero"))
                 assertTrue(ScreenState.state.value.caption.any{it in '\u4e00'..'\u9fff'})
+                val recorded=ScreenState.state.value.captionHistory.last{it.original.contains("zero") && it.translated.any{c->c in '\u4e00'..'\u9fff'}}
+                assertNotNull("Completed Vosk words must retain their confidence",recorded.confidence)
+                if(timing==SubtitleTiming.FAST) {
+                    device.executeShellCommand("am start -n ${app.packageName}/ai.opennomi.app.screen.WorkspaceActivity --es tab translation --es translation-mode history")
+                    assertTrue(device.wait(Until.hasObject(By.text("本次共享 · 近期视频译文")),10000))
+                    withTimeout(15000){while(!device.hasObject(By.text(recorded.translated))){
+                        try{device.findObjects(By.scrollable(true)).firstOrNull{it.visibleBounds.height()>it.visibleBounds.width()}?.scroll(Direction.DOWN,.4f)}catch(_:StaleObjectException){}
+                        delay(200)
+                    }}
+                    assertNotNull("Recent view must show the actual captured Chinese translation",device.findObject(By.text(recorded.translated)))
+                    assertNotNull(device.findObject(By.textContains("zero")))
+                }
                 InstrumentationRegistry.getInstrumentation().runOnMainSync{ScreenShareService.instance!!.toggleAudio()}
                 assertFalse(ScreenState.state.value.audio)
+                assertFalse("Pausing subtitles must retain this sharing session's recent text",ScreenState.state.value.captionHistory.isEmpty())
                 delay(1500);assertFalse("Old capture callbacks must not restart the cancelled session",ScreenState.state.value.audio)
             }
         } finally {
@@ -75,6 +88,8 @@ class VideoSubtitleSmokeTest {
             device.executeShellCommand("am force-stop ai.opennomi.playbackfixture")
             audio.setStreamVolume(AudioManager.STREAM_MUSIC,volume,0)
             cfg.playbackModel=old;cfg.phoneTranslation=phone;cfg.translationCellular=cellular;cfg.subtitleTiming=oldTiming
+            withTimeout(10000){while(ScreenState.state.value.active)delay(100)}
+            assertTrue("Stopping sharing must clear recent captured text",ScreenState.state.value.captionHistory.isEmpty())
         }
     }
     private suspend fun clickVideoStart(device:UiDevice) {

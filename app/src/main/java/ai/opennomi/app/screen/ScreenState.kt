@@ -11,7 +11,7 @@ data class Page(val app: String = "", val text: String = "", val nodes: List<Scr
 data class Step(val kind: String, val node: Int = -1, val text: String = "", val x: Int = -1, val y: Int = -1) {
     fun describe() = when(kind) { "click" -> "点击控件 #$node"; "type" -> "在 #$node 填写：$text"; "back" -> "返回上一页"; "home" -> "回到桌面"; "open_app" -> "打开$text"; "scroll" -> if(text=="up")"向上滚动" else "向下滚动"; "tap" -> "点击位置 ($x, $y)"; "finish" -> text; else -> "不支持的操作" }
 }
-data class WorkspaceState(val active: Boolean = false, val session: Long = 0, val status: String = "共享尚未开启", val page: Page = Page(), val reply: String = "", val busy: Boolean = false, val translation: Boolean = false, val audio: Boolean = false, val caption: String = "", val proposed: Step? = null, val proposedPage: Page? = null, val task: String = "", val agentRunning: Boolean = false, val history: List<String> = emptyList(), val notice: String = "", val voiceStatus: String = "", val voiceOn: Boolean = false, val voiceTaskConfirmation:Boolean=false,val captionOriginal:String="",val audioPreview:String="")
+data class WorkspaceState(val active: Boolean = false, val session: Long = 0, val status: String = "共享尚未开启", val page: Page = Page(), val reply: String = "", val busy: Boolean = false, val translation: Boolean = false, val audio: Boolean = false, val caption: String = "", val proposed: Step? = null, val proposedPage: Page? = null, val task: String = "", val agentRunning: Boolean = false, val history: List<String> = emptyList(), val notice: String = "", val voiceStatus: String = "", val voiceOn: Boolean = false, val voiceTaskConfirmation:Boolean=false,val captionOriginal:String="",val audioPreview:String="",val captionHistory:List<AudioCaption> = emptyList())
 object ScreenState {
     private val generation = AtomicLong(0)
     private val mutable = MutableStateFlow(WorkspaceState())
@@ -20,7 +20,7 @@ object ScreenState {
     @Volatile var frame: ScreenFrame? = null
     @Synchronized fun update(block: (WorkspaceState) -> WorkspaceState) { mutable.value = block(mutable.value) }
     fun begin(): Long { val id = generation.incrementAndGet(); frame = null; mutable.value = WorkspaceState(active=true, session=id, status="屏幕共享中 · 内容保留在本机"); return id }
-    fun end() { generation.incrementAndGet(); frame = null; update { it.copy(active=false, session=generation.get(), busy=false, translation=false, audio=false, page=Page(), proposed=null, proposedPage=null, agentRunning=false, voiceTaskConfirmation=false, captionOriginal="",audioPreview="", status="共享已停止") } }
+    fun end() { generation.incrementAndGet(); frame = null; update { it.copy(active=false, session=generation.get(), busy=false, translation=false, audio=false, page=Page(), proposed=null, proposedPage=null, agentRunning=false, voiceTaskConfirmation=false, caption="",captionOriginal="",audioPreview="", notice="", captionHistory=emptyList(), status="共享已停止") } }
     fun valid(id: Long) = state.value.active && state.value.session == id
     fun event(message: String) = update { it.copy(status=message, history=(it.history + message).takeLast(60)) }
 }

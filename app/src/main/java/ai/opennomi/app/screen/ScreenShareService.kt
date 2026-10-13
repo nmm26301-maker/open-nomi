@@ -25,6 +25,7 @@ class ScreenShareService: Service() {
     private val translations=TranslationBuffer();private var translationConfig="";private var translationJob:Job?=null;private var translationGeneration=0L;private var captions=CaptionGate();private var playback: PlaybackHearing?=null
     private var width=0;private var height=0
     private val audioQueue=AudioSubtitleQueue();private var audioSource="en";private var audioContext=""
+    private val audioCaptions=AudioCaptionPresenter()
     private var playbackGeneration=0L;private var audioPreparation:Job?=null
     override fun onBind(intent:Intent?)=null
     override fun onCreate() { super.onCreate();instance=this;ScreenAssistant.init(this) }
@@ -50,7 +51,11 @@ class ScreenShareService: Service() {
             display=projection!!.createVirtualDisplay("NomiScreen",width,height,dm.densityDpi,DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,reader!!.surface,null,handler)
             overlay=OrbitOverlay(this);overlay!!.show()
             scope.launch { ScreenState.state.collect { overlay?.render(it) } }
-            scope.launch { while(isActive){captions.tick(System.currentTimeMillis())?.let{line->ScreenState.update{it.copy(caption=line)}};pumpTranslation();delay(250)} }
+            scope.launch { while(isActive){
+                if(ScreenState.state.value.audio)audioCaptions.tick(SystemClock.elapsedRealtime())?.let{showAudioCaption(it)}
+                else captions.tick(System.currentTimeMillis())?.let{line->ScreenState.update{it.copy(caption=line)}}
+                pumpTranslation();delay(250)
+            } }
         }catch(t:Throwable){ScreenState.event("无法开启共享：${t.message}");stopSelf()}
         return START_NOT_STICKY
     }
@@ -101,7 +106,7 @@ class ScreenShareService: Service() {
         val on=!ScreenState.state.value.translation
         if(on && !ScreenAssistant.settings().translationReady()){ScreenState.event("请在翻译页开启手机翻译，或填写模型／翻译服务");return}
         translationGeneration++;translationJob?.cancel();translationJob=null
-        captions=CaptionGate();translations.reset();audioQueue.reset();audioContext=""
+        captions=CaptionGate();translations.reset();audioQueue.reset();audioCaptions.reset();audioContext=""
         if(!on){playbackGeneration++;audioPreparation?.cancel();audioPreparation=null;playback?.close();playback=null}
         ScreenState.update { it.copy(translation=on,audio=if(on)it.audio else false,caption="",captionOriginal="",audioPreview="",notice="",status=if(on)"屏幕翻译已开启" else "屏幕翻译已暂停") }
     }
@@ -110,15 +115,16 @@ class ScreenShareService: Service() {
         if(!ScreenState.valid(session) || !ScreenState.state.value.translation)return
         val cfg=ScreenAssistant.settings()
         val config=cfg.translationFingerprint()
-        if(config!=translationConfig){translations.reset();audioQueue.reset();audioContext="";translationConfig=config}
+        if(config!=translationConfig){translations.reset();audioQueue.reset();audioCaptions.reset();audioContext="";translationConfig=config}
         translations.offer(line)
         pumpTranslation()
     }
     private fun pumpTranslation() {
         if(translationJob?.isActive==true || !ScreenState.valid(session) || !ScreenState.state.value.translation)return
         val currentConfig=ScreenAssistant.settings().translationFingerprint()
-        if(currentConfig!=translationConfig){translations.reset();audioQueue.reset();audioContext="";translationConfig=currentConfig}
+        if(currentConfig!=translationConfig){translations.reset();audioQueue.reset();audioCaptions.reset();audioContext="";translationConfig=currentConfig}
         val audio=ScreenState.state.value.audio
+        if(audio && !audioCaptions.canAccept)return
         val utterance=if(audio)audioQueue.nextBatch(SystemClock.elapsedRealtime()) else null
         val line=if(audio)utterance?.text ?: return else translations.next(System.currentTimeMillis()) ?: return
         val id=session;val generation=translationGeneration;val config=translationConfig
@@ -133,11 +139,12 @@ class ScreenShareService: Service() {
                 val text=(if(audio)null else translations.cached(line)) ?: withContext(Dispatchers.IO){ScreenAssistant.translate(line,if(audio)audioSource else null,if(audio)audioContext else "")}
                 if(ScreenState.valid(id) && generation==translationGeneration && config==ScreenAssistant.settings().translationFingerprint() && ScreenState.state.value.translation){
                     if(audio && utterance!=null) {
+                        val caption=AudioCaption(text,line,utterance.confidence,PlaybackModels.selected(ScreenAssistant.settings().playbackModel).label)
+                        val displayed=audioCaptions.offer(caption,SystemClock.elapsedRealtime())
                         audioQueue.success(utterance)
                         audioContext=(audioContext+"\n"+line).takeLast(600)
-                        // Audio captions follow speech immediately, without the OCR reading-delay gate.
-                        val warning=if((utterance.confidence ?: 1.0)<.55)"这句原声识别不确定，请对照原文" else if(audioQueue.size>=4)"字幕正在追赶播放进度，可降低播放速度" else ""
-                        ScreenState.update{it.copy(caption=text,captionOriginal=line,notice=warning,status="视频实时字幕 · ${PlaybackModels.selected(ScreenAssistant.settings().playbackModel).label}")}
+                        ScreenState.update{it.copy(captionHistory=(it.captionHistory+caption).takeLast(20))}
+                        displayed?.let{showAudioCaption(it)}
                     } else {
                         translations.success(line,text)
                         captions.offer(text,System.currentTimeMillis())?.let{result->ScreenState.update{it.copy(caption=result,captionOriginal="")}}
@@ -157,11 +164,20 @@ class ScreenShareService: Service() {
             }
         }
     }
+    private fun showAudioCaption(caption:AudioCaption) {
+        val warning=when {
+            caption.confidence==null -> "这句没有可靠识别置信度，请对照原文"
+            caption.confidence<.55 -> "这句包含不确定的识别词，请对照原文"
+            audioQueue.size>=4 || audioCaptions.size>0 -> "字幕正在追赶播放进度；漏读可看近期译文"
+            else -> ""
+        }
+        ScreenState.update{it.copy(caption=caption.translated,captionOriginal=caption.original,notice=warning,status="视频实时字幕 · ${caption.language}")}
+    }
     fun toggleAudio() {
         playbackGeneration++;val generation=playbackGeneration
         translationGeneration++;translationJob?.cancel();translationJob=null
         audioPreparation?.cancel();audioPreparation=null;playback?.close();playback=null
-        translations.reset();audioQueue.reset();audioContext="";captions=CaptionGate()
+        translations.reset();audioQueue.reset();audioCaptions.reset();audioContext="";captions=CaptionGate()
         if(ScreenState.state.value.audio){ScreenState.update{it.copy(audio=false,caption="",captionOriginal="",audioPreview="",notice="",status="已停止视频字幕，切回屏幕文字翻译")};return}
         if(!ScreenState.state.value.translation)toggleTranslation()
         if(!ScreenState.state.value.translation)return
@@ -187,7 +203,7 @@ class ScreenShareService: Service() {
                     }}},
                     {text->main.post{if(valid())ScreenState.update{it.copy(audioPreview=text)}}},
                     {message->main.post{if(valid()){ScreenState.update{it.copy(notice=message)};ScreenState.event(message)}}},
-                    {main.post{if(valid()){translationGeneration++;translationJob?.cancel();translationJob=null;audioQueue.reset();ScreenState.update{it.copy(audio=false,audioPreview="",status="视频声音捕获已停止，请重新开启字幕")}}}},
+                    {main.post{if(valid()){translationGeneration++;translationJob?.cancel();translationJob=null;audioQueue.reset();audioCaptions.reset();ScreenState.update{it.copy(audio=false,audioPreview="",status="视频声音捕获已停止，请重新开启字幕")}}}},
                     {main.post{if(valid())ScreenState.update{it.copy(notice="",status="${model.label}视频字幕已就绪 · 请播放无字幕视频")}}}
                 )
                 ScreenState.update{it.copy(notice="正在加载原声识别器，请就绪后播放视频")}
@@ -198,7 +214,7 @@ class ScreenShareService: Service() {
         }
     }
     override fun onDestroy() {
-        instance=null;playbackGeneration++;audioPreparation?.cancel();audioPreparation=null;ScreenAssistant.stop();ScreenState.end();scope.cancel();overlay?.close();overlay=null
+        instance=null;audioQueue.reset();audioCaptions.reset();playbackGeneration++;audioPreparation?.cancel();audioPreparation=null;ScreenAssistant.stop();ScreenState.end();scope.cancel();overlay?.close();overlay=null
         playback?.close();playback=null
         val p=projection;projection=null;runCatching{display?.release()};display=null;runCatching{reader?.close()};reader=null;runCatching{p?.stop()}
         // Queue native OCR cleanup behind any in-flight recognition.

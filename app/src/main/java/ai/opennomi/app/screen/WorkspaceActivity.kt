@@ -41,6 +41,7 @@ import ai.opennomi.app.ui.EmotionBallView
 
 class WorkspaceActivity:ComponentActivity() {
     private var tab=mutableStateOf("vision");private var refresh=mutableIntStateOf(0);private var pendingVideo=false;private var pendingOverlay=false
+    private var translationMode=mutableStateOf("video")
     private val capture=registerForActivityResult(ActivityResultContracts.StartActivityForResult()){r->
         if(r.resultCode==RESULT_OK && r.data!=null){
             runCatching{ContextCompat.startForegroundService(this,Intent(this,ScreenShareService::class.java).setAction(ScreenShareService.START).putExtra("grant",r.data))}
@@ -63,9 +64,10 @@ class WorkspaceActivity:ComponentActivity() {
         refresh.intValue++
     }
     private val image=registerForActivityResult(ActivityResultContracts.GetContent()){uri->if(uri!=null)import(uri,"")}
-    override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);window.addFlags(WindowManager.LayoutParams.FLAG_SECURE);ScreenAssistant.init(this);tab.value=intent.getStringExtra("tab") ?: "vision";handleShare(intent);setContent{Workspace()}}
+    override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);window.addFlags(WindowManager.LayoutParams.FLAG_SECURE);ScreenAssistant.init(this);tab.value=intent.getStringExtra("tab") ?: "vision";readTranslationMode(intent);handleShare(intent);setContent{Workspace()}}
     override fun onResume(){super.onResume();refresh.intValue++;ScreenShareService.instance?.refreshOverlay();if(pendingOverlay && Settings.canDrawOverlays(this)){pendingOverlay=false;requestVideo()}}
-    override fun onNewIntent(intent:Intent){super.onNewIntent(intent);setIntent(intent);intent.getStringExtra("tab")?.let{tab.value=it};handleShare(intent)}
+    override fun onNewIntent(intent:Intent){super.onNewIntent(intent);setIntent(intent);intent.getStringExtra("tab")?.let{tab.value=it};readTranslationMode(intent);handleShare(intent)}
+    private fun readTranslationMode(intent:Intent){intent.getStringExtra("translation-mode")?.let{translationMode.value=if(it in setOf("video","text","screen","history"))it else "video"}}
     private fun handleShare(intent:Intent){if(intent.action!=Intent.ACTION_SEND)return;val text=intent.getStringExtra(Intent.EXTRA_TEXT).orEmpty();if(intent.type?.startsWith("image/")==true){val uri=if(android.os.Build.VERSION.SDK_INT>=33)intent.getParcelableExtra(Intent.EXTRA_STREAM,Uri::class.java) else  @Suppress("DEPRECATION") (intent.getParcelableExtra(Intent.EXTRA_STREAM) as? Uri);if(uri!=null)import(uri,text)}else if(text.isNotBlank()){MemoryStore(this).use{it.add(if(Regex("https?://").containsMatchIn(text))"link" else "text",text,"系统分享")};tab.value="fragments";refresh.intValue++};intent.action=null}
     private fun import(uri:Uri,text:String){lifecycleScope.launch{try{withContext(Dispatchers.IO){MemoryStore(this@WorkspaceActivity).use{it.importImage(uri,text)}};tab.value="fragments";refresh.intValue++;ScreenState.event("已保存原图，图片字节保持原样")}catch(t:Throwable){ScreenState.event(t.message ?: "图片导入失败")}}}
     private fun startShare(){
@@ -200,10 +202,10 @@ class WorkspaceActivity:ComponentActivity() {
         var output by remember{mutableStateOf("")}
         var busy by remember{mutableStateOf(false)}
         var running by remember{mutableStateOf<Job?>(null)}
-        var mode by remember{mutableStateOf("video")}
+        var mode by translationMode
         val progress by ScreenAssistant.phoneTranslator.status.collectAsStateWithLifecycle()
-        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){
-            listOf("video" to "视频字幕","text" to "文字翻译","screen" to "画面文字").forEach{(key,label)->FilterChip(selected=mode==key,onClick={mode=key},label={Text(label)},enabled=!busy)}
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)){
+            listOf("video" to "视频字幕","text" to "文字翻译","screen" to "画面文字","history" to "近期译文").forEach{(key,label)->FilterChip(selected=mode==key,onClick={mode=key},label={Text(label)},enabled=!busy)}
         }
         if(mode=="video")CardBlock("无字幕视频 · 实时中文字幕") {
             Text("直接听视频原声，不需要视频自带字幕。先选原声语言，准备好模型后再播放。",fontSize=14.sp)
@@ -221,7 +223,7 @@ class WorkspaceActivity:ComponentActivity() {
             Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
                 SubtitleTiming.entries.forEach{mode->FilterChip(selected=timing==mode.name,onClick={timing=mode.name;cfg.subtitleTiming=mode.name},label={Text(mode.label)},enabled=!state.audio)}
             }
-            Text(if(timing==SubtitleTiming.FAST.name)"优先在停顿时出字幕；连续讲话约 3.5 秒分段，可能拆开长句。" else "连续讲话约 5.5 秒分段，保留更多句内上下文，显示会稍晚。",fontSize=12.sp)
+            Text(if(timing==SubtitleTiming.FAST.name)"连续讲话约 3.5 秒后优先等短停顿分段；不停顿时最多额外等 1.2 秒。" else "约 5.5 秒后优先等短停顿分段，保留更多上下文；不停顿时最多额外等 1.2 秒。",fontSize=12.sp)
             WideButton(if(state.audio)"停止视频字幕" else "开启无字幕视频字幕") {
                 if(busy)ScreenState.event("请先等待或取消模型准备") else requestVideo()
             }
@@ -244,6 +246,18 @@ class WorkspaceActivity:ComponentActivity() {
             if(state.notice.isNotBlank())Text(state.notice,color=MaterialTheme.colorScheme.error)
             if(state.audioPreview.isNotBlank())Text("识别中：${state.audioPreview}",fontSize=12.sp)
             if(state.caption.isNotBlank()){Text(state.caption);if(showOriginal && state.captionOriginal.isNotBlank())Text("原文：${state.captionOriginal}",fontSize=12.sp)}
+            TextButton(onClick={mode="history"}){Text("查看近期视频译文（${state.captionHistory.size}）")}
+        }
+        if(mode=="history")CardBlock("本次共享 · 近期视频译文") {
+            Text("保留最近 20 条原文和译文，只在本次共享中暂存。停止共享后清空；暂停视频字幕后仍可回看。",fontSize=12.sp)
+            if(state.captionHistory.isEmpty())Text("还没有视频译文。开启视频字幕并播放后会出现在这里。")
+            state.captionHistory.asReversed().forEach{caption->
+                Text(caption.language,fontSize=12.sp,color=MaterialTheme.colorScheme.primary)
+                SelectionContainer{Column(verticalArrangement=Arrangement.spacedBy(6.dp)){Text(caption.translated);Text("原文：${caption.original}",fontSize=13.sp)}}
+                if(caption.confidence==null || caption.confidence<.55)Text("识别中有不确定词，请核对原文",fontSize=12.sp,color=MaterialTheme.colorScheme.error)
+                HorizontalDivider()
+            }
+            if(state.captionHistory.isNotEmpty())TextButton(onClick={ScreenState.update{it.copy(captionHistory=emptyList())}}){Text("清空本次近期译文")}
         }
         if(mode=="text")CardBlock("文字翻译 · 译成中文") {
             Row(verticalAlignment=Alignment.CenterVertically){
@@ -253,7 +267,7 @@ class WorkspaceActivity:ComponentActivity() {
             if(phone) {
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
                     listOf("auto" to "自动","en" to "英语","ja" to "日语","ko" to "韩语","fr" to "法语","de" to "德语","ru" to "俄语").forEach{(code,label)->
-                        FilterChip(selected=source==code,onClick={source=code;cfg.translationSource=code;output=""},label={Text(label)},enabled=!busy)
+                        FilterChip(selected=source==code,onClick={source=code;cfg.translationSource=code;output=""},label={Text(label)},enabled=!busy && !state.audio)
                     }
                 }
                 Text(progress,fontSize=12.sp,color=MaterialTheme.colorScheme.primary)
@@ -267,21 +281,22 @@ class WorkspaceActivity:ComponentActivity() {
                 catch(e:CancellationException){throw e}
                 catch(e:Exception){output=e.message ?: "翻译未完成"}
                 finally{busy=false;running=null}
-            }},enabled=!busy && input.isNotBlank(),modifier=Modifier.fillMaxWidth()){Text(if(busy)"正在处理…" else "翻译为中文")}
+            }},enabled=!busy && !state.audio && input.isNotBlank(),modifier=Modifier.fillMaxWidth()){Text(if(busy)"正在处理…" else "翻译为中文")}
+            if(state.audio)Text("视频字幕运行中；请先在视频字幕页停止，再进行文字翻译或更改语言设置。",fontSize=12.sp)
             if(busy){LinearProgressIndicator(Modifier.fillMaxWidth());TextButton(onClick={running?.cancel();output="已取消本次翻译"}){Text("取消")}}
             if(output.isNotBlank())SelectionContainer {Text(output)}
             if(phone)Text("由 Google 翻译",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
             if(phone) {
                 TextButton(onClick={downloadOptions=!downloadOptions},enabled=!busy){Text(if(downloadOptions)"收起模型与下载设置" else "模型与下载设置")}
                 if(downloadOptions) {
-                Row(verticalAlignment=Alignment.CenterVertically){Text("允许移动网络下载模型",Modifier.weight(1f),fontSize=13.sp);Switch(cellular,{cellular=it;cfg.translationCellular=it},enabled=!busy)}
+                Row(verticalAlignment=Alignment.CenterVertically){Text("允许移动网络下载模型",Modifier.weight(1f),fontSize=13.sp);Switch(cellular,{cellular=it;cfg.translationCellular=it},enabled=!busy && !state.audio)}
                 Text("默认只在 Wi-Fi 下载。每种语言模型约 30 MB；模型服务不可达时会显示原因。文字在本机翻译；SDK 会发送运行统计数据。",fontSize=12.sp)
                 TextButton(onClick={busy=true;output="";running=scope.launch {
                     try {ScreenAssistant.phoneTranslator.prepare(if(source=="auto")"en" else source,cellular);output="语言模型已准备好，可以翻译"}
                     catch(e:CancellationException){throw e}
                     catch(e:Exception){output=e.message ?: "模型准备未完成"}
                     finally{busy=false;running=null}
-                }},enabled=!busy){Text(if(source=="auto")"准备英语模型" else "准备所选语言模型")}
+                }},enabled=!busy && !state.audio){Text(if(source=="auto")"准备英语模型" else "准备所选语言模型")}
                 }
             }
         }
@@ -293,7 +308,7 @@ class WorkspaceActivity:ComponentActivity() {
                 else {service.toggleTranslation();if(ScreenState.state.value.translation)moveTaskToBack(true)}
             }
         }
-        CardBlock("最近译文") {val rows=remember(refresh.intValue,state.caption){MemoryStore(this@WorkspaceActivity).use{it.list("translation")}};if(rows.isEmpty())Text("尚无译文");rows.take(10).forEach{Text(it.text,fontSize=13.sp);HorizontalDivider()}}
+        if(mode!="video" && mode!="history")CardBlock("最近译文") {val rows=remember(refresh.intValue,state.caption){MemoryStore(this@WorkspaceActivity).use{it.list("translation")}};if(rows.isEmpty())Text("尚无译文");rows.take(10).forEach{Text(it.text,fontSize=13.sp);HorizontalDivider()}}
     }
     @Composable private fun Fragments(){
         var filter by remember{mutableStateOf("")};var note by remember{mutableStateOf("")};var search by remember{mutableStateOf("")}

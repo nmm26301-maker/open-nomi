@@ -5,7 +5,7 @@ import java.util.ArrayDeque
 data class AudioSubtitle(val id:Long,val text:String,val confidence:Double?=null)
 data class AudioSubtitleBatch(val utterances:List<AudioSubtitle>) {
     val text get()=utterances.joinToString("\n"){it.text}
-    val confidence get()=utterances.mapNotNull{it.confidence}.minOrNull()
+    val confidence get()=if(utterances.any{it.confidence==null})null else utterances.mapNotNull{it.confidence}.minOrNull()
 }
 
 enum class SubtitleTiming(val label:String,val maximumMs:Long,val endSilenceSeconds:Float) {
@@ -49,12 +49,13 @@ class AudioSubtitleQueue(private val capacity:Int=12) {
 }
 
 /** Partial recognition is a preview only; it must not be treated as a settled translation. */
-class AudioPhraseClock(private val maximumMs:Long=5500) {
+class AudioPhraseClock(private val maximumMs:Long=5500,private val graceMs:Long=1200) {
     private var started=-1L
-    fun update(nonempty:Boolean,now:Long):Boolean {
+    fun update(nonempty:Boolean,now:Long,atBoundary:Boolean=true):Boolean {
         if(!nonempty)return false
         if(started<0L)started=now
-        return now-started>=maximumMs
+        val elapsed=now-started
+        return elapsed>=maximumMs && (atBoundary || elapsed>=maximumMs+graceMs)
     }
     fun reset(){started=-1L}
 }

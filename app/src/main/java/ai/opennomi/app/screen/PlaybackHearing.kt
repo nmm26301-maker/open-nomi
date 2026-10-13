@@ -47,14 +47,15 @@ class PlaybackHearing(private val context:Context,private val projection:MediaPr
                 val buffer=ByteArray(3200);val phrase=AudioPhraseClock(timing.maximumMs)
                 var quietSince=SystemClock.elapsedRealtime();var speechSince=quietSince
                 var lastPreview="";var lastPreviewAt=0L
+                var lastHypothesis="";var hypothesisChangedAt=0L
                 fun emit(raw:String) {
                     val json=JSONObject(raw);val text=json.optString("text").trim()
                     if(text.isNotBlank() && running.get()) {
                         val words=json.optJSONArray("result")
-                        val confidence=if(words!=null && words.length()>0)(0 until words.length()).map{words.getJSONObject(it).optDouble("conf",1.0)}.average() else null
+                        val confidence=if(words!=null)SpeechConfidence.lowest((0 until words.length()).map{words.getJSONObject(it).optDouble("conf",Double.NaN)}) else null
                         result(text,confidence);speechSince=SystemClock.elapsedRealtime()
                     }
-                    phrase.reset();lastPreview="";partial("")
+                    phrase.reset();lastPreview="";lastHypothesis="";hypothesisChangedAt=0L;partial("")
                 }
                 while(running.get()) {
                     val n=capture.read(buffer,0,buffer.size)
@@ -67,8 +68,12 @@ class PlaybackHearing(private val context:Context,private val projection:MediaPr
                     if(recognizer.acceptWaveForm(buffer,n))emit(recognizer.result)
                     else {
                         val text=JSONObject(recognizer.partialResult).optString("partial").trim()
+                        if(text!=lastHypothesis){lastHypothesis=text;hypothesisChangedAt=now}
                         if(text!=lastPreview && now-lastPreviewAt>=400){partial(text);lastPreview=text;lastPreviewAt=now}
-                        if(phrase.update(text.isNotBlank(),now)){emit(recognizer.finalResult);recognizer.reset()}
+                        // Give a long utterance a bounded chance to finish at a quiet, stable boundary.
+                        // Only finalized recognition is translated; temporary hypotheses stay previews.
+                        val boundary=now-quietSince>=200 && now-hypothesisChangedAt>=200
+                        if(phrase.update(text.isNotBlank(),now,boundary)){emit(recognizer.finalResult);recognizer.reset()}
                     }
                     if(now-speechSince>25000 && now-quietSince<1000){error("已收到声音，但没有识别出完整语句；请核对原声语言，背景音乐或多人重叠说话会影响识别");speechSince=now}
                 }

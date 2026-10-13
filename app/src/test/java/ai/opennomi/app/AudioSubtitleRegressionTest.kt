@@ -3,10 +3,30 @@ package ai.opennomi.app
 import ai.opennomi.app.screen.AudioSubtitleQueue
 import ai.opennomi.app.screen.AudioPhraseClock
 import ai.opennomi.app.screen.SubtitleTiming
+import ai.opennomi.app.screen.SpeechConfidence
 import org.junit.Assert.*
 import org.junit.Test
 
 class AudioSubtitleRegressionTest {
+    @Test fun aLongPhraseWaitsForAPauseButNeverWaitsWithoutABound() {
+        val clock=AudioPhraseClock(3500)
+        assertFalse(clock.update(true,0,false));assertFalse(clock.update(true,3500,false))
+        assertTrue(clock.update(true,3600,true));clock.reset()
+        assertFalse(clock.update(true,5000,false));assertFalse(clock.update(true,9699,false));assertTrue(clock.update(true,9700,false))
+    }
+    @Test fun aNewPhraseCannotInheritAnOldGraceDeadline() {
+        val clock=AudioPhraseClock(3500);clock.update(true,0,false);clock.update(true,3500,false);clock.reset()
+        assertFalse(clock.update(true,4600,false));assertFalse(clock.update(true,8100,false));assertTrue(clock.update(true,9300,false))
+    }
+    @Test fun uncertainWordsAreNotHiddenByConfidentWordsAndInvalidScoresStayUnknown() {
+        assertEquals(.2,SpeechConfidence.lowest(listOf(.99,.2,.98))!!,.001)
+        assertNull(SpeechConfidence.lowest(listOf(Double.NaN,Double.POSITIVE_INFINITY,-1.0,2.0,.6)))
+        assertNull(SpeechConfidence.lowest(emptyList()));assertNull(SpeechConfidence.lowest(listOf(Double.NaN)))
+    }
+    @Test fun anUnknownUtteranceDoesNotBecomeConfidentWhenBatchedWithOtherSpeech() {
+        val q=AudioSubtitleQueue();q.offer("first",.9);q.offer("unknown");q.offer("third",.95);q.offer("next",.9)
+        assertNull(q.nextBatch(0)!!.confidence)
+    }
     @Test fun speechDuringTranslationKeepsEveryCompletedUtteranceInOrder() {
         val q=AudioSubtitleQueue();q.offer("first sentence");val first=q.next(0)!!
         q.offer("second sentence");q.offer("third sentence")
