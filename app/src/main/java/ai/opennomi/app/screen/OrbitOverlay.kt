@@ -57,6 +57,7 @@ class OrbitOverlay(private val service:ScreenShareService) {
         if(ScreenState.state.value.audio || ScreenState.state.value.captionHistory.isNotEmpty())button("查看近期视频译文"){
             closePanel();service.startActivity(Intent(service,WorkspaceActivity::class.java).putExtra("tab","translation").putExtra("translation-mode","history").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
         }
+        if(ScreenState.state.value.audio && (ScreenState.state.value.audioQueued>0 || ScreenState.state.value.captionQueued>0))button("字幕落后 · 重新同步"){closePanel();service.resyncAudio()}
         button("关闭浮条提示"){ScreenState.update{it.copy(notice="")}}
         button("保存页面文字"){ScreenAssistant.savePage()}
         button("工作台 · 原图 / 任务 / 记忆"){closePanel();service.startActivity(Intent(service,WorkspaceActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))}

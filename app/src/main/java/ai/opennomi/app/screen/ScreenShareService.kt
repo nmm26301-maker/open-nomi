@@ -52,7 +52,7 @@ class ScreenShareService: Service() {
             overlay=OrbitOverlay(this);overlay!!.show()
             scope.launch { ScreenState.state.collect { overlay?.render(it) } }
             scope.launch { while(isActive){
-                if(ScreenState.state.value.audio)audioCaptions.tick(SystemClock.elapsedRealtime())?.let{showAudioCaption(it)}
+                if(ScreenState.state.value.audio){audioCaptions.tick(SystemClock.elapsedRealtime())?.let{showAudioCaption(it)};updateAudioQueueState()}
                 else captions.tick(System.currentTimeMillis())?.let{line->ScreenState.update{it.copy(caption=line)}}
                 pumpTranslation();delay(250)
             } }
@@ -143,6 +143,7 @@ class ScreenShareService: Service() {
                         val caption=AudioCaption(text,line,utterance.confidence,PlaybackModels.selected(ScreenAssistant.settings().playbackModel).label)
                         val displayed=audioCaptions.offer(caption,SystemClock.elapsedRealtime())
                         audioQueue.success(utterance)
+                        updateAudioQueueState()
                         audioContext=(audioContext+"\n"+line).takeLast(600)
                         ScreenState.update{it.copy(captionHistory=(it.captionHistory+caption).takeLast(20))}
                         displayed?.let{showAudioCaption(it)}
@@ -174,12 +175,15 @@ class ScreenShareService: Service() {
         }
         ScreenState.update{it.copy(caption=caption.translated,captionOriginal=caption.original,notice=warning,status="视频实时字幕 · ${caption.language}")}
     }
-    fun toggleAudio() {
+    private fun updateAudioQueueState(){ScreenState.update{it.copy(audioQueued=audioQueue.size,captionQueued=audioCaptions.size)}}
+    fun resyncAudio(){if(ScreenState.state.value.audio)toggleAudio(restart=true)}
+    fun toggleAudio(restart:Boolean=false) {
         playbackGeneration++;val generation=playbackGeneration
         translationGeneration++;translationJob?.cancel();translationJob=null
         audioPreparation?.cancel();audioPreparation=null;playback?.close();playback=null
         translations.reset();audioQueue.reset();audioCaptions.reset();audioContext="";captions=CaptionGate()
-        if(ScreenState.state.value.audio){ScreenState.update{it.copy(audio=false,caption="",captionOriginal="",audioPreview="",notice="",status="已停止视频字幕，切回屏幕文字翻译")};return}
+        updateAudioQueueState()
+        if(ScreenState.state.value.audio && !restart){ScreenState.update{it.copy(audio=false,caption="",captionOriginal="",audioPreview="",notice="",status="已停止视频字幕，切回屏幕文字翻译")};return}
         if(!ScreenState.state.value.translation)toggleTranslation()
         if(!ScreenState.state.value.translation)return
         if(Build.VERSION.SDK_INT<29){ScreenState.event("无字幕视频声音翻译需要 Android 10 以上");return}
@@ -200,6 +204,7 @@ class ScreenShareService: Service() {
                 playback=PlaybackHearing(this@ScreenShareService,p,root,SubtitleTiming.selected(cfg.subtitleTiming),
                     {text,confidence->main.post{if(valid()){
                         if(!audioQueue.offer(text,confidence))ScreenState.update{it.copy(notice="翻译速度暂时跟不上；这句未加入字幕，请降低播放速度后重试")}
+                        updateAudioQueueState()
                         pumpTranslation()
                     }}},
                     {text->main.post{if(valid())ScreenState.update{it.copy(audioPreview=text)}}},
@@ -216,6 +221,7 @@ class ScreenShareService: Service() {
     }
     override fun onDestroy() {
         instance=null;audioQueue.reset();audioCaptions.reset();playbackGeneration++;audioPreparation?.cancel();audioPreparation=null;ScreenAssistant.stop();ScreenState.end();scope.cancel();overlay?.close();overlay=null
+        ScreenAssistant.phoneTranslator.clearCachedTranslations()
         playback?.close();playback=null
         val p=projection;projection=null
         val screenWorker=worker

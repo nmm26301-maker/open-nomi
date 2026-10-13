@@ -245,6 +245,11 @@ class WorkspaceActivity:ComponentActivity() {
             Text("默认只在 Wi-Fi 下载。原文会先显示；积压时合并相邻语句翻译以追赶进度。英语可选增强模型；口音、音乐和重叠讲话会影响识别。",fontSize=12.sp)
             Text("播放应用必须允许系统捕获声音；受限视频无法强行读取。手机翻译在本机处理；选择连接页的在线模型或 LibreTranslate 时，会发送识别文字。",fontSize=12.sp)
             if(state.audio)Text(state.status,color=MaterialTheme.colorScheme.primary)
+            if(state.audio) {
+                Text("待完成翻译 ${state.audioQueued} 段 · 等待显示 ${state.captionQueued} 条",fontSize=12.sp)
+                TextButton(onClick={ScreenShareService.instance?.resyncAudio()}){Text("重新同步当前声音")}
+                Text("字幕明显落后时可重新同步，会跳过积压语句；已完成的近期译文保留。",fontSize=12.sp)
+            }
             if(state.notice.isNotBlank())Text(state.notice,color=MaterialTheme.colorScheme.error)
             if(state.audioPreview.isNotBlank())Text("识别中：${state.audioPreview}",fontSize=12.sp)
             if(state.caption.isNotBlank()){Text(state.caption);if(showOriginal && state.captionOriginal.isNotBlank())Text("原文：${state.captionOriginal}",fontSize=12.sp)}

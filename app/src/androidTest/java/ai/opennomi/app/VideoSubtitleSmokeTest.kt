@@ -56,7 +56,7 @@ class VideoSubtitleSmokeTest {
             if(android.os.Build.VERSION.SDK_INT>=33)device.executeShellCommand("pm grant ${app.packageName} android.permission.POST_NOTIFICATIONS")
             device.executeShellCommand("appops set ${app.packageName} SYSTEM_ALERT_WINDOW allow")
             audio.setStreamVolume(AudioManager.STREAM_MUSIC,audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC),0)
-            ActivityScenario.launch<WorkspaceActivity>(Intent(app,WorkspaceActivity::class.java).putExtra("tab","translation")).use {
+            ActivityScenario.launch<WorkspaceActivity>(Intent(app,WorkspaceActivity::class.java).putExtra("tab","translation")).use { scenario ->
                 clickVideoStart(device)
                 val grant=device.wait(Until.findObject(By.res("android:id/button1")),10000)
                 assertNotNull("MediaProjection permission dialog must appear",grant);grant.click()
@@ -86,6 +86,22 @@ class VideoSubtitleSmokeTest {
                     }}
                     assertNotNull("Recent view must show the actual captured Chinese translation",device.findObject(By.text(recorded.translated)))
                     assertNotNull(device.findObject(By.textContains("zero")))
+                    scenario.onActivity{activity->activity.startActivity(Intent(activity,WorkspaceActivity::class.java).putExtra("tab","translation").putExtra("translation-mode","video").addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))}
+                    withTimeout(15000){
+                        var clicked=false
+                        while(!clicked) {
+                            try {
+                                val sync=device.findObject(By.text("重新同步当前声音"))
+                                if(sync!=null && sync.visibleBounds.height()>0){sync.click();clicked=true}
+                                else device.findObjects(By.scrollable(true)).firstOrNull{it.visibleBounds.height()>it.visibleBounds.width()}?.scroll(Direction.DOWN,.4f)
+                            }catch(_:StaleObjectException){}
+                            if(!clicked)delay(200)
+                        }
+                    }
+                    assertTrue("Manual resync must preserve completed recent translations",ScreenState.state.value.captionHistory.contains(recorded))
+                    withTimeout(60000){while(!ScreenState.state.value.status.contains("已就绪"))delay(100)}
+                    withTimeout(60000){while(!ScreenState.state.value.captionOriginal.contains("zero") || !ScreenState.state.value.caption.any{it in '\u4e00'..'\u9fff'})delay(200)}
+                    delay(1500);assertTrue("A late stop callback from the old capturer must not stop the resynced one",ScreenState.state.value.audio)
                 }
                 InstrumentationRegistry.getInstrumentation().runOnMainSync{ScreenShareService.instance!!.toggleAudio()}
                 assertFalse(ScreenState.state.value.audio)

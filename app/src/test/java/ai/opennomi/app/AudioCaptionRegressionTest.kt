@@ -30,8 +30,8 @@ class AudioCaptionRegressionTest {
         try{p.offer(caption(""),2000);fail("Blank translated text must not be accepted")}catch(_:IllegalArgumentException){}
     }
     @Test fun recentVideoTextSurvivesPauseButIsClearedWhenSharingEnds() {
-        ScreenState.begin();ScreenState.update{it.copy(audio=true,caption="actual",captionHistory=listOf(caption("actual")))}
+        ScreenState.begin();ScreenState.update{it.copy(audio=true,caption="actual",captionHistory=listOf(caption("actual")),audioQueued=3,captionQueued=2)}
         ScreenState.update{it.copy(audio=false)};assertEquals(1,ScreenState.state.value.captionHistory.size)
-        ScreenState.end();assertTrue(ScreenState.state.value.captionHistory.isEmpty());assertEquals("",ScreenState.state.value.caption);ScreenState.begin();assertTrue(ScreenState.state.value.captionHistory.isEmpty());ScreenState.end()
+        ScreenState.end();assertTrue(ScreenState.state.value.captionHistory.isEmpty());assertEquals("",ScreenState.state.value.caption);assertEquals(0,ScreenState.state.value.audioQueued);assertEquals(0,ScreenState.state.value.captionQueued);ScreenState.begin();assertTrue(ScreenState.state.value.captionHistory.isEmpty());ScreenState.end()
     }
 }

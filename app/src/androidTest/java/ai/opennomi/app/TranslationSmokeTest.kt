@@ -33,7 +33,11 @@ class TranslationSmokeTest {
             withTimeout(240000){engine.prepare("en",true)}
             val first=engine.translate("Hello world.","auto")
             assertTrue(first.any{it in '\u4e00'..'\u9fff'});assertNotEquals("Hello world.",first)
+            assertEquals("A repeated exact phrase must retain its actual Chinese translation",first,engine.translate("Hello world.","en"))
+            val cache=PhoneTranslator::class.java.getDeclaredField("cache").apply{isAccessible=true}.get(engine) as PhoneTranslationCache
+            assertEquals("Successful model output must enter the exact phrase cache",first,cache.cached("en","Hello world."))
             engine.close()
+            assertNull("Closing must clear cached source and translation text",cache.cached("en","Hello world."))
             device.executeShellCommand("svc wifi disable");device.executeShellCommand("svc data disable")
             val network=context.getSystemService(ConnectivityManager::class.java)
             withTimeout(15000){while(network.activeNetwork!=null)delay(100)}

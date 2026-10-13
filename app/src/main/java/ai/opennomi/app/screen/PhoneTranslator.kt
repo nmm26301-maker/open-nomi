@@ -24,6 +24,8 @@ class PhoneTranslator {
     private var source=""
     private var translator:Translator?=null
     private var ready=false
+    private val cache=PhoneTranslationCache()
+    fun clearCachedTranslations()=cache.clear()
 
     private fun client(language:String):Translator {
         if(source!=language) {
@@ -53,7 +55,7 @@ class PhoneTranslator {
         require(language!=TranslateLanguage.CHINESE && language in TranslateLanguage.getAllLanguages()){"请选择支持的源语言"}
         prepareLocked(language,cellular)
     }
-    suspend fun close() = mutex.withLock {translator?.close();translator=null;source="";ready=false}
+    suspend fun close() = mutex.withLock {translator?.close();translator=null;source="";ready=false;cache.clear()}
     suspend fun translate(text:String,selected:String="auto",cellular:Boolean=false):String = mutex.withLock {
         val input=text.trim();if(input.isBlank())return@withLock ""
         val language=if(selected=="auto") {
@@ -66,10 +68,14 @@ class PhoneTranslator {
         val supported=TranslateLanguage.fromLanguageTag(language)
             ?: throw IllegalArgumentException("原文语言不明确，请手动选择英语、日语等源语言")
         prepareLocked(supported,cellular)
+        cache.cached(supported,input)?.let{_status.value="翻译完成 · Google 翻译";return@withLock it}
+        val cacheEpoch=cache.epoch()
         _status.value="正在手机上翻译 · Google 翻译"
         try {
             val output=withTimeout(30000){client(supported).translate(input).awaitResult()}
             check(output.isNotBlank()){"手机翻译未返回译文"}
+            currentCoroutineContext().ensureActive()
+            cache.remember(supported,input,output,cacheEpoch)
             _status.value="翻译完成 · Google 翻译";output
         } catch(e:TimeoutCancellationException){throw IllegalStateException("手机翻译超时，请缩短原文重试",e)}
     }
