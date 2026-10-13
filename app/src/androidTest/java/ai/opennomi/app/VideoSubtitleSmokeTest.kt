@@ -93,7 +93,23 @@ class VideoSubtitleSmokeTest {
                 delay(1500);assertFalse("Old capture callbacks must not restart the cancelled session",ScreenState.state.value.audio)
             }
         } finally {
-            InstrumentationRegistry.getInstrumentation().runOnMainSync{ScreenShareService.instance?.stopSelf()}
+            val service=ScreenShareService.instance
+            // Hold the capture worker busy, as a native pixel copy can be during stop.
+            // The reader surface must survive until queued capture work has returned.
+            val handler=service?.let{ScreenShareService::class.java.getDeclaredField("handler").apply{isAccessible=true}.get(it) as? android.os.Handler}
+            val reader=service?.let{ScreenShareService::class.java.getDeclaredField("reader").apply{isAccessible=true}.get(it) as? android.media.ImageReader}
+            val surface=reader?.surface
+            val entered=java.util.concurrent.CountDownLatch(1);val release=java.util.concurrent.CountDownLatch(1)
+            try {
+                if(handler!=null && surface!=null) {
+                    assertTrue(handler.post{entered.countDown();release.await(20,java.util.concurrent.TimeUnit.SECONDS)})
+                    assertTrue("Capture worker must reach the blocked operation",withContext(Dispatchers.IO){entered.await(15,java.util.concurrent.TimeUnit.SECONDS)})
+                }
+                InstrumentationRegistry.getInstrumentation().runOnMainSync{service?.stopSelf()}
+                withTimeout(10000){while(ScreenState.state.value.active)delay(100)}
+                if(handler!=null && surface!=null)assertTrue("Stopping must not invalidate a reader while capture work is running",surface.isValid)
+            } finally {release.countDown()}
+            if(surface!=null)withTimeout(15000){while(surface.isValid)delay(100)}
             device.executeShellCommand("am force-stop ai.opennomi.playbackfixture")
             audio.setStreamVolume(AudioManager.STREAM_MUSIC,volume,0)
             cfg.playbackModel=old;cfg.phoneTranslation=phone;cfg.translationCellular=cellular;cfg.subtitleTiming=oldTiming

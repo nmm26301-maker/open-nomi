@@ -76,6 +76,7 @@ class ScreenShareService: Service() {
         }
     }
     private fun capture(r: ImageReader) {
+        if(!ScreenState.valid(session))return
         val image=runCatching{r.acquireLatestImage()}.getOrNull() ?: return
         var bitmap: Bitmap?=null
         try {
@@ -216,8 +217,19 @@ class ScreenShareService: Service() {
     override fun onDestroy() {
         instance=null;audioQueue.reset();audioCaptions.reset();playbackGeneration++;audioPreparation?.cancel();audioPreparation=null;ScreenAssistant.stop();ScreenState.end();scope.cancel();overlay?.close();overlay=null
         playback?.close();playback=null
-        val p=projection;projection=null;runCatching{display?.release()};display=null;runCatching{reader?.close()};reader=null;runCatching{p?.stop()}
-        // Queue native OCR cleanup behind any in-flight recognition.
-        handler?.post{ocr?.close();ocr=null;worker?.quitSafely()};stopForeground(STOP_FOREGROUND_REMOVE);super.onDestroy()
+        val p=projection;projection=null
+        val screenWorker=worker
+        // ImageReader.close invalidates even acquired plane buffers. Serialize all capture
+        // resources behind in-flight pixel copies and OCR, including a queued resize.
+        val cleanup=Runnable {
+            runCatching{reader?.setOnImageAvailableListener(null,null)}
+            runCatching{display?.release()};display=null
+            runCatching{reader?.close()};reader=null
+            runCatching{ocr?.close()};ocr=null
+            runCatching{p?.stop()}
+            screenWorker?.quitSafely()
+        }
+        if(handler?.post(cleanup)!=true)cleanup.run()
+        stopForeground(STOP_FOREGROUND_REMOVE);super.onDestroy()
     }
 }
