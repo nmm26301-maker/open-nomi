@@ -105,6 +105,7 @@ class OrbitOverlay(private val service:ScreenShareService) {
         val position=SubtitlePosition.selected(ScreenAssistant.settings().subtitlePosition)
         val gravity=when(position){SubtitlePosition.TOP->Gravity.TOP;SubtitlePosition.MIDDLE->Gravity.CENTER_VERTICAL;SubtitlePosition.BOTTOM->Gravity.BOTTOM} or Gravity.CENTER_HORIZONTAL
         return layout(service.resources.displayMetrics.widthPixels-dp(24),WindowManager.LayoutParams.WRAP_CONTENT,gravity).apply{
+            title="OpenNomi Background Subtitles"
             y=when(position){SubtitlePosition.TOP->dp(70);SubtitlePosition.MIDDLE->0;SubtitlePosition.BOTTOM->dp(48)}
             flags=flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
             // Android 12+ blocks passthrough behind overly opaque untrusted overlay windows.

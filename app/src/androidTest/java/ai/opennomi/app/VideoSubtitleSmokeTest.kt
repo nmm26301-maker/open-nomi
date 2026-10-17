@@ -73,18 +73,35 @@ class VideoSubtitleSmokeTest {
                 if(timing==SubtitleTiming.FAST) {
                     assertEquals("Actual subtitle check must run over a different player's foreground", "ai.opennomi.playbackfixture",device.currentPackageName)
                     assertFalse("Workspace Activity must be in background",ScreenState.ownForeground)
-                    suspend fun backgroundCaption():UiObject2 {
-                        withTimeout(10000){while(true){
-                            try {
-                                val view=device.findObject(By.descStartsWith("OpenNomi 后台字幕"))
-                                if(view!=null && view.text.any{it in '\u4e00'..'\u9fff'} && view.text.contains("原文："))return@withTimeout
-                            }catch(_:StaleObjectException){}
-                            delay(100)
+                    data class OverlaySnapshot(val text:String,val visible:Boolean,val bounds:android.graphics.Rect)
+                    fun overlaySnapshot():OverlaySnapshot? {
+                        var snapshot:OverlaySnapshot?=null
+                        InstrumentationRegistry.getInstrumentation().runOnMainSync{
+                            val service=ScreenShareService.instance ?: return@runOnMainSync
+                            val overlay=ScreenShareService::class.java.getDeclaredField("overlay").apply{isAccessible=true}.get(service) ?: return@runOnMainSync
+                            val view=OrbitOverlay::class.java.getDeclaredField("caption").apply{isAccessible=true}.get(overlay) as? android.widget.TextView ?: return@runOnMainSync
+                            val location=IntArray(2);view.getLocationOnScreen(location)
+                            val bounds=android.graphics.Rect(location[0],location[1],location[0]+view.width,location[1]+view.height)
+                            snapshot=OverlaySnapshot(view.text.toString(),view.isAttachedToWindow && view.isShown && view.windowToken!=null && view.width>0 && view.height>0,bounds)
+                        }
+                        return snapshot
+                    }
+                    suspend fun backgroundCaption():OverlaySnapshot {
+                        var found:OverlaySnapshot?=null
+                        withTimeout(10000){while(found==null){
+                            val view=overlaySnapshot()
+                            if(view?.visible==true && view.text.any{it in '\u4e00'..'\u9fff'} && view.text.contains("原文："))found=view
+                            else delay(100)
                         }}
-                        return checkNotNull(device.findObject(By.descStartsWith("OpenNomi 后台字幕")))
+                        return checkNotNull(found)
                     }
                     val floating=backgroundCaption()
                     assertTrue("Floating window must contain actual translated player speech",floating.text.contains(recorded.translated))
+                    assertTrue("Actual overlay must be registered with the system window manager",device.executeShellCommand("dumpsys window windows").contains("OpenNomi Background Subtitles"))
+                    assertTrue("Subtitle view must lie within the current screen",floating.bounds.top>=0 && floating.bounds.bottom<=device.displayHeight)
+                    // Tap through the real subtitle window to the other UID's full-screen click target.
+                    device.click(floating.bounds.centerX(),floating.bounds.top+minOf(30,floating.bounds.height()/2))
+                    assertTrue("Pass-through subtitle must not block the underlying player",device.wait(Until.hasObject(By.textContains("taps=1")),10000))
                     val notifications=app.getSystemService(android.app.NotificationManager::class.java)
                     fun currentNotice()=notifications.activeNotifications.first{it.id==402}.notification
                     val notice=currentNotice()
@@ -92,7 +109,8 @@ class VideoSubtitleSmokeTest {
                     assertNotNull(notice.publicVersion)
                     assertFalse("Lockscreen public text must not contain translated speech",notice.publicVersion.extras.getString(android.app.Notification.EXTRA_TEXT).orEmpty().contains(recorded.translated))
                     InstrumentationRegistry.getInstrumentation().runOnMainSync{cfg.subtitleOverlay=false;ScreenShareService.instance!!.refreshOverlay()}
-                    assertTrue("Hide must remove only the visual window",device.wait(Until.gone(By.descStartsWith("OpenNomi 后台字幕")),10000))
+                    withTimeout(10000){while(overlaySnapshot()!=null)delay(100)}
+                    assertNull("Hide must remove only the actual visual window",overlaySnapshot())
                     assertTrue(ScreenState.state.value.audio)
                     notice.actions.first{it.title.toString()=="显示字幕"}.actionIntent.send()
                     backgroundCaption();assertEquals("ai.opennomi.playbackfixture",device.currentPackageName)
@@ -100,7 +118,7 @@ class VideoSubtitleSmokeTest {
                     currentNotice().actions.first{it.title.toString()=="暂停字幕"}.actionIntent.send()
                     withTimeout(10000){while(ScreenState.state.value.audio)delay(100)}
                     assertFalse(ScreenState.state.value.translation)
-                    assertTrue(device.wait(Until.hasObject(By.descContains("视频字幕已暂停")),10000))
+                    withTimeout(10000){while(overlaySnapshot()?.text?.contains("视频字幕已暂停")!=true)delay(100)}
                     withTimeout(10000){while(currentNotice().actions.none{it.title.toString()=="继续字幕"})delay(100)}
                     currentNotice().actions.first{it.title.toString()=="继续字幕"}.actionIntent.send()
                     withTimeout(60000){while(!ScreenState.state.value.audio || !ScreenState.state.value.captionOriginal.contains("zero") || ScreenState.state.value.caption.isBlank())delay(100)}
@@ -110,7 +128,7 @@ class VideoSubtitleSmokeTest {
                     assertNotNull(positionMenu);positionMenu.click()
                     val top=device.wait(Until.findObject(By.text("字幕位置：顶部")),10000)
                     assertNotNull(top);top.click()
-                    withTimeout(10000){while(backgroundCaption().visibleBounds.top>=device.displayHeight/2)delay(100)}
+                    withTimeout(10000){while(backgroundCaption().bounds.top>=device.displayHeight/2)delay(100)}
                     assertEquals(SubtitlePosition.TOP.name,cfg.subtitlePosition)
                     // Draw the actual secure overlay view while the separate player stays foreground.
                     val overlayFile=java.io.File(app.getExternalFilesDir(null),"background-subtitles.png")
