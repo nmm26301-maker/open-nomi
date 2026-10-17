@@ -85,6 +85,10 @@ class VideoSubtitleSmokeTest {
                         delay(200)
                     }}
                     assertNotNull("Recent view must show the actual captured Chinese translation",device.findObject(By.text(recorded.translated)))
+                    withTimeout(15000){while(!device.hasObject(By.textContains("zero"))){
+                        device.swipe(device.displayWidth/20,device.displayHeight*3/4,device.displayWidth/20,device.displayHeight/3,25)
+                        delay(200)
+                    }}
                     assertNotNull(device.findObject(By.textContains("zero")))
                     scenario.onActivity{activity->activity.startActivity(Intent(activity,WorkspaceActivity::class.java).putExtra("tab","translation").putExtra("translation-mode","video").addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))}
                     withTimeout(15000){

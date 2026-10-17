@@ -73,8 +73,9 @@ class TranslationSmokeTest {
                 field.text="Hello world."
                 scenario.onActivity{it.getSystemService(InputMethodManager::class.java).hideSoftInputFromWindow(it.window.decorView.windowToken,0)}
                 device.findObject(By.text("翻译为中文")).click()
+                // The production page dismisses input focus and brings the real result into view.
+                // Do not drag through the editable field while waiting for the model callback.
                 withTimeout(30000){while(!device.hasObject(By.textContains("世界"))){
-                    try{device.findObjects(By.scrollable(true)).firstOrNull{it.visibleBounds.height()>it.visibleBounds.width()}?.scroll(Direction.DOWN,.25f)}catch(_:StaleObjectException){}
                     delay(300)
                 }}
                 assertNotNull(device.findObject(By.textContains("世界")))

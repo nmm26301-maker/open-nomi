@@ -17,12 +17,16 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.*
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -188,6 +192,7 @@ class WorkspaceActivity:ComponentActivity() {
         }
         CardBlock("任务记录") {if(state.history.isEmpty())Text("还没有任务记录");state.history.asReversed().take(30).forEach{Text("• $it",fontSize=13.sp)};val rows=remember(refresh.intValue,state.history.size){MemoryStore(this@WorkspaceActivity).use{it.list("task")}};rows.take(20).forEach{Text("已操作 · ${it.text}",fontSize=12.sp)}}
     }
+    @OptIn(ExperimentalFoundationApi::class)
     @Composable private fun Translation(state:WorkspaceState) {
         val cfg=remember{ScreenAssistant.settings()}
         val scope=rememberCoroutineScope()
@@ -203,9 +208,18 @@ class WorkspaceActivity:ComponentActivity() {
         var input by remember{mutableStateOf("Hello, welcome to my channel.")}
         var output by remember{mutableStateOf("")}
         var busy by remember{mutableStateOf(false)}
+        val resultPosition=remember{BringIntoViewRequester()}
+        val keyboard=LocalSoftwareKeyboardController.current
+        val focus=LocalFocusManager.current
         var running by remember{mutableStateOf<Job?>(null)}
         var videoOptions by remember{mutableStateOf(false)}
         var mode by translationMode
+        LaunchedEffect(mode,output,busy) {
+            if(mode=="text" && output.isNotBlank() && !busy) {
+                withFrameNanos { }
+                resultPosition.bringIntoView()
+            }
+        }
         val progress by ScreenAssistant.phoneTranslator.status.collectAsStateWithLifecycle()
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)){
             listOf("video" to "视频字幕","text" to "文字翻译","screen" to "画面文字","history" to "近期译文").forEach{(key,label)->FilterChip(selected=mode==key,onClick={mode=key},label={Text(label)},enabled=!busy)}
@@ -294,7 +308,7 @@ class WorkspaceActivity:ComponentActivity() {
                 TextButton(onClick={tab.value="settings"}){Text("配置在线翻译服务")}
             }
             OutlinedTextField(input,{input=it.take(1400)},label={Text("粘贴或输入原文")},modifier=Modifier.fillMaxWidth(),minLines=2,enabled=!busy)
-            Button(onClick={busy=true;output="";running=scope.launch {
+            Button(onClick={focus.clearFocus();keyboard?.hide();busy=true;output="";running=scope.launch {
                 try {output=ScreenAssistant.translate(input)}
                 catch(e:CancellationException){throw e}
                 catch(e:Exception){output=e.message ?: "翻译未完成"}
@@ -302,8 +316,11 @@ class WorkspaceActivity:ComponentActivity() {
             }},enabled=!busy && !state.audio && input.isNotBlank(),modifier=Modifier.fillMaxWidth()){Text(if(busy)"正在处理…" else "翻译为中文")}
             if(state.audio)Text("视频字幕运行中；请先在视频字幕页停止，再进行文字翻译或更改语言设置。",fontSize=12.sp)
             if(busy){LinearProgressIndicator(Modifier.fillMaxWidth());TextButton(onClick={running?.cancel();output="已取消本次翻译"}){Text("取消")}}
-            if(output.isNotBlank())SelectionContainer {Text(output)}
-            if(phone)Text("由 Google 翻译",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            if(output.isNotBlank())Column(Modifier.fillMaxWidth().bringIntoViewRequester(resultPosition)) {
+                Text("译文",fontSize=12.sp,color=MaterialTheme.colorScheme.primary)
+                SelectionContainer {Text(output)}
+                if(phone)Text("由 Google 翻译",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             if(phone) {
                 TextButton(onClick={downloadOptions=!downloadOptions},enabled=!busy){Text(if(downloadOptions)"收起模型与下载设置" else "模型与下载设置")}
                 if(downloadOptions) {
