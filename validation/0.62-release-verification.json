@@ -1,0 +1,65 @@
+{
+  "application_id": "com.opennomi.android",
+  "version_code": 62,
+  "version": "0.62.0",
+  "abis": [
+    "arm64-v8a"
+  ],
+  "source_commit": "b9dc0cdba67d8fbaa103f0b3498f14f888322ae1",
+  "built_source_commit": "b9dc0cdba67d8fbaa103f0b3498f14f888322ae1",
+  "merged_commit": "b9dc0cdba67d8fbaa103f0b3498f14f888322ae1",
+  "workflow_url": "https://github.com/nmm26301-maker/open-nomi/actions/runs/39052452867",
+  "certificate_sha256": "8132825a68acba5653aba326b84e301bb65b28664af0d0727d7a5f5b41ad1b8e",
+  "signing_backup": "signing/OpenNomi-new-signing.enc.json",
+  "unit_tests": {
+    "tests": 188,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "android_smoke": {
+    "api29": {
+      "tests": 23,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "api33": {
+      "tests": 23,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "validation_state": "passed",
+  "lint": {
+    "Information": 3,
+    "Warning": 46
+  },
+  "unsigned_sha256": "82117f565b8542bd4df3d73efc628047902512f8a997d78c8f12690df8d261ca",
+  "signed_apk_sha256": "d4885001ef9be79f383c10145d45115153a11f110112b29da14fcff702e65183",
+  "signed_apk_bytes": 89855213,
+  "signature_v2": true,
+  "signature_v3": true,
+  "zipalign_16k": true,
+  "signing_backup_sha256": "0691bf97e096b598a71537e6f828423b94a2ba77a2039e81f4caeda267afb790",
+  "validation_scope": [
+    "Actual independent player speech translated to Chinese while OpenNomi Activity is in background; actual floating window text checked.",
+    "Notification PendingIntents restore hidden subtitles and pause/resume without foregrounding OpenNomi or replacing approved capture session.",
+    "Real floating menu moves captions to top; system window registry and attached visible subtitle text checked; actual touch passes to independent player counter; private notification public version excludes translated text.",
+    "Translation-first notice order, partial/waiting labels, hidden/paused/stopped transcript lifecycle, original toggle and attribution.",
+    "Existing real model download, Chinese output, native offline reload, resync, UI, conversation and audio regressions."
+  ],
+  "initial_validation": {
+    "source_commit": "3ce9de63548c0d824a42d3ba109a77c9d80a3e99",
+    "workflow_url": "https://github.com/nmm26301-maker/open-nomi/actions/runs/39051861404",
+    "reports": "validation/initial-api-29 and initial-api-33",
+    "reason": "Accessibility selector did not enumerate non-touchable secure subtitle windows; replaced with actual attached view/system window checks and real player tap-through, without weakening window flags."
+  },
+  "limitations": [
+    "Real user phone and Bluetooth headset not tested.",
+    "No speech accuracy, fixed latency or uninterrupted background duration measurements.",
+    "Player must permit system audio capture; first model preparation needs network.",
+    "System-protected windows may hide overlays; stopping sharing, force-stopping the app or system termination requires user restart/authorization."
+  ]
+}

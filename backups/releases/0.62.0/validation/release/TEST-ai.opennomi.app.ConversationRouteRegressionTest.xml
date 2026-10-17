@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ai.opennomi.app.ConversationRouteRegressionTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-17T17:10:56" hostname="runnervm8k3b6" time="0.014">
+  <properties/>
+  <testcase name="repeatedDeviceCallbacksDoNotReconnectPendingBluetooth" classname="ai.opennomi.app.ConversationRouteRegressionTest" time="0.005"/>
+  <testcase name="connectAndDisconnectAutomaticallyChooseExternalThenPhone" classname="ai.opennomi.app.ConversationRouteRegressionTest" time="0.0"/>
+  <testcase name="unavailableHeadsetFallsBackInsteadOfHoldingMicrophoneForever" classname="ai.opennomi.app.ConversationRouteRegressionTest" time="0.0"/>
+  <testcase name="exhaustedRoutesPublishActionableErrorAndCanRecover" classname="ai.opennomi.app.ConversationRouteRegressionTest" time="0.0"/>
+  <testcase name="disconnectedThenReconnectedHeadsetCanRetryAfterTimeout" classname="ai.opennomi.app.ConversationRouteRegressionTest" time="0.0"/>
+  <testcase name="acceptedBluetoothRequestIsNotMistakenForConfirmedAudio" classname="ai.opennomi.app.ConversationRouteRegressionTest" time="0.0"/>
+  <testcase name="cancellationRejectsLateBluetoothCallbackAndTimeout" classname="ai.opennomi.app.ConversationRouteRegressionTest" time="0.0"/>
+  <testcase name="releasingAnOldOwnerCannotEndAnotherConversation" classname="ai.opennomi.app.ConversationRouteRegressionTest" time="0.0"/>
+  <testcase name="oldTimeoutAndConfirmationCannotOverrideNewRoute" classname="ai.opennomi.app.ConversationRouteRegressionTest" time="0.0"/>
+  <testcase name="wiredHeadsetWinsOverSpeakerAndBluetoothWinsOverWired" classname="ai.opennomi.app.ConversationRouteRegressionTest" time="0.001"/>
+  <testcase name="phoneRouteIsImmediatelyReadyWithoutAddingStartupDelay" classname="ai.opennomi.app.ConversationRouteRegressionTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

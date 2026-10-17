@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ai.opennomi.app.FishAudioRegressionTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-17T17:10:56" hostname="runnervm8k3b6" time="0.672">
+  <properties/>
+  <testcase name="sendsOfficialJsonContractAndReturnsBinaryUnchanged" classname="ai.opennomi.app.FishAudioRegressionTest" time="0.378"/>
+  <testcase name="preservesLongChineseAndEmojiRepliesWhenSplitting" classname="ai.opennomi.app.FishAudioRegressionTest" time="0.001"/>
+  <testcase name="rejectsEmptyJsonAndOversizedAudio" classname="ai.opennomi.app.FishAudioRegressionTest" time="0.144"/>
+  <testcase name="rejectsServiceErrorsWithoutLeakingBodyOrRetrying" classname="ai.opennomi.app.FishAudioRegressionTest" time="0.052"/>
+  <testcase name="cancellingReplyCancelsPendingHttp" classname="ai.opennomi.app.FishAudioRegressionTest" time="0.052"/>
+  <testcase name="credentialsAndInsecureAddressesFailBeforeSending" classname="ai.opennomi.app.FishAudioRegressionTest" time="0.001"/>
+  <testcase name="blankVoiceUsesProviderDefaultAndV1BaseIsAccepted" classname="ai.opennomi.app.FishAudioRegressionTest" time="0.024"/>
+  <testcase name="doesNotForwardSecretOnRedirect" classname="ai.opennomi.app.FishAudioRegressionTest" time="0.015"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[Oct 17, 2026 5:10:57 PM okhttp3.mockwebserver.MockWebServer$SocketHandler handle
+WARNING: MockWebServer[50131] connection from /127.0.0.1 didn't make a request
+]]></system-err>
+</testsuite>
