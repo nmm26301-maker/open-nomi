@@ -1,0 +1,25 @@
+{
+  "version": "0.62.0",
+  "backup_commit": "b90c5be67fa7e012ada914034a39f49d38382ad4",
+  "built_source_commit": "b9dc0cdba67d8fbaa103f0b3498f14f888322ae1",
+  "archive_workflow_url": "https://github.com/nmm26301-maker/open-nomi/actions/runs/39053156529",
+  "validation_workflow_url": "https://github.com/nmm26301-maker/open-nomi/actions/runs/39052452867",
+  "apk_readback_byte_identical": true,
+  "apk_sha256": "d4885001ef9be79f383c10145d45115153a11f110112b29da14fcff702e65183",
+  "apk_bytes": 89855213,
+  "verified_apk_parts": 122,
+  "all_raw_validation_reports_byte_identical": true,
+  "encrypted_signing_readback_byte_identical": true,
+  "encrypted_signing_sha256": "0691bf97e096b598a71537e6f828423b94a2ba77a2039e81f4caeda267afb790",
+  "recovered_keystore_passwords_certificate_match": true,
+  "certificate_sha256": "8132825a68acba5653aba326b84e301bb65b28664af0d0727d7a5f5b41ad1b8e",
+  "tests": {
+    "unit": 188,
+    "api29": 23,
+    "api33": 23,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "method": "Isolated public GitHub checkout pinned to backup_commit; committed restore.py verifies every APK part and total size/hash; compare original raw reports; decrypt remote signing backup with separate recovery key and compare credentials, keystore and certificate to signing inputs."
+}
