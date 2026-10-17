@@ -1,0 +1,15 @@
+{
+  "version": "0.60.0",
+  "backup_commit": "ee2642122491a89438840a59632a4a614159f199",
+  "built_source_commit": "41b3cb27f5049d55e5ef382e09c922c8ed30c8a4",
+  "archive_workflow_url": "https://github.com/nmm26301-maker/open-nomi/actions/runs/38990303605",
+  "apk_readback_byte_identical": true,
+  "apk_sha256": "17863c8ba600344c058aa0cd2bff8b03e6afd8130b782fe59669b73084db69e5",
+  "apk_bytes": 89855213,
+  "verified_apk_parts": 122,
+  "encrypted_signing_readback_byte_identical": true,
+  "encrypted_signing_sha256": "0691bf97e096b598a71537e6f828423b94a2ba77a2039e81f4caeda267afb790",
+  "recovered_keystore_passwords_certificate_match": true,
+  "certificate_sha256": "8132825a68acba5653aba326b84e301bb65b28664af0d0727d7a5f5b41ad1b8e",
+  "method": "Fresh public GitHub clone pinned to backup_commit; committed restore.py verifies every APK part and total size/hash; remote encrypted signing backup decrypted using separately retained recovery key and compared to signing inputs."
+}

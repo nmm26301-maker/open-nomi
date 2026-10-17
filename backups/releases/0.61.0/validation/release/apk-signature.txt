@@ -1,0 +1,18 @@
+Verifies
+Verified using v1 scheme (JAR signing): false
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): true
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+Signer #1 certificate DN: CN=OpenNomi New Release 20261012
+Signer #1 certificate SHA-256 digest: 8132825a68acba5653aba326b84e301bb65b28664af0d0727d7a5f5b41ad1b8e
+Signer #1 certificate SHA-1 digest: 22848ec20e36148669c0f47df4734d4fa98e6f8c
+Signer #1 certificate MD5 digest: 3c467ccc8840b14eee0f3a1cbf2fe85b
+Signer #1 key algorithm: RSA
+Signer #1 key size (bits): 3072
+Signer #1 public key SHA-256 digest: 0f1c98a12b042df518b0efb6edbc99d446fe8e473e7173abd250ff16638e121c
+Signer #1 public key SHA-1 digest: f6ec137798d2e376054a948ebf1a688b904e3624
+Signer #1 public key MD5 digest: 15296d64a95db1b144c88c248e321380
+APK SHA-256: 43bc9476161a5632daea6d19f17b7745344d908a2e4a3d32fb79ab29c3069a46

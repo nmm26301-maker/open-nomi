@@ -26,9 +26,15 @@
       "failures": 1,
       "errors": 0,
       "skipped": 0
+    },
+    "api33_attempt2": {
+      "tests": 23,
+      "failures": 2,
+      "errors": 0,
+      "skipped": 0
     }
   },
-  "validation_state": "Awaiting API 33 retry after UI text wait timeout; native log confirms actual Chinese translation.",
+  "validation_state": "Superseded by 0.61.0 before user delivery after reproducible API 33 translation result visibility failure.",
   "lint": {
     "Warning": 47,
     "Information": 3
@@ -52,5 +58,6 @@
     "No measured accuracy, latency or speedup claim.",
     "Player must allow system audio capture; first model preparation needs network.",
     "Longer caption dwell may increase waiting text; resync skips unfinished speech and waiting captions while preserving completed recent text."
-  ]
+  ],
+  "followup": "0.61.0 explicitly dismisses input focus and brings the actual text translation result into view; history UI test scrolls to original text instead of assuming it is already visible."
 }

@@ -1,0 +1,64 @@
+{
+  "application_id": "com.opennomi.android",
+  "version_code": 61,
+  "version": "0.61.0",
+  "abis": [
+    "arm64-v8a"
+  ],
+  "source_commit": "0cb6b92a2d0d22b42de3702a5b731e505e1795e9",
+  "built_source_commit": "0cb6b92a2d0d22b42de3702a5b731e505e1795e9",
+  "merged_commit": "0cb6b92a2d0d22b42de3702a5b731e505e1795e9",
+  "workflow_url": "https://github.com/nmm26301-maker/open-nomi/actions/runs/38990841257",
+  "certificate_sha256": "8132825a68acba5653aba326b84e301bb65b28664af0d0727d7a5f5b41ad1b8e",
+  "signing_backup": "signing/OpenNomi-new-signing.enc.json",
+  "unit_tests": {
+    "tests": 181,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "android_smoke": {
+    "api29": {
+      "tests": 23,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "api33": {
+      "tests": 23,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "validation_state": "passed",
+  "lint": {
+    "Warning": 47,
+    "Information": 3
+  },
+  "unsigned_sha256": "97e27726621327f8d51399f792aa4d802e0a22495f7f53fce45852546b73ca07",
+  "signed_apk_sha256": "43bc9476161a5632daea6d19f17b7745344d908a2e4a3d32fb79ab29c3069a46",
+  "signed_apk_bytes": 89855213,
+  "signature_v2": true,
+  "signature_v3": true,
+  "zipalign_16k": true,
+  "signing_backup_sha256": "0691bf97e096b598a71537e6f828423b94a2ba77a2039e81f4caeda267afb790",
+  "validation_scope": [
+    "Length-aware ordered caption display, supplementary CJK characters and bounded live dwell.",
+    "Blocked native stop does not block caller; stop/release serialize, cancellation before start and idempotent cleanup.",
+    "Actual text translation appears without test-driven scrolling; keyboard/focus dismissal and result attribution remain visible.",
+    "Actual external player speech capture, FAST/COMPLETE Chinese subtitles, history originals, pause/resume, resync, model download and offline reload."
+  ],
+  "prior_failed_validation": {
+    "version": "0.60.0",
+    "workflow_url": "https://github.com/nmm26301-maker/open-nomi/actions/runs/38989679544",
+    "reports": "../0.60.0/validation/api-33-attempt1 and api-33-attempt2",
+    "resolution": "0.61.0 clears input focus, hides keyboard and brings actual text translation into view; history test scrolls to original text."
+  },
+  "limitations": [
+    "Real user phone and Bluetooth headset not tested.",
+    "No measured speech accuracy, speedup or fixed end-to-end latency claim.",
+    "Player must permit system AudioPlaybackCapture; first model preparation needs network.",
+    "Longer caption dwell can increase queue latency; manual resync skips unfinished speech and waiting captions while preserving completed recent text."
+  ]
+}

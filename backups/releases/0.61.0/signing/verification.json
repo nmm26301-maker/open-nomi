@@ -1,0 +1,14 @@
+{
+  "identity": "NEW signing key generated 2026-10-12; NOT the original key",
+  "certificate_sha256": "8132825a68acba5653aba326b84e301bb65b28664af0d0727d7a5f5b41ad1b8e",
+  "keystore_sha256": "4c29ceb350a65fdf5f441fe0bf3290a7840af092fdb158764c0c6f9f0ac99ff4",
+  "backup_sha256": "0691bf97e096b598a71537e6f828423b94a2ba77a2039e81f4caeda267afb790",
+  "key_alias": "opennomi-release",
+  "key_algorithm": "RSA-3072",
+  "credentials_in_encrypted_backup": true,
+  "private_key_sign_verify": "passed",
+  "encryption_roundtrip": "passed",
+  "old_apk_cover_install_compatible": false,
+  "new_apk_created": false
+}
+

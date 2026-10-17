@@ -8,3 +8,5 @@
 
 signing/ 的 AES-GCM 备份包含 JKS、别名、库密码、密钥密码和证书；恢复钥匙单独保存，禁止提交。
 恢复方法：python3 signing/decrypt.py --key-file /path/to/OpenNomi-new-signing-recovery-key.json --output-dir restored-signing。
+
+本版为验证中间版本，Android 13 页面显示检查未通过，未作为最终版本交付；后续 0.61.0 补充译文自动滚动显示。首轮与复跑失败报告均保留。
