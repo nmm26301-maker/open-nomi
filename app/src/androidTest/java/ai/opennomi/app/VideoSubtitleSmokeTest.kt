@@ -45,10 +45,12 @@ class VideoSubtitleSmokeTest {
         val app=ApplicationProvider.getApplicationContext<NomiApplication>()
         val cfg=ScreenAssistant.settings();val old=cfg.playbackModel;val phone=cfg.phoneTranslation;val cellular=cfg.translationCellular
         val oldTiming=cfg.subtitleTiming
+        val oldOverlay=cfg.subtitleOverlay;val oldPosition=cfg.subtitlePosition;val oldOriginal=cfg.subtitleOriginal;val oldLarge=cfg.subtitleLarge
         val device=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         val audio=app.getSystemService(AudioManager::class.java);val volume=audio.getStreamVolume(AudioManager.STREAM_MUSIC)
         try {
             cfg.playbackModel="en";cfg.phoneTranslation=true;cfg.translationCellular=true
+            cfg.subtitleOverlay=true;cfg.subtitleOriginal=true;cfg.subtitleLarge=false;cfg.subtitlePosition=SubtitlePosition.BOTTOM.name
             cfg.subtitleTiming=timing.name
             withContext(Dispatchers.IO){PlaybackModels.prepare(app,PlaybackModels.selected("en"),true)}
             withTimeout(240000){ScreenAssistant.phoneTranslator.prepare("en",true)}
@@ -69,6 +71,61 @@ class VideoSubtitleSmokeTest {
                 val recorded=ScreenState.state.value.captionHistory.last{it.original.contains("zero") && it.translated.any{c->c in '\u4e00'..'\u9fff'}}
                 assertNotNull("Completed Vosk words must retain their confidence",recorded.confidence)
                 if(timing==SubtitleTiming.FAST) {
+                    assertEquals("Actual subtitle check must run over a different player's foreground", "ai.opennomi.playbackfixture",device.currentPackageName)
+                    assertFalse("Workspace Activity must be in background",ScreenState.ownForeground)
+                    suspend fun backgroundCaption():UiObject2 {
+                        withTimeout(10000){while(true){
+                            try {
+                                val view=device.findObject(By.descStartsWith("OpenNomi 后台字幕"))
+                                if(view!=null && view.text.any{it in '\u4e00'..'\u9fff'} && view.text.contains("原文："))return@withTimeout
+                            }catch(_:StaleObjectException){}
+                            delay(100)
+                        }}
+                        return checkNotNull(device.findObject(By.descStartsWith("OpenNomi 后台字幕")))
+                    }
+                    val floating=backgroundCaption()
+                    assertTrue("Floating window must contain actual translated player speech",floating.text.contains(recorded.translated))
+                    val notifications=app.getSystemService(android.app.NotificationManager::class.java)
+                    fun currentNotice()=notifications.activeNotifications.first{it.id==402}.notification
+                    val notice=currentNotice()
+                    assertEquals(android.app.Notification.VISIBILITY_PRIVATE,notice.visibility)
+                    assertNotNull(notice.publicVersion)
+                    assertFalse("Lockscreen public text must not contain translated speech",notice.publicVersion.extras.getString(android.app.Notification.EXTRA_TEXT).orEmpty().contains(recorded.translated))
+                    InstrumentationRegistry.getInstrumentation().runOnMainSync{cfg.subtitleOverlay=false;ScreenShareService.instance!!.refreshOverlay()}
+                    assertTrue("Hide must remove only the visual window",device.wait(Until.gone(By.descStartsWith("OpenNomi 后台字幕")),10000))
+                    assertTrue(ScreenState.state.value.audio)
+                    notice.actions.first{it.title.toString()=="显示字幕"}.actionIntent.send()
+                    backgroundCaption();assertEquals("ai.opennomi.playbackfixture",device.currentPackageName)
+                    val approvedSession=ScreenState.state.value.session
+                    currentNotice().actions.first{it.title.toString()=="暂停字幕"}.actionIntent.send()
+                    withTimeout(10000){while(ScreenState.state.value.audio)delay(100)}
+                    assertFalse(ScreenState.state.value.translation)
+                    assertTrue(device.wait(Until.hasObject(By.descContains("视频字幕已暂停")),10000))
+                    withTimeout(10000){while(currentNotice().actions.none{it.title.toString()=="继续字幕"})delay(100)}
+                    currentNotice().actions.first{it.title.toString()=="继续字幕"}.actionIntent.send()
+                    withTimeout(60000){while(!ScreenState.state.value.audio || !ScreenState.state.value.captionOriginal.contains("zero") || ScreenState.state.value.caption.isBlank())delay(100)}
+                    assertEquals("Notification resume must reuse the already approved capture session",approvedSession,ScreenState.state.value.session)
+                    backgroundCaption();assertEquals("ai.opennomi.playbackfixture",device.currentPackageName)
+                    val positionMenu=device.wait(Until.findObject(By.desc("OpenNomi 悬浮菜单")),10000)
+                    assertNotNull(positionMenu);positionMenu.click()
+                    val top=device.wait(Until.findObject(By.text("字幕位置：顶部")),10000)
+                    assertNotNull(top);top.click()
+                    withTimeout(10000){while(backgroundCaption().visibleBounds.top>=device.displayHeight/2)delay(100)}
+                    assertEquals(SubtitlePosition.TOP.name,cfg.subtitlePosition)
+                    // Draw the actual secure overlay view while the separate player stays foreground.
+                    val overlayFile=java.io.File(app.getExternalFilesDir(null),"background-subtitles.png")
+                    InstrumentationRegistry.getInstrumentation().runOnMainSync{
+                        val service=ScreenShareService.instance!!
+                        val overlay=ScreenShareService::class.java.getDeclaredField("overlay").apply{isAccessible=true}.get(service)
+                        val view=OrbitOverlay::class.java.getDeclaredField("caption").apply{isAccessible=true}.get(overlay) as android.widget.TextView
+                        val lp=OrbitOverlay::class.java.getDeclaredField("captionParams").apply{isAccessible=true}.get(overlay) as android.view.WindowManager.LayoutParams
+                        assertTrue("Pass-through subtitles must respect Android's overlay opacity limit",lp.alpha<=.8f)
+                        assertTrue(lp.flags and android.view.WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE!=0)
+                        val bitmap=android.graphics.Bitmap.createBitmap(view.width,view.height,android.graphics.Bitmap.Config.ARGB_8888)
+                        try{view.draw(android.graphics.Canvas(bitmap));java.io.FileOutputStream(overlayFile).use{assertTrue(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,it))}}finally{bitmap.recycle()}
+                    }
+                    device.executeShellCommand("cp ${overlayFile.absolutePath} /data/local/tmp/background-subtitles.png")
+                    assertEquals("Overlay and its controls must not bring OpenNomi to foreground","ai.opennomi.playbackfixture",device.currentPackageName)
                     // Exercise the real overlay entry while the external player owns the foreground.
                     val orb=device.wait(Until.findObject(By.desc("OpenNomi 悬浮菜单")),10000)
                     assertNotNull("Capture must expose its accessible floating menu",orb);orb.click()
@@ -155,6 +212,7 @@ class VideoSubtitleSmokeTest {
             device.executeShellCommand("am force-stop ai.opennomi.playbackfixture")
             audio.setStreamVolume(AudioManager.STREAM_MUSIC,volume,0)
             cfg.playbackModel=old;cfg.phoneTranslation=phone;cfg.translationCellular=cellular;cfg.subtitleTiming=oldTiming
+            cfg.subtitleOverlay=oldOverlay;cfg.subtitlePosition=oldPosition;cfg.subtitleOriginal=oldOriginal;cfg.subtitleLarge=oldLarge
             withTimeout(10000){while(ScreenState.state.value.active)delay(100)}
             assertTrue("Stopping sharing must clear recent captured text",ScreenState.state.value.captionHistory.isEmpty())
         }

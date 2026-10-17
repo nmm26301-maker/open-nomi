@@ -5,6 +5,9 @@ import android.graphics.*
 import android.graphics.drawable.GradientDrawable
 import android.os.*
 import android.provider.Settings
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.RelativeSizeSpan
 import android.view.*
 import android.widget.*
 import kotlin.math.*
@@ -14,6 +17,8 @@ class OrbitOverlay(private val service:ScreenShareService) {
     private fun dp(n:Int)=(n*density).toInt()
     private var ball: GalaxyOrb?=null;private var panel:LinearLayout?=null;private var caption:TextView?=null;private var description:TextView?=null
     private val color=0xFF7DD3FC.toInt();private var params:WindowManager.LayoutParams?=null
+    private var captionParams:WindowManager.LayoutParams?=null
+    private var captionFailureReported=false
     @Volatile private var regions:List<Rect> = emptyList()
     private fun layout(w:Int,h:Int,gravity:Int)=WindowManager.LayoutParams(w,h,WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_SECURE,PixelFormat.TRANSLUCENT).apply{this.gravity=gravity}
     private fun bg()=GradientDrawable().apply{setColor(0xF2101828.toInt());cornerRadius=dp(22).toFloat();setStroke(dp(1),0x705D89BD)}
@@ -33,7 +38,7 @@ class OrbitOverlay(private val service:ScreenShareService) {
         orb.setOnTouchListener { _,e ->
             if(e.actionMasked==MotionEvent.ACTION_DOWN){downX=e.rawX;downY=e.rawY;originX=params!!.x;originY=params!!.y;downTime=System.currentTimeMillis();moved=false}
             val dx=e.rawX-downX;val dy=e.rawY-downY
-            if(e.actionMasked==MotionEvent.ACTION_MOVE && hypot(dx,dy)>dp(12)){moved=true;params!!.x=(originX+dx.toInt()).coerceIn(0,maxOf(0,dm.widthPixels-dp(74)));params!!.y=(originY+dy.toInt()).coerceIn(dp(32),maxOf(dp(32),dm.heightPixels-dp(104)));runCatching{wm.updateViewLayout(orb,params)};updateRegions()}
+            if(e.actionMasked==MotionEvent.ACTION_MOVE && hypot(dx,dy)>dp(12)){val screen=service.resources.displayMetrics;moved=true;params!!.x=(originX+dx.toInt()).coerceIn(0,maxOf(0,screen.widthPixels-dp(74)));params!!.y=(originY+dy.toInt()).coerceIn(dp(32),maxOf(dp(32),screen.heightPixels-dp(104)));runCatching{wm.updateViewLayout(orb,params)};updateRegions()}
             detector.onTouchEvent(e)
             if(e.actionMasked==MotionEvent.ACTION_UP && moved && System.currentTimeMillis()-downTime<420 && hypot(dx,dy)>dp(64)){
                 when { abs(dy)>abs(dx) && dy<0 -> service.toggleTranslation();abs(dy)>abs(dx) -> service.startActivity(Intent(service,WorkspaceActivity::class.java).putExtra("tab","tasks").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));dx>0 -> prompt(true) }
@@ -49,34 +54,66 @@ class OrbitOverlay(private val service:ScreenShareService) {
         description=TextView(service).apply{setTextColor(0xFFE2ECFA.toInt());textSize=14f;maxLines=6;setPadding(0,0,0,dp(8));text=ScreenState.state.value.status+"\n"+ScreenState.state.value.reply.take(600)}
         root.addView(description)
         fun button(text:String,action:()->Unit){root.addView(TextView(service).apply{this.text=text;setTextColor(color);textSize=14f;setPadding(dp(4),dp(10),dp(4),dp(10));setOnClickListener{action()}})}
+        button("收起菜单"){closePanel()}
+        if(ScreenState.state.value.translation || ScreenState.state.value.captionHistory.isNotEmpty()) {
+            val cfg=ScreenAssistant.settings()
+            button(if(cfg.subtitleOverlay)"隐藏悬浮字幕" else "显示悬浮字幕"){closePanel();cfg.subtitleOverlay=!cfg.subtitleOverlay;service.refreshOverlay()}
+            if(ScreenState.state.value.audio || ScreenState.state.value.captionHistory.isNotEmpty())button(if(ScreenState.state.value.audio)"暂停视频字幕" else "继续视频字幕"){closePanel();service.toggleAudio()}
+        if(ScreenState.state.value.audio || ScreenState.state.value.captionHistory.isNotEmpty())button("查看近期视频译文"){
+            closePanel();service.startActivity(Intent(service,WorkspaceActivity::class.java).putExtra("tab","translation").putExtra("translation-mode","history").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
+        }
+        if(ScreenState.state.value.audio && (ScreenState.state.value.audioQueued>0 || ScreenState.state.value.captionQueued>0))button("字幕落后 · 重新同步"){closePanel();service.resyncAudio()}
+            SubtitlePosition.entries.forEach{position->button("字幕位置：${position.label}"){closePanel();cfg.subtitlePosition=position.name;service.refreshOverlay()}}
+            button(if(cfg.subtitleLarge)"字幕字号：标准" else "字幕字号：大字"){closePanel();cfg.subtitleLarge=!cfg.subtitleLarge;service.refreshOverlay()}
+        }
         button("确认下一步操作") { closePanel(); main.postDelayed({ ScreenAssistant.confirm() }, 250) }
         button("小智语音聊天 · 开始 / 暂停"){prompt(true)}
         button("输入问题问这页"){prompt(false)}
         button("翻译开关"){service.toggleTranslation()}
         button("无字幕视频 · 语言与字幕"){closePanel();service.startActivity(Intent(service,WorkspaceActivity::class.java).putExtra("tab","translation").putExtra("translation-mode","video").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))}
-        if(ScreenState.state.value.audio || ScreenState.state.value.captionHistory.isNotEmpty())button("查看近期视频译文"){
-            closePanel();service.startActivity(Intent(service,WorkspaceActivity::class.java).putExtra("tab","translation").putExtra("translation-mode","history").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
-        }
-        if(ScreenState.state.value.audio && (ScreenState.state.value.audioQueued>0 || ScreenState.state.value.captionQueued>0))button("字幕落后 · 重新同步"){closePanel();service.resyncAudio()}
         button("关闭浮条提示"){ScreenState.update{it.copy(notice="")}}
         button("保存页面文字"){ScreenAssistant.savePage()}
         button("工作台 · 原图 / 任务 / 记忆"){closePanel();service.startActivity(Intent(service,WorkspaceActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))}
         button("停止共享"){service.stopSelf()}
-        panel=root;runCatching{wm.addView(root,layout(service.resources.displayMetrics.widthPixels-dp(32),WindowManager.LayoutParams.WRAP_CONTENT,Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply{y=dp(32)})};root.post{updateRegions()}
+        val scroll=ScrollView(service).apply{addView(root)}
+        panel=root
+        panelWindow=scroll
+        runCatching{wm.addView(scroll,layout(service.resources.displayMetrics.widthPixels-dp(32),minOf(dp(560),service.resources.displayMetrics.heightPixels-dp(100)),Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply{y=dp(32)})}
+            .onFailure{panel=null;panelWindow=null;description=null}
+        scroll.post{updateRegions()}
     }
-    private fun closePanel(){panel?.let{runCatching{wm.removeView(it)}};panel=null;description=null;updateRegions()}
+    private var panelWindow:ScrollView?=null
+    private fun closePanel(){panelWindow?.let{runCatching{wm.removeView(it)}};panel=null;panelWindow=null;description=null;updateRegions()}
     fun render(state:WorkspaceState){
         ball?.mode=when{state.voiceOn->if(state.voiceStatus.contains("回应"))4 else 1;state.busy->2;state.proposed!=null->3;state.audio->1;state.status.contains("完成")->4;else->0}
         description?.text=(if(state.voiceOn)"小智：${state.voiceStatus}\n" else "")+state.status+"\n"+state.reply.take(600)
-        val subtitle=state.caption+(if(state.audio && ScreenAssistant.settings().subtitleOriginal && state.captionOriginal.isNotBlank())"\n原文：${state.captionOriginal.take(360)}" else "")+(if(state.audio && state.audioPreview.isNotBlank())"\n识别中：${state.audioPreview.take(180)}" else "")
-        val line=if(state.notice.isNotBlank()) state.notice+(if(state.translation && state.caption.isNotBlank())"\n\n$subtitle" else "") else if(state.translation)subtitle else ""
-        if(line.isNotBlank()){
-            if(caption==null){val text=TextView(service).apply{setTextColor(0xFFE9F3FF.toInt());textSize=15f;maxLines=8;setPadding(dp(18),dp(12),dp(18),dp(12));background=bg();setOnClickListener{runCatching{wm.removeView(this)};caption=null;updateRegions()}}
-                caption=text;runCatching{wm.addView(text,layout(service.resources.displayMetrics.widthPixels-dp(24),WindowManager.LayoutParams.WRAP_CONTENT,Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply{y=dp(14);flags=flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;alpha=.92f})}}
-            caption?.text=line+(if(state.translation && state.caption.isNotBlank() && ScreenAssistant.settings().phoneTranslation)"\n由 Google 翻译" else "");caption?.post{updateRegions()}
-        } else {caption?.let{runCatching{wm.removeView(it)}};caption=null;updateRegions()}
+        val cfg=ScreenAssistant.settings()
+        val rows=FloatingSubtitle.sections(state,cfg.subtitleOverlay,cfg.subtitleOriginal,cfg.phoneTranslation)
+        if(rows.isNotEmpty()) {
+            if(caption==null) {
+                val text=TextView(service).apply{setTextColor(0xFFE9F3FF.toInt());textSize=13f;setPadding(dp(16),dp(10),dp(16),dp(10));background=bg();importantForAccessibility=View.IMPORTANT_FOR_ACCESSIBILITY_YES}
+                val lp=subtitleLayout();caption=text;captionParams=lp
+                runCatching{wm.addView(text,lp);captionFailureReported=false}.onFailure{caption=null;captionParams=null;if(!captionFailureReported){captionFailureReported=true;ScreenState.event("悬浮字幕未显示，请检查悬浮窗权限")}}
+            }
+            val line=SpannableStringBuilder()
+            rows.forEachIndexed{index,row->if(index>0)line.append('\n');val from=line.length;line.append(row.text);line.setSpan(RelativeSizeSpan((if(row.translated){if(cfg.subtitleLarge)24f else 20f}else 12f)/13f),from,line.length,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)}
+            caption?.apply{maxLines=(service.resources.displayMetrics.heightPixels/density/55).toInt().coerceIn(4,10);text=line;contentDescription="OpenNomi 后台字幕 · $line";post{updateRegions()}}
+            repositionCaption()
+        } else {caption?.let{runCatching{wm.removeView(it)}};caption=null;captionParams=null;updateRegions()}
     }
-    private fun updateRegions(){regions=listOfNotNull(ball,panel,caption).map{v->val pos=IntArray(2);v.getLocationOnScreen(pos);Rect(pos[0],pos[1],pos[0]+v.width,pos[1]+v.height)}}
+    private fun subtitleLayout():WindowManager.LayoutParams {
+        val position=SubtitlePosition.selected(ScreenAssistant.settings().subtitlePosition)
+        val gravity=when(position){SubtitlePosition.TOP->Gravity.TOP;SubtitlePosition.MIDDLE->Gravity.CENTER_VERTICAL;SubtitlePosition.BOTTOM->Gravity.BOTTOM} or Gravity.CENTER_HORIZONTAL
+        return layout(service.resources.displayMetrics.widthPixels-dp(24),WindowManager.LayoutParams.WRAP_CONTENT,gravity).apply{
+            y=when(position){SubtitlePosition.TOP->dp(70);SubtitlePosition.MIDDLE->0;SubtitlePosition.BOTTOM->dp(48)}
+            flags=flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+            // Android 12+ blocks passthrough behind overly opaque untrusted overlay windows.
+            alpha=FloatingSubtitle.WINDOW_ALPHA
+        }
+    }
+    private fun repositionCaption(){caption?.let{view->val lp=subtitleLayout();captionParams=lp;runCatching{wm.updateViewLayout(view,lp)}}}
+    fun onDisplayChanged(){closePanel();val dm=service.resources.displayMetrics;params?.let{lp->lp.x=lp.x.coerceIn(0,maxOf(0,dm.widthPixels-dp(74)));lp.y=lp.y.coerceIn(dp(32),maxOf(dp(32),dm.heightPixels-dp(104)));ball?.let{runCatching{wm.updateViewLayout(it,lp)}}};repositionCaption();render(ScreenState.state.value)}
+    private fun updateRegions(){regions=listOfNotNull(ball,panelWindow,caption).filter{it.width>0 && it.height>0}.map{v->val pos=IntArray(2);v.getLocationOnScreen(pos);Rect(pos[0],pos[1],pos[0]+v.width,pos[1]+v.height)}}
     fun mask(bitmap:Bitmap){val dm=service.resources.displayMetrics;val scale=bitmap.width.toFloat()/dm.widthPixels;val c=Canvas(bitmap);val p=Paint().apply{color=Color.BLACK};regions.forEach{r->c.drawRect(r.left*scale,r.top*scale,r.right*scale,r.bottom*scale,p)}}
     fun close(){main.removeCallbacksAndMessages(null);closePanel();caption?.let{runCatching{wm.removeView(it)}};caption=null;ball?.let{it.stop();runCatching{wm.removeView(it)}};ball=null}
 }

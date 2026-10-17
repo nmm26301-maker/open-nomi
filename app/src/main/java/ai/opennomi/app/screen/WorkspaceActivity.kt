@@ -231,6 +231,8 @@ class WorkspaceActivity:ComponentActivity() {
             }
             if(state.audio) {
                 Text(state.status,color=MaterialTheme.colorScheme.primary)
+                TextButton(onClick={ScreenShareService.instance?.showBackgroundSubtitles();moveTaskToBack(true)}){Text("后台显示悬浮字幕")}
+                Text("切到播放器或其他应用后，译文会继续显示在浮层。点悬浮球可暂停、继续、改位置或字号；通知栏也能控制。",fontSize=12.sp)
                 Text("待完成翻译 ${state.audioQueued} 段 · 等待显示 ${state.captionQueued} 条",fontSize=12.sp)
                 Text("字幕按译文长度停留，长句最多 4.5 秒；来不及读可暂停后回看近期译文。",fontSize=12.sp)
                 TextButton(onClick={ScreenShareService.instance?.resyncAudio()}){Text("重新同步当前声音")}
@@ -245,6 +247,9 @@ class WorkspaceActivity:ComponentActivity() {
             }
             if(state.audioPreview.isNotBlank())Text("识别中：${state.audioPreview}",fontSize=12.sp)
             Row(verticalAlignment=Alignment.CenterVertically){Text("显示识别原文，方便核对",Modifier.weight(1f),fontSize=13.sp);Switch(showOriginal,{showOriginal=it;cfg.subtitleOriginal=it;ScreenShareService.instance?.refreshOverlay()})}
+            Row(horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+                SubtitlePosition.entries.forEach{position->FilterChip(selected=cfg.subtitlePosition==position.name,onClick={cfg.subtitlePosition=position.name;refresh.intValue++;ScreenShareService.instance?.refreshOverlay()},label={Text("字幕${position.label}")} )}
+            }
             if(state.audio)TextButton(onClick={videoOptions=!videoOptions}){Text(if(videoOptions)"收起语言与模型设置" else "展开语言与模型设置")}
             if(!state.audio || videoOptions) {
             Row(verticalAlignment=Alignment.CenterVertically){Text("手机翻译 · 无需 API Key",Modifier.weight(1f),fontSize=13.sp);Switch(phone,{phone=it;cfg.phoneTranslation=it},enabled=!state.audio && !busy)}

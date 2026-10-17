@@ -33,6 +33,9 @@ class WorkspaceSettings(context: Context) {
     var translationCellular: Boolean get()=prefs.getBoolean("translation-cellular",false);set(v){prefs.edit().putBoolean("translation-cellular",v).apply()}
     var playbackModel: String get()=prefs.getString("playback-model","en").orEmpty();set(v){prefs.edit().putString("playback-model",PlaybackModels.selected(v).id).apply()}
     var subtitleOriginal: Boolean get()=prefs.getBoolean("subtitle-original",true);set(v){prefs.edit().putBoolean("subtitle-original",v).apply()}
+    var subtitleOverlay: Boolean get()=prefs.getBoolean("subtitle-overlay",true);set(v){prefs.edit().putBoolean("subtitle-overlay",v).apply()}
+    var subtitlePosition: String get()=prefs.getString("subtitle-position",SubtitlePosition.BOTTOM.name).orEmpty();set(v){prefs.edit().putString("subtitle-position",SubtitlePosition.selected(v).name).apply()}
+    var subtitleLarge: Boolean get()=prefs.getBoolean("subtitle-large",false);set(v){prefs.edit().putBoolean("subtitle-large",v).apply()}
     var subtitleTiming: String get()=prefs.getString("subtitle-timing",SubtitleTiming.FAST.name).orEmpty();set(v){prefs.edit().putString("subtitle-timing",SubtitleTiming.selected(v).name).apply()}
     var includeImage: Boolean get()=prefs.getBoolean("image",true);set(v){prefs.edit().putBoolean("image",v).apply()}
     private fun key(): javax.crypto.SecretKey {

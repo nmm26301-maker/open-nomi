@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.collect
 import java.io.ByteArrayOutputStream
 
 class ScreenShareService: Service() {
-    companion object { const val START="nomi.start";const val STOP="nomi.stop";@Volatile var instance: ScreenShareService?=null }
+    companion object { const val START="nomi.start";const val STOP="nomi.stop";const val SHOW_SUBTITLES="nomi.show-subtitles";const val VIDEO_CONTROL="nomi.video-control";@Volatile var instance: ScreenShareService?=null }
     private val main=Handler(Looper.getMainLooper())
     private val scope=CoroutineScope(SupervisorJob()+Dispatchers.Main.immediate)
     private var worker: HandlerThread?=null;private var handler:Handler?=null
@@ -27,19 +27,44 @@ class ScreenShareService: Service() {
     private val audioQueue=AudioSubtitleQueue();private var audioSource="en";private var audioContext=""
     private val audioCaptions=AudioCaptionPresenter()
     private var playbackGeneration=0L;private var audioPreparation:Job?=null
+    private var notificationKey=""
+    private fun sharingNotification(state:WorkspaceState):Notification {
+        fun action(code:Int,name:String)=PendingIntent.getService(this,code,Intent(this,ScreenShareService::class.java).setAction(name),PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+        val open=PendingIntent.getActivity(this,0,Intent(this,WorkspaceActivity::class.java).putExtra("tab","translation"),PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+        val line=state.caption.takeIf{state.translation && it.isNotBlank()} ?: state.notice.takeIf{it.isNotBlank()} ?: state.status
+        val public=NotificationCompat.Builder(this,"screen-share").setSmallIcon(R.drawable.ic_nomi).setContentTitle("OpenNomi 正在共享屏幕").setContentText("解锁后查看字幕控制").build()
+        val builder=NotificationCompat.Builder(this,"screen-share").setSmallIcon(R.drawable.ic_nomi)
+            .setContentTitle(if(state.audio)"OpenNomi · 视频实时字幕" else "OpenNomi · 屏幕共享")
+            .setContentText(line.take(180)).setStyle(NotificationCompat.BigTextStyle().bigText(line.take(600)))
+            .setContentIntent(open).setOngoing(true).setOnlyAlertOnce(true).setSilent(true)
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE).setPublicVersion(public)
+            .addAction(0,"显示字幕",action(2,SHOW_SUBTITLES))
+        if(state.audio || state.captionHistory.isNotEmpty())builder.addAction(0,if(state.audio)"暂停字幕" else "继续字幕",action(3,VIDEO_CONTROL))
+        return builder.addAction(0,"停止共享",action(1,STOP)).build()
+    }
+    private fun updateSharingNotification(state:WorkspaceState) {
+        val key="${state.audio}|${state.translation}|${state.captionHistory.isNotEmpty()}|${state.caption}|${state.notice}|${state.status}"
+        if(key==notificationKey)return
+        notificationKey=key
+        runCatching{getSystemService(NotificationManager::class.java).notify(402,sharingNotification(state))}
+    }
     override fun onBind(intent:Intent?)=null
     override fun onCreate() { super.onCreate();instance=this;ScreenAssistant.init(this) }
     override fun onStartCommand(intent:Intent?,flags:Int,startId:Int):Int {
         if(intent?.action==STOP){stopSelf();return START_NOT_STICKY}
+        if(intent?.action==SHOW_SUBTITLES || intent?.action==VIDEO_CONTROL) {
+            if(projection==null || !ScreenState.valid(session)){stopSelf();return START_NOT_STICKY}
+            if(intent.action==SHOW_SUBTITLES){ScreenAssistant.settings().subtitleOverlay=true;refreshOverlay()}
+            else if(ScreenState.state.value.audio || ScreenState.state.value.captionHistory.isNotEmpty())toggleAudio()
+            return START_NOT_STICKY
+        }
         if(intent?.action!=START || projection!=null)return START_NOT_STICKY
         try {
             val data=if(Build.VERSION.SDK_INT>=33)intent.getParcelableExtra("grant",Intent::class.java) else @Suppress("DEPRECATION") (intent.getParcelableExtra("grant") as? Intent)
             requireNotNull(data){"需要重新授权屏幕共享"}
             val channel=NotificationChannel("screen-share","OpenNomi 屏幕共享",NotificationManager.IMPORTANCE_LOW)
             getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
-            val open=PendingIntent.getActivity(this,0,Intent(this,WorkspaceActivity::class.java),PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-            val stop=PendingIntent.getService(this,1,Intent(this,ScreenShareService::class.java).setAction(STOP),PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-            val notification=NotificationCompat.Builder(this,"screen-share").setSmallIcon(R.drawable.ic_nomi).setContentTitle("OpenNomi 正在共享屏幕").setContentText("点击查看 · 随时停止共享").setContentIntent(open).setOngoing(true).addAction(0,"停止",stop).build()
+            val notification=sharingNotification(WorkspaceState(status="正在建立共享，可随时停止"))
             if(Build.VERSION.SDK_INT>=29)startForeground(402,notification,ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION) else startForeground(402,notification)
             session=ScreenState.begin();captions=CaptionGate();translations.reset();translationConfig=ScreenAssistant.settings().translationFingerprint();lastFrame=0L
             worker=HandlerThread("nomi-screen-ocr").apply{start()};handler=Handler(worker!!.looper);ocr=LocalOcr(this)
@@ -50,7 +75,7 @@ class ScreenShareService: Service() {
             reader!!.setOnImageAvailableListener({ r -> capture(r) },handler)
             display=projection!!.createVirtualDisplay("NomiScreen",width,height,dm.densityDpi,DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,reader!!.surface,null,handler)
             overlay=OrbitOverlay(this);overlay!!.show()
-            scope.launch { ScreenState.state.collect { overlay?.render(it) } }
+            scope.launch { ScreenState.state.collect { overlay?.render(it);updateSharingNotification(it) } }
             scope.launch { while(isActive){
                 if(ScreenState.state.value.audio){audioCaptions.tick(SystemClock.elapsedRealtime())?.let{showAudioCaption(it)};updateAudioQueueState()}
                 else captions.tick(System.currentTimeMillis())?.let{line->ScreenState.update{it.copy(caption=line)}}
@@ -61,6 +86,7 @@ class ScreenShareService: Service() {
     }
     override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
         super.onConfigurationChanged(newConfig)
+        overlay?.onDisplayChanged()
         handler?.post {
             if(!ScreenState.valid(session))return@post
             try {
@@ -103,9 +129,11 @@ class ScreenShareService: Service() {
     }
     private fun Sequence<String>.takeLastLines(n:Int)=toList().takeLast(n)
     fun refreshOverlay(){overlay?.show();overlay?.render(ScreenState.state.value)}
+    fun showBackgroundSubtitles(){ScreenAssistant.settings().subtitleOverlay=true;refreshOverlay()}
     fun toggleTranslation() {
         val on=!ScreenState.state.value.translation
         if(on && !ScreenAssistant.settings().translationReady()){ScreenState.event("请在翻译页开启手机翻译，或填写模型／翻译服务");return}
+        if(on)ScreenAssistant.settings().subtitleOverlay=true
         translationGeneration++;translationJob?.cancel();translationJob=null
         captions=CaptionGate();translations.reset();audioQueue.reset();audioCaptions.reset();audioContext=""
         if(!on){playbackGeneration++;audioPreparation?.cancel();audioPreparation=null;playback?.close();playback=null}
@@ -192,6 +220,7 @@ class ScreenShareService: Service() {
         if(Build.VERSION.SDK_INT<29){ScreenState.event("无字幕视频声音翻译需要 Android 10 以上");return}
         val p=projection ?: return
         val cfg=ScreenAssistant.settings();val model=PlaybackModels.selected(cfg.playbackModel)
+        cfg.subtitleOverlay=true
         audioSource=model.language;translationConfig=cfg.translationFingerprint()
         val id=session
         fun valid()=ScreenState.valid(id) && playbackGeneration==generation && ScreenState.state.value.audio
