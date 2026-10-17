@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="ai.opennomi.app.ConversationAudioSmokeTest" tests="23" failures="0" errors="0" skipped="0" time="139.989" timestamp="2026-10-17T01:16:15" hostname="localhost">
+  <properties>
+    <property name="device" value="emulator-5554 - 10" />
+    <property name="flavor" value="" />
+    <property name="project" value=":app" />
+  </properties>
+  <testcase name="routeLeaseSurvivesHalfDuplexFishAndRestoresModeAfterLastOwner" classname="ai.opennomi.app.ConversationAudioSmokeTest" time="2.577" />
+  <testcase name="rememberedContextReachesXiaozhiAndCompletedFishReplyIsSaved" classname="ai.opennomi.app.ConversationMemorySmokeTest" time="0.841" />
+  <testcase name="androidPrivateStorageRestoresCompletedChatsAndClearAcrossInstances" classname="ai.opennomi.app.ConversationMemorySmokeTest" time="0.028" />
+  <testcase name="homeMemoryDialogShowsTurnsAndClearsThemWithConfirmation" classname="ai.opennomi.app.ConversationMemorySmokeTest" time="12.578" />
+  <testcase name="homeCanLeaveNativeControlAndSelectConversationWithoutHiddenSettings" classname="ai.opennomi.app.ConversationModeSmokeTest" time="3.175" />
+  <testcase name="manualPauseCancelsAQueuedForegroundReconnect" classname="ai.opennomi.app.ConversationRecoverySmokeTest" time="3.465" />
+  <testcase name="cancelledStartStaysSilentAfterLateHelloAndSocketLoss" classname="ai.opennomi.app.ConversationRecoverySmokeTest" time="3.088" />
+  <testcase name="foregroundContinuousChatReopensListeningAfterSocketLoss" classname="ai.opennomi.app.ConversationRecoverySmokeTest" time="2.615" />
+  <testcase name="emptyAndRepeatedSttKeepTheCurrentReplyAndRelaxedPauseSurvivesReload" classname="ai.opennomi.app.ConversationRecoverySmokeTest" time="0.302" />
+  <testcase name="userCanRequestStartAgainAfterCancellingBeforeHello" classname="ai.opennomi.app.ConversationRecoverySmokeTest" time="0.306" />
+  <testcase name="receivedAudioPreparesPlaysAndCompletesThroughTheRealAndroidPlayer" classname="ai.opennomi.app.FishPlaybackSmokeTest" time="0.63" />
+  <testcase name="stopCancelsPlaybackAndTheSameSpeakerCanPlayAgain" classname="ai.opennomi.app.FishPlaybackSmokeTest" time="0.366" />
+  <testcase name="independentReaderAndReplyTabsRenderWithoutAccountOrCloudConnection" classname="ai.opennomi.app.FishScreenSmokeTest" time="2.983" />
+  <testcase name="stopCancelsTheNetworkBodyAndAllowsAnotherStreamingReply" classname="ai.opennomi.app.FishStreamingSmokeTest" time="0.637" />
+  <testcase name="realAndroidTrackStartsBeforeTheNetworkBodyCompletes" classname="ai.opennomi.app.FishStreamingSmokeTest" time="2.059" />
+  <testcase name="alternateXiaozhiProfileAndFishSpeakTheFirstSentenceBeforeTtsStop" classname="ai.opennomi.app.FishStreamingSmokeTest" time="0.683" />
+  <testcase name="translationPageWorksWithoutVisionKeysAndShowsActualChineseResult" classname="ai.opennomi.app.TranslationSmokeTest" time="13.47" />
+  <testcase name="configuredLibreServiceReceivesARealTranslateRequestAndReturnsChinese" classname="ai.opennomi.app.TranslationSmokeTest" time="0.369" />
+  <testcase name="realPhoneModelDownloadsTranslatesAndReloadsWithoutNetwork" classname="ai.opennomi.app.TranslationSmokeTest" time="1.333" />
+  <testcase name="completeCapturedPlayerAudioProducesChineseWithoutAnyScreenSubtitle" classname="ai.opennomi.app.VideoSubtitleSmokeTest" time="18.789" />
+  <testcase name="missingOverlayPermissionIsResolvedBeforeSharingStarts" classname="ai.opennomi.app.VideoSubtitleSmokeTest" time="6.872" />
+  <testcase name="realJapaneseModelInstallsAndSurvivesOfflineReload" classname="ai.opennomi.app.VideoSubtitleSmokeTest" time="24.251" />
+  <testcase name="fastCapturedPlayerAudioProducesChineseWithoutAnyScreenSubtitle" classname="ai.opennomi.app.VideoSubtitleSmokeTest" time="37.33" />
+</testsuite>

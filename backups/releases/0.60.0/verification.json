@@ -1,0 +1,56 @@
+{
+  "application_id": "com.opennomi.android",
+  "version_code": 60,
+  "version": "0.60.0",
+  "abis": [
+    "arm64-v8a"
+  ],
+  "source_commit": "41b3cb27f5049d55e5ef382e09c922c8ed30c8a4",
+  "built_source_commit": "41b3cb27f5049d55e5ef382e09c922c8ed30c8a4",
+  "workflow_url": "https://github.com/nmm26301-maker/open-nomi/actions/runs/38989679544",
+  "unit_tests": {
+    "tests": 181,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "android_smoke": {
+    "api29": {
+      "tests": 23,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "api33_attempt1": {
+      "tests": 23,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "validation_state": "Awaiting API 33 retry after UI text wait timeout; native log confirms actual Chinese translation.",
+  "lint": {
+    "Warning": 47,
+    "Information": 3
+  },
+  "unsigned_sha256": "e441b5e1dfbff1cc110856f26b2facce047ffd8e82920abee753388f32d9bca8",
+  "signed_apk_sha256": "17863c8ba600344c058aa0cd2bff8b03e6afd8130b782fe59669b73084db69e5",
+  "signed_apk_bytes": 89855213,
+  "certificate_sha256": "8132825a68acba5653aba326b84e301bb65b28664af0d0727d7a5f5b41ad1b8e",
+  "signature_v2": true,
+  "signature_v3": true,
+  "zipalign_16k": true,
+  "signing_backup": "signing/OpenNomi-new-signing.enc.json",
+  "signing_backup_sha256": "0691bf97e096b598a71537e6f828423b94a2ba77a2039e81f4caeda267afb790",
+  "validation_scope": [
+    "Length-aware 0.75–4.5 second dwell, CJK and supplementary glyph handling, ordered backpressure.",
+    "Blocking native stop returns immediately to caller; serialized stop/release, cancellation before start, idempotent release and stop failure cleanup.",
+    "Existing real player AudioPlaybackCapture, Chinese output, pause/resume, resync, Japanese models and offline reload."
+  ],
+  "limitations": [
+    "No real user phone or Bluetooth headset validation.",
+    "No measured accuracy, latency or speedup claim.",
+    "Player must allow system audio capture; first model preparation needs network.",
+    "Longer caption dwell may increase waiting text; resync skips unfinished speech and waiting captions while preserving completed recent text."
+  ]
+}
