@@ -18,7 +18,7 @@ class PlaybackHearing(private val context:Context,private val projection:MediaPr
     private val modelRoot:File,private val timing:SubtitleTiming,private val result:(String,Double?)->Unit,
     private val partial:(String)->Unit,private val error:(String)->Unit,private val stopped:()->Unit,private val ready:()->Unit) {
     private val running=AtomicBoolean(false)
-    @Volatile private var recorder:AudioRecord?=null
+    @Volatile private var recorder:PlaybackRecorderOwner<AudioRecord>?=null
     fun start() {
         check(Build.VERSION.SDK_INT>=29){"视频声音字幕需要 Android 10 以上"}
         check(ContextCompat.checkSelfPermission(context,android.Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED){"请允许音频录制权限"}
@@ -40,10 +40,12 @@ class PlaybackHearing(private val context:Context,private val projection:MediaPr
                 val capture=AudioRecord.Builder().setAudioFormat(AudioFormat.Builder()
                     .setEncoding(AudioFormat.ENCODING_PCM_16BIT).setSampleRate(16000).setChannelMask(AudioFormat.CHANNEL_IN_MONO).build())
                     .setBufferSizeInBytes(maxOf(min*2,16000)).setAudioPlaybackCaptureConfig(config).build()
+                val owner=PlaybackRecorderOwner(capture,{it.stop()},{it.release()})
+                recorder=owner
                 check(capture.state==AudioRecord.STATE_INITIALIZED){"系统未能建立声音录制"}
-                recorder=capture
+                if(!running.get() || !owner.start{if(running.get())it.startRecording()})return@Thread
                 if(!running.get())return@Thread
-                capture.startRecording();ready()
+                ready()
                 val buffer=ByteArray(3200);val phrase=AudioPhraseClock(timing.maximumMs)
                 var quietSince=SystemClock.elapsedRealtime();var speechSince=quietSince
                 var lastPreview="";var lastPreviewAt=0L
@@ -79,10 +81,10 @@ class PlaybackHearing(private val context:Context,private val projection:MediaPr
                 }
             }catch(t:Throwable){if(running.get())error("视频声音识别未完成：${t.message ?: "请重新开启字幕"}")}
             finally {
-                running.set(false);runCatching{recorder?.stop()};recorder?.release();recorder=null
+                running.set(false);runCatching{recorder?.finish()};recorder=null
                 recognizer?.close();model?.close();stopped()
             }
         },"nomi-playback-vosk").start()
     }
-    fun close(){running.set(false);runCatching{recorder?.stop()}}
+    fun close(){running.set(false);recorder?.requestStop()}
 }

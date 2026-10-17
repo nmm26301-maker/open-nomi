@@ -218,6 +218,7 @@ class WorkspaceActivity:ComponentActivity() {
             if(state.audio) {
                 Text(state.status,color=MaterialTheme.colorScheme.primary)
                 Text("待完成翻译 ${state.audioQueued} 段 · 等待显示 ${state.captionQueued} 条",fontSize=12.sp)
+                Text("字幕按译文长度停留，长句最多 4.5 秒；来不及读可暂停后回看近期译文。",fontSize=12.sp)
                 TextButton(onClick={ScreenShareService.instance?.resyncAudio()}){Text("重新同步当前声音")}
                 Text("重新同步会跳过积压语句，已完成的近期译文保留。",fontSize=12.sp)
             }

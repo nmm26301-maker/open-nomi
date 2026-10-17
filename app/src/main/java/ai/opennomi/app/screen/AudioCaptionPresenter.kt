@@ -19,10 +19,26 @@ class AudioCaptionPresenter(private val capacity:Int=2) {
     fun tick(now:Long):AudioCaption? {
         if(now<until || waiting.isEmpty())return null
         val caption=waiting.removeFirst()
-        until=now+(caption.translated.length*18L).coerceIn(750L,1500L)
+        until=now+readingTimeMs(caption.translated)
         return caption
     }
     fun reset(){waiting.clear();until=0L}
+
+    companion object {
+        /** CJK glyphs carry more information than Latin letters; retain a bounded live delay. */
+        fun readingTimeMs(text:String):Long {
+            val units=text.codePoints().toArray().sumOf { code ->
+                when {
+                    Character.isWhitespace(code) -> 0L
+                    Character.UnicodeScript.of(code) in setOf(Character.UnicodeScript.HAN,
+                        Character.UnicodeScript.HIRAGANA,Character.UnicodeScript.KATAKANA,
+                        Character.UnicodeScript.HANGUL) -> 130L
+                    else -> 40L
+                }
+            }
+            return (300L+units).coerceIn(750L,4500L)
+        }
+    }
 }
 
 /** A confident majority must not hide one uncertain word, such as a name or a number. */

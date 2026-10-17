@@ -40,8 +40,15 @@ class AudioCaptionRegressionTest {
     }
     @Test fun longCaptionsHaveABoundedDwellAndBlankTranslationsAreRejected() {
         val p=AudioCaptionPresenter();p.offer(caption("字".repeat(200)),0);p.offer(caption("next"),100)
-        assertNull(p.tick(1499));assertEquals("next",p.tick(1500)!!.translated)
-        try{p.offer(caption(""),2000);fail("Blank translated text must not be accepted")}catch(_:IllegalArgumentException){}
+        assertNull(p.tick(4499));assertEquals("next",p.tick(4500)!!.translated)
+        try{p.offer(caption(""),5000);fail("Blank translated text must not be accepted")}catch(_:IllegalArgumentException){}
+    }
+    @Test fun readingTimeAccountsForChineseAndSupplementaryCharacters() {
+        assertEquals(750L,AudioCaptionPresenter.readingTimeMs("你好"))
+        assertEquals(2900L,AudioCaptionPresenter.readingTimeMs("中".repeat(20)))
+        assertEquals(1100L,AudioCaptionPresenter.readingTimeMs("a".repeat(20)))
+        assertEquals(4500L,AudioCaptionPresenter.readingTimeMs("中".repeat(200)))
+        assertEquals(AudioCaptionPresenter.readingTimeMs("中".repeat(20)),AudioCaptionPresenter.readingTimeMs("𠀀".repeat(20)))
     }
     @Test fun recentVideoTextSurvivesPauseButIsClearedWhenSharingEnds() {
         ScreenState.begin();ScreenState.update{it.copy(audio=true,caption="actual",captionHistory=listOf(caption("actual")),audioQueued=3,captionQueued=2)}
