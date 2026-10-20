@@ -124,7 +124,7 @@ jobs:
           disable-animations: true
           script: |
             adb install -r playback-fixture/build/outputs/apk/debug/playback-fixture-debug.apk
-            trap 'mkdir -p ui-captures; adb pull /data/local/tmp/translation-quality.json ui-captures/translation-quality.json || true' EXIT
+            trap 'mkdir -p ui-captures; if adb pull /data/local/tmp/translation-quality.json ui-captures/translation-quality.json; then cat ui-captures/translation-quality.json; fi' EXIT
             gradle :app:connectedDebugAndroidTest -POPENNOMI_ABIS=x86_64 -Pkotlin.incremental=false --no-daemon
             mkdir -p ui-captures
             adb pull /data/local/tmp/fish-workstation.png ui-captures/fish-workstation.png
