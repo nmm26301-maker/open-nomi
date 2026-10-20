@@ -42,7 +42,7 @@ class SpeechQualityBenchmarkTest {
         val started=SystemClock.elapsedRealtime()
         Recognizer(model,16000f).use{r->
             r.setWords(true)
-            r.setEndpointerDelays(5f,timing.endSilenceSeconds,if(legacy)20f else timing.maximumMs/1000f)
+            r.setEndpointerDelays(5f,timing.endSilenceSeconds,20f)
             var offset=0
             while(offset<pcm.size) {
                 val count=minOf(3200,pcm.size-offset)
@@ -55,7 +55,7 @@ class SpeechQualityBenchmarkTest {
                 }
                 if(energy>count*8)quietSince=audioAt
                 if(r.acceptWaveForm(buffer,count))emit(r.result)
-                else if(legacy) {
+                else {
                     // Frozen 0.62 cutoff, using PCM time to avoid a benchmark's CPU speed changing it.
                     val partial=JSONObject(r.partialResult).optString("partial")
                     if(partial!=hypothesis){hypothesis=partial;changedAt=audioAt}
@@ -64,7 +64,7 @@ class SpeechQualityBenchmarkTest {
                         val elapsed=audioAt-phraseStart
                         val boundary=audioAt-quietSince>=200 && audioAt-changedAt>=200
                         if(elapsed>=timing.maximumMs && (boundary || elapsed>=timing.maximumMs+1200)) {
-                            emit(r.finalResult);r.reset()
+                            if(legacy){emit(r.finalResult);r.reset()}else emit(r.result)
                         }
                     }
                 }
@@ -73,7 +73,7 @@ class SpeechQualityBenchmarkTest {
         }
         val elapsed=SystemClock.elapsedRealtime()-started
         val recognized=segments.joinToString(" ")
-        return JSONObject().put("mode",if(legacy)"legacy-0.62-FAST" else timing.name)
+        return JSONObject().put("mode",if(legacy)"legacy-0.62-"+timing.name else timing.name)
             .put("recognized",recognized).put("segments",JSONArray(segments))
             .put("word_errors",wordErrors(recognized)).put("reference_words",tokens(reference).size)
             .put("wer",wordErrors(recognized).toDouble()/tokens(reference).size)
@@ -98,9 +98,10 @@ class SpeechQualityBenchmarkTest {
                 val path=withTimeout(480000){withContext(Dispatchers.IO){PlaybackModels.prepare(app,spec,true)}}
                 withContext(Dispatchers.IO) {
                     Model(path.absolutePath).use{model->
-                        speech.put(decode(model,pcm,SubtitleTiming.FAST,true).put("model",id))
-                        for(timing in SubtitleTiming.entries)
+                        for(timing in SubtitleTiming.entries) {
+                            speech.put(decode(model,pcm,timing,true).put("model",id))
                             speech.put(decode(model,pcm,timing,false).put("model",id))
+                        }
                     }
                 }
             }
@@ -131,11 +132,16 @@ class SpeechQualityBenchmarkTest {
             output.writeText(report.toString(2))
             device.executeShellCommand("cp "+output.absolutePath+" /data/local/tmp/translation-quality.json")
         }
-        assertEquals(6,speech.length());assertEquals(6,translations.length())
+        assertEquals(8,speech.length());assertEquals(6,translations.length())
         for(i in 0 until speech.length()) {
             val result=speech.getJSONObject(i)
-            if(result.getString("mode")!="legacy-0.62-FAST")
+            if(!result.getString("mode").startsWith("legacy-0.62-"))
                 assertTrue("Public speech safety threshold failed: "+result,result.getDouble("wer")<=.45)
+        }
+        for(i in 0 until speech.length() step 2) {
+            val old=speech.getJSONObject(i);val revised=speech.getJSONObject(i+1)
+            assertTrue("Keeping audio context must not increase word errors on the pinned sample: "+revised,
+                revised.getInt("word_errors")<=old.getInt("word_errors"))
         }
         for(i in 0 until translations.length())assertTrue(
             "Negation, direction, date or number changed: "+translations.getJSONObject(i),

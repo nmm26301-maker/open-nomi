@@ -1,13 +1,23 @@
 package ai.opennomi.app
 
 import ai.opennomi.app.screen.AudioSubtitleQueue
+import ai.opennomi.app.screen.AudioPhraseClock
+import ai.opennomi.app.screen.SubtitleTiming
 import ai.opennomi.app.screen.SpeechConfidence
 import org.junit.Assert.*
 import org.junit.Test
 
 class AudioSubtitleRegressionTest {
-
-
+    @Test fun aLongPhraseWaitsForAPauseButNeverWaitsWithoutABound() {
+        val clock=AudioPhraseClock(3500)
+        assertFalse(clock.update(true,0,false));assertFalse(clock.update(true,3500,false))
+        assertTrue(clock.update(true,3600,true));clock.reset()
+        assertFalse(clock.update(true,5000,false));assertFalse(clock.update(true,9699,false));assertTrue(clock.update(true,9700,false))
+    }
+    @Test fun aNewPhraseCannotInheritAnOldGraceDeadline() {
+        val clock=AudioPhraseClock(3500);clock.update(true,0,false);clock.update(true,3500,false);clock.reset()
+        assertFalse(clock.update(true,4600,false));assertFalse(clock.update(true,8100,false));assertTrue(clock.update(true,9300,false))
+    }
     @Test fun uncertainWordsAreNotHiddenByConfidentWordsAndInvalidScoresStayUnknown() {
         assertEquals(.2,SpeechConfidence.lowest(listOf(.99,.2,.98))!!,.001)
         assertNull(SpeechConfidence.lowest(listOf(Double.NaN,Double.POSITIVE_INFINITY,-1.0,2.0,.6)))
@@ -43,7 +53,11 @@ class AudioSubtitleRegressionTest {
         q.failed(0);q.reset();q.offer("new");q.success(old)
         assertEquals("new",q.next(0)!!.text)
     }
-
+    @Test fun longMonologueHasABoundaryButNormalPausesResetItsClock() {
+        val clock=AudioPhraseClock();assertFalse(clock.update(false,0));assertFalse(clock.update(true,0))
+        assertFalse(clock.update(true,5499));assertTrue(clock.update(true,5500));clock.reset()
+        assertFalse(clock.update(true,6000));assertFalse(clock.update(true,11000));assertTrue(clock.update(true,11500))
+    }
     @Test fun confidenceIsRetainedForTheSpecificCompletedUtterance() {
         val q=AudioSubtitleQueue();q.offer("uncertain",.4);q.offer("clear",.9)
         assertEquals(.4,q.next(0)!!.confidence!!,0.001);q.success(q.next(0)!!.id)
@@ -77,5 +91,10 @@ class AudioSubtitleRegressionTest {
         val q=AudioSubtitleQueue();q.offer("long ".repeat(80));repeat(3){q.offer("next")}
         assertEquals(1,q.nextBatch(0)!!.utterances.size);assertEquals(4,q.size)
     }
-
+    @Test fun fastAndCompleteModesUseDistinctMonologueBoundaries() {
+        val fast=AudioPhraseClock(SubtitleTiming.FAST.maximumMs);val full=AudioPhraseClock(SubtitleTiming.COMPLETE.maximumMs)
+        assertFalse(fast.update(true,0));assertFalse(full.update(true,0))
+        assertFalse(fast.update(true,3499));assertTrue(fast.update(true,3500));assertFalse(full.update(true,3500));assertTrue(full.update(true,5500))
+        assertEquals(SubtitleTiming.FAST,SubtitleTiming.selected("unrecognized preference"))
+    }
 }

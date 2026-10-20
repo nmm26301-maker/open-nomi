@@ -1,0 +1,18 @@
+{
+  "source_commit": "3eb6a28677bcc2949f95e496f404fad0318b5236",
+  "run_id": 39471111737,
+  "release_build_unit_lint": "passed",
+  "api29": "failed",
+  "api33": "failed",
+  "failed_probe": {
+    "source": "Turn left, not right.",
+    "raw_model_output": "左转，不对。",
+    "meaning_error": "The omitted directional verb makes 'not right' translate as 'incorrect'.",
+    "warm_translate_ms": {
+      "api29": 30,
+      "api33": 29
+    }
+  },
+  "scope": "One actual offline ML Kit mistranslation, reproduced on API 29 and 33. Timing is not end-to-end latency.",
+  "quality_report_collection": "Initial per-line EXIT trap ran before tests; corrected with scripts/run-device-checks.sh."
+}

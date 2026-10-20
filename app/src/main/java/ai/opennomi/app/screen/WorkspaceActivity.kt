@@ -266,7 +266,7 @@ class WorkspaceActivity:ComponentActivity() {
             Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
                 SubtitleTiming.entries.forEach{mode->FilterChip(selected=timing==mode.name,onClick={timing=mode.name;cfg.subtitleTiming=mode.name},label={Text(mode.label)},enabled=!state.audio)}
             }
-            Text(if(timing==SubtitleTiming.FAST.name)"优先在停顿处分段；连续讲话约 3.5 秒分段，使用连续识别。浮层优先显示较新译文，长句可能来不及读完，可在近期译文回看。" else "优先在自然停顿处分段，连续讲话约 5.5 秒分段，保留更长上下文。浮层按阅读时长逐条显示，可能落后于播放。",fontSize=12.sp)
+            Text(if(timing==SubtitleTiming.FAST.name)"连续讲话约 3.5 秒后优先等短停顿分段，不停顿时最多额外等 1.2 秒。快显优先当前进度，未及显示的结果可在近期译文回看。" else "约 5.5 秒后优先等短停顿分段，不停顿时最多额外等 1.2 秒，保留更长上下文。浮层按阅读时长逐条显示，可能落后于播放。",fontSize=12.sp)
             TextButton(onClick={busy=true;videoPreparing=true;videoMessage="正在准备视频字幕模型";running=scope.launch {
                 try {
                     val preparation=currentCoroutineContext()[Job]!!
@@ -280,7 +280,7 @@ class WorkspaceActivity:ComponentActivity() {
             if(videoPreparing){LinearProgressIndicator(Modifier.fillMaxWidth());TextButton(onClick={running?.cancel();videoMessage="已取消模型准备，已安装模型保留"}){Text("取消视频模型准备")}}
             if(videoMessage.isNotBlank())Text(videoMessage,fontSize=12.sp,color=MaterialTheme.colorScheme.primary)
             Row(verticalAlignment=Alignment.CenterVertically){Text("允许移动网络下载模型",Modifier.weight(1f),fontSize=13.sp);Switch(cellular,{cellular=it;cfg.translationCellular=it},enabled=!busy && !state.audio)}
-            Text("默认只在 Wi-Fi 下载。原文会先显示；积压时合并相邻语句翻译以追赶进度。英语原文听错时可选“英语 · 增强”（首次约 128 MB）；口音、音乐和重叠讲话会影响识别。",fontSize=12.sp)
+            Text("默认只在 Wi-Fi 下载。原文会先显示；积压时合并相邻语句翻译以追赶进度。英语可选增强模型（首次约 128 MB），应对照原文比较效果；模型更大并不保证每句更准或更快。口音、音乐和重叠讲话会影响识别。",fontSize=12.sp)
             Text("播放应用必须允许系统捕获声音；受限视频无法强行读取。手机翻译在本机处理；选择连接页的在线模型或 LibreTranslate 时，会发送识别文字。",fontSize=12.sp)
             }
         }
