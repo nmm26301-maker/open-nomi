@@ -34,6 +34,23 @@ class AudioCaptionRegressionTest {
         try{p.offer(caption("fourth"),30);fail("Full queue must not replace a waiting subtitle")}catch(_:IllegalStateException){}
         assertEquals("second",p.tick(750)!!.translated);assertTrue(p.canAccept);assertEquals("third",p.tick(1500)!!.translated)
     }
+    @Test fun liveTranslationNeverWaitsForUnreadCaptionsAndTheLatestResultHasABoundedDelay() {
+        val p=AudioCaptionPresenter(live=true)
+        assertEquals("字".repeat(100),p.offer(caption("字".repeat(100)),0)!!.translated)
+        repeat(50){index->
+            assertTrue("Display pacing must not stall the translation worker",p.canAccept)
+            assertNull(p.offer(caption("line $index"),100L+index*10))
+            assertEquals("Only the latest live result waits for display",1,p.size)
+        }
+        assertNull(p.tick(1199));assertEquals("line 49",p.tick(1200)!!.translated)
+        assertEquals(0,p.size);assertTrue(p.canAccept)
+    }
+    @Test fun liveResetCannotShowAResultFromThePreviousSession() {
+        val p=AudioCaptionPresenter(live=true)
+        p.offer(caption("old"),0);p.offer(caption("pending"),10);p.reset()
+        assertEquals("new",p.offer(caption("new"),11)!!.translated)
+        assertNull(p.tick(10000))
+    }
     @Test fun cancellingDisplayDiscardsOldTextAndItsDeadline() {
         val p=AudioCaptionPresenter();p.offer(caption("old"),0);p.offer(caption("waiting"),100);p.reset()
         assertEquals("new",p.offer(caption("new"),101)!!.translated);assertNull(p.tick(1600))

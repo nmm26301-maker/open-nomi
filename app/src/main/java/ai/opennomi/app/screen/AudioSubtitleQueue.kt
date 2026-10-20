@@ -48,14 +48,3 @@ class AudioSubtitleQueue(private val capacity:Int=12) {
     val size get()=pending.size
 }
 
-/** Partial recognition is a preview only; it must not be treated as a settled translation. */
-class AudioPhraseClock(private val maximumMs:Long=5500,private val graceMs:Long=1200) {
-    private var started=-1L
-    fun update(nonempty:Boolean,now:Long,atBoundary:Boolean=true):Boolean {
-        if(!nonempty)return false
-        if(started<0L)started=now
-        val elapsed=now-started
-        return elapsed>=maximumMs && (atBoundary || elapsed>=maximumMs+graceMs)
-    }
-    fun reset(){started=-1L}
-}

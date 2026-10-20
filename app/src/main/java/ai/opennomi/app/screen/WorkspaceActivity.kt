@@ -234,7 +234,7 @@ class WorkspaceActivity:ComponentActivity() {
                 TextButton(onClick={ScreenShareService.instance?.showBackgroundSubtitles();moveTaskToBack(true)}){Text("后台显示悬浮字幕")}
                 Text("切到播放器或其他应用后，译文会继续显示在浮层。点悬浮球可暂停、继续、改位置或字号；通知栏也能控制。",fontSize=12.sp)
                 Text("待完成翻译 ${state.audioQueued} 段 · 等待显示 ${state.captionQueued} 条",fontSize=12.sp)
-                Text("字幕按译文长度停留，长句最多 4.5 秒；来不及读可暂停后回看近期译文。",fontSize=12.sp)
+                Text("快显模式优先跟随播放，后续译文不等长句读完才翻译；完整语句模式按阅读时长逐条显示。近期译文保留完整结果。",fontSize=12.sp)
                 TextButton(onClick={ScreenShareService.instance?.resyncAudio()}){Text("重新同步当前声音")}
                 Text("重新同步会跳过积压语句，已完成的近期译文保留。",fontSize=12.sp)
             }
@@ -254,6 +254,7 @@ class WorkspaceActivity:ComponentActivity() {
             if(!state.audio || videoOptions) {
             Row(verticalAlignment=Alignment.CenterVertically){Text("手机翻译 · 无需 API Key",Modifier.weight(1f),fontSize=13.sp);Switch(phone,{phone=it;cfg.phoneTranslation=it},enabled=!state.audio && !busy)}
             if(!phone)TextButton(onClick={tab.value="settings"}){Text("配置在线翻译服务")}
+            if(phone)Text("手机离线翻译适合简单句。原文正确但译文生硬或意思有误时，可切换已配置的在线翻译；日语等语言译成中文会经英语中转，质量可能受影响。",fontSize=12.sp)
             Text("原声语言 · 左右滑动选择",fontSize=12.sp)
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
                 PlaybackModels.choices.forEach { model ->
@@ -265,7 +266,7 @@ class WorkspaceActivity:ComponentActivity() {
             Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
                 SubtitleTiming.entries.forEach{mode->FilterChip(selected=timing==mode.name,onClick={timing=mode.name;cfg.subtitleTiming=mode.name},label={Text(mode.label)},enabled=!state.audio)}
             }
-            Text(if(timing==SubtitleTiming.FAST.name)"连续讲话约 3.5 秒后优先等短停顿分段；不停顿时最多额外等 1.2 秒。" else "约 5.5 秒后优先等短停顿分段，保留更多上下文；不停顿时最多额外等 1.2 秒。",fontSize=12.sp)
+            Text(if(timing==SubtitleTiming.FAST.name)"优先在停顿处分段；连续讲话约 3.5 秒分段，使用连续识别。浮层优先显示较新译文，长句可能来不及读完，可在近期译文回看。" else "优先在自然停顿处分段，连续讲话约 5.5 秒分段，保留更长上下文。浮层按阅读时长逐条显示，可能落后于播放。",fontSize=12.sp)
             TextButton(onClick={busy=true;videoPreparing=true;videoMessage="正在准备视频字幕模型";running=scope.launch {
                 try {
                     val preparation=currentCoroutineContext()[Job]!!
@@ -279,7 +280,7 @@ class WorkspaceActivity:ComponentActivity() {
             if(videoPreparing){LinearProgressIndicator(Modifier.fillMaxWidth());TextButton(onClick={running?.cancel();videoMessage="已取消模型准备，已安装模型保留"}){Text("取消视频模型准备")}}
             if(videoMessage.isNotBlank())Text(videoMessage,fontSize=12.sp,color=MaterialTheme.colorScheme.primary)
             Row(verticalAlignment=Alignment.CenterVertically){Text("允许移动网络下载模型",Modifier.weight(1f),fontSize=13.sp);Switch(cellular,{cellular=it;cfg.translationCellular=it},enabled=!busy && !state.audio)}
-            Text("默认只在 Wi-Fi 下载。原文会先显示；积压时合并相邻语句翻译以追赶进度。英语可选增强模型；口音、音乐和重叠讲话会影响识别。",fontSize=12.sp)
+            Text("默认只在 Wi-Fi 下载。原文会先显示；积压时合并相邻语句翻译以追赶进度。英语原文听错时可选“英语 · 增强”（首次约 128 MB）；口音、音乐和重叠讲话会影响识别。",fontSize=12.sp)
             Text("播放应用必须允许系统捕获声音；受限视频无法强行读取。手机翻译在本机处理；选择连接页的在线模型或 LibreTranslate 时，会发送识别文字。",fontSize=12.sp)
             }
         }

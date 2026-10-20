@@ -5,21 +5,23 @@ import java.util.ArrayDeque
 data class AudioCaption(val translated:String,val original:String,val confidence:Double?,val language:String)
 
 /** Keep fast translation bursts readable without applying the much longer OCR caption gate. */
-class AudioCaptionPresenter(private val capacity:Int=2) {
+class AudioCaptionPresenter(private val capacity:Int=2,private val live:Boolean=false) {
     private val waiting=ArrayDeque<AudioCaption>()
     private var until=0L
-    val canAccept get()=waiting.size<capacity
+    // Live mode keeps one latest pending result; every completed result is retained by the service history.
+    val canAccept get()=live || waiting.size<capacity
     val size get()=waiting.size
     fun offer(caption:AudioCaption,now:Long):AudioCaption? {
         require(caption.translated.isNotBlank() && caption.original.isNotBlank()){"翻译服务返回空字幕"}
         check(canAccept){"字幕展示队列已满"}
+        if(live)waiting.clear()
         waiting.addLast(caption)
         return tick(now)
     }
     fun tick(now:Long):AudioCaption? {
         if(now<until || waiting.isEmpty())return null
         val caption=waiting.removeFirst()
-        until=now+readingTimeMs(caption.translated)
+        until=now+if(live)readingTimeMs(caption.translated).coerceAtMost(1200L) else readingTimeMs(caption.translated)
         return caption
     }
     fun reset(){waiting.clear();until=0L}

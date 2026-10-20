@@ -25,7 +25,7 @@ class ScreenShareService: Service() {
     private val translations=TranslationBuffer();private var translationConfig="";private var translationJob:Job?=null;private var translationGeneration=0L;private var captions=CaptionGate();private var playback: PlaybackHearing?=null
     private var width=0;private var height=0
     private val audioQueue=AudioSubtitleQueue();private var audioSource="en";private var audioContext=""
-    private val audioCaptions=AudioCaptionPresenter()
+    private var audioCaptions=AudioCaptionPresenter(live=true)
     private var playbackGeneration=0L;private var audioPreparation:Job?=null
     private var notificationKey=""
     private fun sharingNotification(state:WorkspaceState):Notification {
@@ -199,6 +199,7 @@ class ScreenShareService: Service() {
             caption.confidence==null -> "这句没有可靠识别置信度，请对照原文"
             caption.confidence<.55 -> "这句包含不确定的识别词，请对照原文"
             audioQueue.size>=4 || audioCaptions.size>0 -> "字幕正在追赶播放进度；漏读可看近期译文"
+            SubtitleTiming.selected(ScreenAssistant.settings().subtitleTiming)==SubtitleTiming.FAST -> "快显优先当前进度 · 完整结果见近期译文"
             else -> ""
         }
         ScreenState.update{it.copy(caption=caption.translated,captionOriginal=caption.original,notice=warning,status="视频实时字幕 · ${caption.language}")}
@@ -222,6 +223,7 @@ class ScreenShareService: Service() {
         val cfg=ScreenAssistant.settings();val model=PlaybackModels.selected(cfg.playbackModel)
         cfg.subtitleOverlay=true
         audioSource=model.language;translationConfig=cfg.translationFingerprint()
+        audioCaptions=AudioCaptionPresenter(live=SubtitleTiming.selected(cfg.subtitleTiming)==SubtitleTiming.FAST)
         val id=session
         fun valid()=ScreenState.valid(id) && playbackGeneration==generation && ScreenState.state.value.audio
         ScreenState.update{it.copy(audio=true,caption="",captionOriginal="",audioPreview="",notice="正在准备原声识别与翻译模型，请准备好后播放视频",status="正在准备${model.label}视频字幕")}

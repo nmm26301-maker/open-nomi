@@ -30,7 +30,7 @@ class PlaybackHearing(private val context:Context,private val projection:MediaPr
                 model=Model(modelRoot.absolutePath);recognizer=Recognizer(model,16000f)
                 recognizer.setWords(true)
                 // Vosk uses seconds here; use its endpoint detector to retain natural pauses.
-                recognizer.setEndpointerDelays(5f,timing.endSilenceSeconds,20f)
+                recognizer.setEndpointerDelays(5f,timing.endSilenceSeconds,timing.maximumMs/1000f)
                 if(!running.get())return@Thread
                 val min=AudioRecord.getMinBufferSize(16000,AudioFormat.CHANNEL_IN_MONO,AudioFormat.ENCODING_PCM_16BIT)
                 check(min>0){"系统不支持视频声音采样格式"}
@@ -46,10 +46,9 @@ class PlaybackHearing(private val context:Context,private val projection:MediaPr
                 if(!running.get() || !owner.start{if(running.get())it.startRecording()})return@Thread
                 if(!running.get())return@Thread
                 ready()
-                val buffer=ByteArray(3200);val phrase=AudioPhraseClock(timing.maximumMs)
+                val buffer=ByteArray(3200)
                 var quietSince=SystemClock.elapsedRealtime();var speechSince=quietSince
                 var lastPreview="";var lastPreviewAt=0L
-                var lastHypothesis="";var hypothesisChangedAt=0L
                 fun emit(raw:String) {
                     val json=JSONObject(raw);val text=json.optString("text").trim()
                     if(text.isNotBlank() && running.get()) {
@@ -57,7 +56,7 @@ class PlaybackHearing(private val context:Context,private val projection:MediaPr
                         val confidence=if(words!=null)SpeechConfidence.lowest((0 until words.length()).map{words.getJSONObject(it).optDouble("conf",Double.NaN)}) else null
                         result(text,confidence);speechSince=SystemClock.elapsedRealtime()
                     }
-                    phrase.reset();lastPreview="";lastHypothesis="";hypothesisChangedAt=0L;partial("")
+                    lastPreview="";partial("")
                 }
                 while(running.get()) {
                     val n=capture.read(buffer,0,buffer.size)
@@ -70,12 +69,10 @@ class PlaybackHearing(private val context:Context,private val projection:MediaPr
                     if(recognizer.acceptWaveForm(buffer,n))emit(recognizer.result)
                     else {
                         val text=JSONObject(recognizer.partialResult).optString("partial").trim()
-                        if(text!=lastHypothesis){lastHypothesis=text;hypothesisChangedAt=now}
                         if(text!=lastPreview && now-lastPreviewAt>=400){partial(text);lastPreview=text;lastPreviewAt=now}
-                        // Give a long utterance a bounded chance to finish at a quiet, stable boundary.
-                        // Only finalized recognition is translated; temporary hypotheses stay previews.
-                        val boundary=now-quietSince>=200 && now-hypothesisChangedAt>=200
-                        if(phrase.update(text.isNotBlank(),now,boundary)){emit(recognizer.finalResult);recognizer.reset()}
+                        // Keep the feature pipeline alive across native endpoints. finalResult() is
+                        // an end-of-stream operation: calling it mid-word discards acoustic context.
+                        // The native maximum-utterance endpoint bounds continuous speech instead.
                     }
                     if(now-speechSince>25000 && now-quietSince<1000){error("已收到声音，但没有识别出完整语句；请核对原声语言，背景音乐或多人重叠说话会影响识别");speechSince=now}
                 }
