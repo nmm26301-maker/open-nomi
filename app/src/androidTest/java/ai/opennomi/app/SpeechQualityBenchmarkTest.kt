@@ -30,14 +30,14 @@ class SpeechQualityBenchmarkTest {
         }
         return row[b.size]
     }
-    private fun decode(model:Model,pcm:ByteArray,timing:SubtitleTiming,legacy:Boolean):JSONObject {
+    private fun decode(model:Model,pcm:ByteArray,timing:SubtitleTiming):JSONObject {
         val segments=mutableListOf<String>()
-        var firstAt=-1L;var phraseStart=-1L;var quietSince=0L
+        var firstAt=-1L;val phrase=AudioPhraseClock(timing.maximumMs);var quietSince=0L
         var hypothesis="";var changedAt=0L;var audioAt=0L
         fun emit(raw:String) {
             val text=JSONObject(raw).optString("text").trim()
             if(text.isNotBlank()){segments.add(text);if(firstAt<0)firstAt=audioAt}
-            phraseStart=-1;hypothesis="";changedAt=0L
+            phrase.reset();hypothesis="";changedAt=0L
         }
         val started=SystemClock.elapsedRealtime()
         Recognizer(model,16000f).use{r->
@@ -56,16 +56,12 @@ class SpeechQualityBenchmarkTest {
                 if(energy>count*8)quietSince=audioAt
                 if(r.acceptWaveForm(buffer,count))emit(r.result)
                 else {
-                    // Frozen 0.62 cutoff, using PCM time to avoid a benchmark's CPU speed changing it.
+                    // Use the production pause/grace policy. Recognition is deliberately unchanged.
                     val partial=JSONObject(r.partialResult).optString("partial")
                     if(partial!=hypothesis){hypothesis=partial;changedAt=audioAt}
-                    if(partial.isNotBlank()) {
-                        if(phraseStart<0)phraseStart=audioAt
-                        val elapsed=audioAt-phraseStart
-                        val boundary=audioAt-quietSince>=200 && audioAt-changedAt>=200
-                        if(elapsed>=timing.maximumMs && (boundary || elapsed>=timing.maximumMs+1200)) {
-                            if(legacy){emit(r.finalResult);r.reset()}else emit(r.result)
-                        }
+                    val boundary=audioAt-quietSince>=200 && audioAt-changedAt>=200
+                    if(phrase.update(partial.isNotBlank(),audioAt,boundary)) {
+                        emit(r.finalResult);r.reset()
                     }
                 }
             }
@@ -73,7 +69,7 @@ class SpeechQualityBenchmarkTest {
         }
         val elapsed=SystemClock.elapsedRealtime()-started
         val recognized=segments.joinToString(" ")
-        return JSONObject().put("mode",if(legacy)"legacy-0.62-"+timing.name else timing.name)
+        return JSONObject().put("mode",timing.name)
             .put("recognized",recognized).put("segments",JSONArray(segments))
             .put("word_errors",wordErrors(recognized)).put("reference_words",tokens(reference).size)
             .put("wer",wordErrors(recognized).toDouble()/tokens(reference).size)
@@ -98,10 +94,8 @@ class SpeechQualityBenchmarkTest {
                 val path=withTimeout(480000){withContext(Dispatchers.IO){PlaybackModels.prepare(app,spec,true)}}
                 withContext(Dispatchers.IO) {
                     Model(path.absolutePath).use{model->
-                        for(timing in SubtitleTiming.entries) {
-                            speech.put(decode(model,pcm,timing,true).put("model",id))
-                            speech.put(decode(model,pcm,timing,false).put("model",id))
-                        }
+                        for(timing in SubtitleTiming.entries)
+                            speech.put(decode(model,pcm,timing).put("model",id))
                     }
                 }
             }
@@ -132,16 +126,10 @@ class SpeechQualityBenchmarkTest {
             output.writeText(report.toString(2))
             device.executeShellCommand("cp "+output.absolutePath+" /data/local/tmp/translation-quality.json")
         }
-        assertEquals(8,speech.length());assertEquals(6,translations.length())
+        assertEquals(4,speech.length());assertEquals(6,translations.length())
         for(i in 0 until speech.length()) {
             val result=speech.getJSONObject(i)
-            if(!result.getString("mode").startsWith("legacy-0.62-"))
-                assertTrue("Public speech safety threshold failed: "+result,result.getDouble("wer")<=.45)
-        }
-        for(i in 0 until speech.length() step 2) {
-            val old=speech.getJSONObject(i);val revised=speech.getJSONObject(i+1)
-            assertTrue("Keeping audio context must not increase word errors on the pinned sample: "+revised,
-                revised.getInt("word_errors")<=old.getInt("word_errors"))
+            assertTrue("Public speech regression threshold failed: "+result,result.getInt("word_errors")<=3)
         }
         for(i in 0 until translations.length())assertTrue(
             "Negation, direction, date or number changed: "+translations.getJSONObject(i),

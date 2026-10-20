@@ -72,11 +72,10 @@ class PlaybackHearing(private val context:Context,private val projection:MediaPr
                         val text=JSONObject(recognizer.partialResult).optString("partial").trim()
                         if(text!=lastHypothesis){lastHypothesis=text;hypothesisChangedAt=now}
                         if(text!=lastPreview && now-lastPreviewAt>=400){partial(text);lastPreview=text;lastPreviewAt=now}
-                        // End an utterance without ending the audio stream. result preserves the feature
-                        // pipeline; finalResult/reset here discarded acoustic context at every cutoff.
-                        // Keep the established pause/grace timing instead of forcing shorter segments.
+                        // Give a long utterance a bounded chance to finish at a quiet, stable boundary.
+                        // Only finalized recognition is translated; temporary hypotheses stay previews.
                         val boundary=now-quietSince>=200 && now-hypothesisChangedAt>=200
-                        if(phrase.update(text.isNotBlank(),now,boundary))emit(recognizer.result)
+                        if(phrase.update(text.isNotBlank(),now,boundary)){emit(recognizer.finalResult);recognizer.reset()}
                     }
                     if(now-speechSince>25000 && now-quietSince<1000){error("已收到声音，但没有识别出完整语句；请核对原声语言，背景音乐或多人重叠说话会影响识别");speechSince=now}
                 }
