@@ -1,24 +1,42 @@
-# Translation pipeline work for 0.63.0
+# OpenNomi 0.63.0 translation work
 
-Status: source changes submitted for validation; no signed installer delivered yet.
+Status: source validated; **no signed installer delivered**. The local execution environment is unavailable, so original-certificate signing and release-backup readback remain pending.
 
-- FAST display no longer blocks the translation worker on the old two-caption reading queue. It keeps one latest waiting caption and caps the current caption's minimum dwell at 1.2 seconds. Intermediate completed results remain in the existing last-20 session history. COMPLETE retains ordered readable display and backpressure.
-- Vosk native maximum-duration endpoints replace repeated mid-stream finalResult/reset calls. This retains the native feature pipeline between segments and removes the extra 1.2-second application cutoff grace. Natural silence endpoints remain enabled. This does not replace the acoustic or translation models.
-- Added pinned continuous public speech (JFK excerpt in whisper.cpp, commit b0a11594aec50892a02cd8d129eee2dfe93a8bb8, blob 3184d372cd2f8b804d3a540c70ec50d927b335d2) alongside the existing number-word fixture. CI compares the frozen 0.62 manual cutoff with native FAST and COMPLETE for built-in and enhanced English recognizers; records recognized words, reference, WER, decoding time, first segment audio position.
-- Four authored translation probes check negation, date, direction and a price using actual ML Kit output. Results and warm translation time are written to translation-quality.json in each emulator artifact, including on assertion failure.
-- Word-error threshold is a basic regression guard, not an accuracy percentage claim. A single short English excerpt does not establish performance on films, Japanese, accents, music or overlapping speakers. CPU decode time and first segment position are not end-to-end phone latency.
-- Offline translation uses ML Kit: https://developers.google.com/ml-kit/language/translation . Non-English pairs pass through English. Existing explicitly configured online text translation remains available; the update does not automatically send audio or enable a cloud provider.
+Validated source: [56130dc28359a479671cfcd4eeb720c8526c5278](https://github.com/nmm26301-maker/open-nomi/commit/56130dc28359a479671cfcd4eeb720c8526c5278). Final checks: [workflow 39475774099](https://github.com/nmm26301-maker/open-nomi/actions/runs/39475774099).
 
-Pending: successful release build/lint/unit tests, API 29/33 instrumented runs, inspection of actual quality output, original-certificate signing and release backup/readback verification.
+## Final changes
 
-Initial CI 39471111737 passed release build, lint and unit tests, but both API 29 and 33 caught the same real ML Kit defect: "Turn left, not right." -> "左转，不对。". This failure is retained in the run logs. A conservative English imperative normalizer now restores the repeated action only for anchored directional contrasts; it leaves questions, negative imperatives, non-directional statements, names and numbers untouched. The model is still ML Kit; this is not a general-purpose translation-quality guarantee. Three directional probes plus the other three semantic probes are checked against actual output, with raw model output retained for comparison.
+- FAST display keeps one latest waiting result and caps the current caption's minimum dwell at 1.2 seconds. It no longer blocks the translation worker behind the old two-caption reading queue. Intermediate results can be superseded on the floating display; completed source and translation remain in the existing last-20 session history. COMPLETE retains readable, ordered display and backpressure. This is a display policy, not a measured end-to-end phone latency guarantee.
+- The offline translator expands a narrow English directional contrast into complete imperative clauses. For example, raw ML Kit translates “Turn left, not right.” as “左转，不对。”. Translating “turn to the left. Do not turn to the right.” instead produces “转到左边。 不要转向右边。”. The original source remains the cache/history key. The normalizer is limited to anchored directional commands and leaves questions, negative commands, other statements, names and numbers untouched.
+- The delivered 0.62 speech recognizer and pause/grace policy are preserved. Neither a new recognition engine nor a general translation-quality upgrade is claimed. The UI explains the live/readable tradeoff, local translation limits, first downloads and the need to compare model results.
 
-The evidence collector was moved into one shell script: emulator-runner starts a separate shell for each YAML script line, so the earlier EXIT trap ran before tests. Revised CI must collect the public quality report after the tests.
+## Validation and measured limits
 
-The shortened native maximum endpoint was rejected after run 39473083224: API 33 built-in FAST had 2 errors versus the old 2, enhanced FAST had 4 versus the old 1. Built-in COMPLETE had 0 errors, enhanced COMPLETE 2. Preserve the full raw evidence in docs/validation/0.63-rejected-short-endpoint-api33.json. Six actual translation probes passed, including the corrected contrast sentences. No general accuracy claim follows from these six probes.
+Release build, unit tests and release lint passed. API 29 and 33 instrumented checks passed, including real language-model download, actual translation, offline reload, visible translated result, external-player audio capture and background subtitle controls.
 
-Revised speech fix: retain the established pause/grace boundaries, but call Vosk result rather than finalResult/reset for a bounded utterance. This finalizes an utterance without terminating and reallocating the audio feature pipeline. Compare both FAST and COMPLETE directly against the corresponding legacy boundary policy for each model, with an explicit no-increase-in-word-errors assertion on this pinned sample. Faster display remains separate from recognition timing.
+All six authored semantic probes passed on both APIs: a prohibition, price, date contrast and three directional contrasts. Raw model outputs and expanded inputs are retained in [API 29](validation/0.63-final-api29.json) and [API 33](validation/0.63-final-api33.json). Warm sentence translation took 26–41 ms on these emulators; this excludes initial downloads/preparation and is not real-phone end-to-end latency.
 
-The feature-preserving utterance experiment in 39474469875 was also rejected: API 33 built-in FAST changed from 2 to 1 word error, but enhanced FAST and COMPLETE changed from 1 to 2. Keep the raw evidence in docs/validation/0.63-rejected-continuity-api33.json. Revert PlaybackHearing to the previously delivered 0.62 code. Do not claim a speech-recognition accuracy improvement.
+The pinned 11-second public JFK excerpt has 22 reference words. Final actual recognition:
 
-Final intended source scope: FAST display/backpressure fix; conservative English directional-contrast input completion; UI explanation; actual speech and translation quality evidence. The final speech check uses the production AudioPhraseClock, records both modes/models, and rejects more than 3 errors in this 22-word public sample. This is only a fixture regression bound, not a product accuracy promise. Final CI and signing remain pending.
+| Model | Mode | API 29 word errors | API 33 word errors |
+| --- | --- | ---: | ---: |
+| Built-in English | FAST | 2 | 3 |
+| Built-in English | COMPLETE | 1 | 1 |
+| Enhanced English | FAST | 1 | 1 |
+| Enhanced English | COMPLETE | 1 | 1 |
+
+The sample still contains recognition errors. Enhanced decoding also costs substantially more CPU on these emulators. Do not extrapolate one short English recording to films, Japanese, music, accents or overlapping speakers. The three-word test bound is a fixture regression guard, not a product accuracy target. No real-phone, Bluetooth or general accuracy/latency percentage is claimed.
+
+Public audio is pinned by whisper.cpp commit b0a11594aec50892a02cd8d129eee2dfe93a8bb8 and Git blob 3184d372cd2f8b804d3a540c70ec50d927b335d2. The fixture script checks bytes and format before preparing test PCM. The benchmark uses production AudioPhraseClock with deterministic PCM time; its audio positions and decode times are not end-to-end screen latency.
+
+## Rejected experiments retained for review
+
+The initial real-model run [39471111737](https://github.com/nmm26301-maker/open-nomi/actions/runs/39471111737) failed on the “not right” mistranslation on both systems; [failure evidence](validation/0.63-direction-failure.json) is retained.
+
+Simply shortening native utterances increased enhanced-model word errors from 1 to 3–4. Preserving audio features at the old manual boundary also increased enhanced-model errors from 1 to 2. Both speech changes were rejected and reverted. Raw evidence: [short endpoint API 29](validation/0.63-rejected-short-endpoint-api29.json), [API 33](validation/0.63-rejected-short-endpoint-api33.json), [continuity API 29](validation/0.63-rejected-continuity-api29.json), [API 33](validation/0.63-rejected-continuity-api33.json).
+
+## Installer handoff
+
+[Source validation and exact build artifacts](validation/0.63-source-handoff.json) record the final source, jobs, artifact digests and expiry. These artifacts are unsigned verification output. Restore the execution environment, reuse the existing release key and scripts/sign-release.py, then complete the required signed-APK backup/reconstruction checks before delivering an update. No new installer, signing result or release-backup verification is represented by this source validation.
+
+ML Kit limitations: https://developers.google.com/ml-kit/language/translation .
