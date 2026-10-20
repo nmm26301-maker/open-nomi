@@ -10,3 +10,7 @@ Status: source changes submitted for validation; no signed installer delivered y
 - Offline translation uses ML Kit: https://developers.google.com/ml-kit/language/translation . Non-English pairs pass through English. Existing explicitly configured online text translation remains available; the update does not automatically send audio or enable a cloud provider.
 
 Pending: successful release build/lint/unit tests, API 29/33 instrumented runs, inspection of actual quality output, original-certificate signing and release backup/readback verification.
+
+Initial CI 39471111737 passed release build, lint and unit tests, but both API 29 and 33 caught the same real ML Kit defect: "Turn left, not right." -> "左转，不对。". This failure is retained in the run logs. A conservative English imperative normalizer now restores the repeated action only for anchored directional contrasts; it leaves questions, negative imperatives, non-directional statements, names and numbers untouched. The model is still ML Kit; this is not a general-purpose translation-quality guarantee. Three directional probes plus the other three semantic probes are checked against actual output, with raw model output retained for comparison.
+
+The evidence collector was moved into one shell script: emulator-runner starts a separate shell for each YAML script line, so the earlier EXIT trap ran before tests. Revised CI must collect the public quality report after the tests.

@@ -86,11 +86,12 @@ class SpeechQualityBenchmarkTest {
         val device=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         val pcm=InstrumentationRegistry.getInstrumentation().context.assets.open("quality-jfk.pcm").use{it.readBytes()}
         assertTrue(pcm.isNotEmpty())
-        val report=JSONObject().put("scope","Public JFK excerpt and four authored English sentences; emulator only")
+        val report=JSONObject().put("scope","Public JFK excerpt and six authored English sentences; emulator only")
             .put("reference",reference).put("timing_note","Decode speed and audio position of first segment; not end-to-end latency")
         val speech=JSONArray();val translations=JSONArray()
         report.put("speech",speech).put("translation",translations)
         val engine=PhoneTranslator()
+        var baseline:com.google.mlkit.nl.translate.Translator?=null
         try {
             for(id in listOf("en","en-wide")) {
                 val spec=PlaybackModels.selected(id)
@@ -105,25 +106,32 @@ class SpeechQualityBenchmarkTest {
             }
             withTimeout(240000){engine.prepare("en",true)}
             engine.translate("Hello world.","en")
+            val raw=com.google.mlkit.nl.translate.Translation.getClient(com.google.mlkit.nl.translate.TranslatorOptions.Builder()
+                .setSourceLanguage("en").setTargetLanguage("zh").build())
+            baseline=raw
             val probes=listOf(
                 "Do not open the door." to listOf(Regex("不|别|勿"),Regex("门")),
                 "The ticket costs 25 dollars." to listOf(Regex("25|二十五"),Regex("美元|美金")),
                 "The meeting is tomorrow, not today." to listOf(Regex("明天"),Regex("今天"),Regex("不|非|而")),
-                "Turn left, not right." to listOf(Regex("左"),Regex("右"),Regex("不|别|非|而"))
+                "Turn left, not right." to listOf(Regex("左"),Regex("右"),Regex("不|别|非|而")),
+                "Go right, not left." to listOf(Regex("左"),Regex("右"),Regex("不|别|非|而")),
+                "Move up, not down." to listOf(Regex("上"),Regex("下"),Regex("不|别|非|而"))
             )
             for((source,checks) in probes) {
+                val rawOutput=withContext(Dispatchers.IO){com.google.android.gms.tasks.Tasks.await(raw.translate(source),30,java.util.concurrent.TimeUnit.SECONDS)}
                 val start=SystemClock.elapsedRealtime();val translated=engine.translate(source,"en")
                 translations.put(JSONObject().put("source",source).put("translated",translated)
                     .put("warm_translate_ms",SystemClock.elapsedRealtime()-start)
+                    .put("raw_model_output",rawOutput).put("model_input",EnglishContrast.complete(source))
                     .put("semantic_checks_pass",checks.all{it.containsMatchIn(translated)}))
             }
         } finally {
-            engine.close()
+            baseline?.close();engine.close()
             val output=File(app.getExternalFilesDir(null),"translation-quality.json")
             output.writeText(report.toString(2))
             device.executeShellCommand("cp "+output.absolutePath+" /data/local/tmp/translation-quality.json")
         }
-        assertEquals(6,speech.length());assertEquals(4,translations.length())
+        assertEquals(6,speech.length());assertEquals(6,translations.length())
         for(i in 0 until speech.length()) {
             val result=speech.getJSONObject(i)
             if(result.getString("mode")!="legacy-0.62-FAST")

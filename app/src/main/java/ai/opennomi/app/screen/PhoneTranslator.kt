@@ -72,7 +72,10 @@ class PhoneTranslator {
         val cacheEpoch=cache.epoch()
         _status.value="正在手机上翻译 · Google 翻译"
         try {
-            val output=withTimeout(30000){client(supported).translate(input).awaitResult()}
+            // ML Kit can read an elliptical 'not right' as 'incorrect'. Repeat the
+            // shared movement verb for directional contrasts, preserving the original cache/history key.
+            val modelInput=if(supported==TranslateLanguage.ENGLISH)EnglishContrast.complete(input) else input
+            val output=withTimeout(30000){client(supported).translate(modelInput).awaitResult()}
             check(output.isNotBlank()){"手机翻译未返回译文"}
             currentCoroutineContext().ensureActive()
             cache.remember(supported,input,output,cacheEpoch)

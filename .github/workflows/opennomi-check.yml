@@ -122,17 +122,7 @@ jobs:
           arch: x86_64
           profile: pixel_2
           disable-animations: true
-          script: |
-            adb install -r playback-fixture/build/outputs/apk/debug/playback-fixture-debug.apk
-            trap 'mkdir -p ui-captures; if adb pull /data/local/tmp/translation-quality.json ui-captures/translation-quality.json; then cat ui-captures/translation-quality.json; fi' EXIT
-            gradle :app:connectedDebugAndroidTest -POPENNOMI_ABIS=x86_64 -Pkotlin.incremental=false --no-daemon
-            mkdir -p ui-captures
-            adb pull /data/local/tmp/fish-workstation.png ui-captures/fish-workstation.png
-            adb pull /data/local/tmp/conversation-home.png ui-captures/conversation-home.png
-            adb pull /data/local/tmp/conversation-memory.png ui-captures/conversation-memory.png
-            adb pull /data/local/tmp/translation-workspace.png ui-captures/translation-workspace.png
-            adb pull /data/local/tmp/video-live-workspace.png ui-captures/video-live-workspace.png
-            adb pull /data/local/tmp/background-subtitles.png ui-captures/background-subtitles.png
+          script: bash scripts/run-device-checks.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
