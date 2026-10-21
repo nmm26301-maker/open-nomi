@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="ai.opennomi.app.ScreenWorkspaceRegressionTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-20T18:36:57" hostname="runnervmxehtw" time="0.015">
+  <properties />
+  <testcase name="genericModelActionMustBeSupported" classname="ai.opennomi.app.ScreenWorkspaceRegressionTest" time="0.005" />
+  <testcase name="subtitlesNeverReplaceUnreadText" classname="ai.opennomi.app.ScreenWorkspaceRegressionTest" time="0.001" />
+  <testcase name="autoGlmUsesSafeDataParsing" classname="ai.opennomi.app.ScreenWorkspaceRegressionTest" time="0.004" />
+  <testcase name="longSubtitlesHaveEnoughDwell" classname="ai.opennomi.app.ScreenWorkspaceRegressionTest" time="0.0" />
+  <testcase name="revokedSessionRejectsLateResults" classname="ai.opennomi.app.ScreenWorkspaceRegressionTest" time="0.001" />
+  <testcase name="audioOnlyCaptureSavesOcrWorkWhileQuestionsAndTasksKeepFastFrames" classname="ai.opennomi.app.ScreenWorkspaceRegressionTest" time="0.0" />
+  </testsuite>

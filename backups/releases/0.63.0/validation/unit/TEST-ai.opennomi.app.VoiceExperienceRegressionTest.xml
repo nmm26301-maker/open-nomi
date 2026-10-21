@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="ai.opennomi.app.VoiceExperienceRegressionTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-20T18:36:59" hostname="runnervmxehtw" time="0.004">
+  <properties />
+  <testcase name="retransmittedRecognitionDoesNotRestartAnAnswer" classname="ai.opennomi.app.VoiceExperienceRegressionTest" time="0.001" />
+  <testcase name="relaxedEndpointKeepsAThinkingPauseInsideOneUtterance" classname="ai.opennomi.app.VoiceExperienceRegressionTest" time="0.0" />
+  <testcase name="emptyRecognitionCannotStartOrInterruptATurn" classname="ai.opennomi.app.VoiceExperienceRegressionTest" time="0.0" />
+  <testcase name="briefNoiseDoesNotTriggerBargeInButSustainedSpeechDoes" classname="ai.opennomi.app.VoiceExperienceRegressionTest" time="0.001" />
+  <testcase name="userCanRepeatTheSameQuestionInANewListeningTurn" classname="ai.opennomi.app.VoiceExperienceRegressionTest" time="0.0" />
+  <testcase name="oldEndpointPreferenceIsPreservedUntilUserSelectsAPause" classname="ai.opennomi.app.VoiceExperienceRegressionTest" time="0.001" />
+  </testsuite>

@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="ai.opennomi.app.FloatingSubtitleRegressionTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-20T18:36:55" hostname="runnervmxehtw" time="0.01">
+  <properties />
+  <testcase name="backgroundViewUsesTheSameCompletedTranslationBeforeAnyLongErrorNotice" classname="ai.opennomi.app.FloatingSubtitleRegressionTest" time="0.001" />
+  <testcase name="partialSpeechIsLabelledAsRecognitionInsteadOfInventingATranslation" classname="ai.opennomi.app.FloatingSubtitleRegressionTest" time="0.001" />
+  <testcase name="idleCaptureStillHasAVisibleWaitingMessage" classname="ai.opennomi.app.FloatingSubtitleRegressionTest" time="0.003" />
+  <testcase name="hidingTheViewDoesNotMutateOrDiscardCapturedHistory" classname="ai.opennomi.app.FloatingSubtitleRegressionTest" time="0.001" />
+  <testcase name="pausedViewExplicitlyLabelsItsLastCompletedCaptionAndPreservesAnError" classname="ai.opennomi.app.FloatingSubtitleRegressionTest" time="0.001" />
+  <testcase name="displayOptionsCannotChangeTheCapturedTranslationOrMislabelAnOnlineProvider" classname="ai.opennomi.app.FloatingSubtitleRegressionTest" time="0.001" />
+  <testcase name="stoppingSharingRemovesAllFloatingTranscriptEvenIfAStaleStateHasText" classname="ai.opennomi.app.FloatingSubtitleRegressionTest" time="0.0" />
+  </testsuite>

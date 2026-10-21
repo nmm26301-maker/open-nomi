@@ -1,0 +1,64 @@
+{
+  "version": "0.63.0",
+  "source_commit": "56130dc28359a479671cfcd4eeb720c8526c5278",
+  "workflow_url": "https://github.com/nmm26301-maker/open-nomi/actions/runs/39475774099",
+  "release_build": "passed",
+  "release_lint": "passed",
+  "junit": {
+    "unit": {
+      "tests": 192,
+      "failures": 0,
+      "errors": 0
+    },
+    "api-29": {
+      "tests": 24,
+      "failures": 0,
+      "errors": 0
+    },
+    "api-33": {
+      "tests": 24,
+      "failures": 0,
+      "errors": 0
+    }
+  },
+  "junit_system_streams_removed": 48,
+  "report_note": "JUnit test cases, timings and outcomes retained; system-out/system-err stripped to avoid publishing SDK logs or ephemeral tokens. Original artifact digests are retained.",
+  "semantic_probes_per_api": 6,
+  "speech_recognition_changed": false,
+  "scope": "FAST display pacing/backpressure and narrow English directional-contrast completion; no general ASR/translation accuracy gain claimed.",
+  "actual_quality_data": [
+    "validation/quality-api-29.json",
+    "validation/quality-api-33.json"
+  ],
+  "real_phone_validated": false,
+  "bluetooth_validated": false,
+  "apk_sha256": "6677b16d4824c721eb462f998bc8b1251cf0273d0e8fd26df4fc96e6c70c04c2",
+  "apk_bytes": 89855213,
+  "certificate_sha256": "8132825a68acba5653aba326b84e301bb65b28664af0d0727d7a5f5b41ad1b8e",
+  "signing_v2": true,
+  "signing_v3": true,
+  "zipalign_16k": "passed",
+  "apk_inspection": {
+    "manifest": {
+      "manifest": {
+        "versionCode": 63,
+        "versionName": "0.63.0",
+        "compileSdkVersion": 35,
+        "compileSdkVersionCodename": "15",
+        "package": "com.opennomi.android",
+        "platformBuildVersionCode": 35,
+        "platformBuildVersionName": 15
+      },
+      "uses-sdk": {
+        "minSdkVersion": 26,
+        "targetSdkVersion": 35
+      }
+    },
+    "abis": [
+      "arm64-v8a"
+    ]
+  },
+  "encrypted_signing_backup_sha256": "0691bf97e096b598a71537e6f828423b94a2ba77a2039e81f4caeda267afb790",
+  "signing_keystore_sha256": "4c29ceb350a65fdf5f441fe0bf3290a7840af092fdb158764c0c6f9f0ac99ff4",
+  "github_readback": "pending"
+}

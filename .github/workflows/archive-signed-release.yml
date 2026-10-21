@@ -65,3 +65,14 @@ jobs:
           git fetch origin main
           git rebase origin/main
           git push origin HEAD:main
+
+      - name: Verify archive from a fresh GitHub checkout
+        env:
+          RELEASE_VERSION: ${{ steps.recipe.outputs.version }}
+        run: python3 scripts/verify-release-readback.py --version "$RELEASE_VERSION" --destination /tmp/opennomi-remote-readback --output /tmp/opennomi-github-restored
+      - uses: actions/upload-artifact@v4
+        with:
+          name: opennomi-${{ steps.recipe.outputs.version }}-github-readback
+          path: /tmp/opennomi-remote-readback/backups/releases/${{ steps.recipe.outputs.version }}/
+          if-no-files-found: error
+          retention-days: 7

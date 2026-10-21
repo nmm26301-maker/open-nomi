@@ -1,0 +1,47 @@
+[
+  {
+    "id": 12289975824,
+    "name": "opennomi-063-unsigned-and-signing-tools",
+    "size_in_bytes": 20660271,
+    "digest": "sha256:56f9f4b96e480399c0fc631f375da40336ffa43129881be080ce8f525a1f7847",
+    "created_at": "2026-10-20T18:37:45Z",
+    "expires_at": "2026-10-27T18:37:42Z",
+    "source_commit": "56130dc28359a479671cfcd4eeb720c8526c5278"
+  },
+  {
+    "id": 12289751803,
+    "name": "opennomi-063-ui-smoke-api-29",
+    "size_in_bytes": 1049528,
+    "digest": "sha256:dcf8901c63468220ca5839af3218934f6afb0d55a50b6f0ab26f8d6b18f1368a",
+    "created_at": "2026-10-20T18:41:00Z",
+    "expires_at": "2026-10-27T18:40:59Z",
+    "source_commit": "56130dc28359a479671cfcd4eeb720c8526c5278"
+  },
+  {
+    "id": 12289572044,
+    "name": "opennomi-063-apk-parts",
+    "size_in_bytes": 67697450,
+    "digest": "sha256:eca8d700b9384db94292d2fbd0e1f086771a3f0a170c3712187a6d253a1216b2",
+    "created_at": "2026-10-20T18:37:49Z",
+    "expires_at": "2026-10-27T18:37:45Z",
+    "source_commit": "56130dc28359a479671cfcd4eeb720c8526c5278"
+  },
+  {
+    "id": 12289447178,
+    "name": "opennomi-063-check-reports",
+    "size_in_bytes": 115771,
+    "digest": "sha256:1bebbc07deef57b068393fdcbdb422cbbf867ad511a32e6bcc2ae8e425adc64c",
+    "created_at": "2026-10-20T18:37:50Z",
+    "expires_at": "2026-10-27T18:37:49Z",
+    "source_commit": "56130dc28359a479671cfcd4eeb720c8526c5278"
+  },
+  {
+    "id": 12288939090,
+    "name": "opennomi-063-ui-smoke-api-33",
+    "size_in_bytes": 1211980,
+    "digest": "sha256:571deeee7735355d208a10d9ee186369048074d93cbad30392fb3d8c3b5fe630",
+    "created_at": "2026-10-20T18:40:47Z",
+    "expires_at": "2026-10-27T18:40:46Z",
+    "source_commit": "56130dc28359a479671cfcd4eeb720c8526c5278"
+  }
+]
