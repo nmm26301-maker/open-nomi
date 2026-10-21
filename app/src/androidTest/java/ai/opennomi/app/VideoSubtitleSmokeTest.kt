@@ -110,6 +110,13 @@ class VideoSubtitleSmokeTest {
                 val recorded=ScreenState.state.value.captionHistory.last{it.original.contains("zero") && it.translated.any{c->c in '\u4e00'..'\u9fff'}}
                 assertNotNull("Completed Vosk words must retain their confidence",recorded.confidence)
                 if(timing==SubtitleTiming.FAST) {
+                    withTimeout(20000){while(ScreenState.state.value.captionDraft.isBlank())delay(20)}
+                    val laterDraft=ScreenState.state.value
+                    assertTrue("Later utterances must also get provisional Chinese after the first final caption",laterDraft.captionDraft.any{it in '\u4e00'..'\u9fff'})
+                    val previewFile=java.io.File(app.getExternalFilesDir(null),"translation-preview.json")
+                    val previewReport=org.json.JSONObject(previewFile.readText()).put("later_draft_elapsed_ms",SystemClock.elapsedRealtime()-captureStarted)
+                        .put("later_source",laterDraft.captionDraftOriginal).put("later_draft",laterDraft.captionDraft)
+                    previewFile.writeText(previewReport.toString(2));device.executeShellCommand("cp ${previewFile.absolutePath} /data/local/tmp/translation-preview.json")
                     assertEquals("Actual subtitle check must run over a different player's foreground", "ai.opennomi.playbackfixture",device.currentPackageName)
                     assertFalse("Workspace Activity must be in background",ScreenState.ownForeground)
                     data class OverlaySnapshot(val text:String,val visible:Boolean,val bounds:android.graphics.Rect)

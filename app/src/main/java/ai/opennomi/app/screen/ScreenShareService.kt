@@ -266,6 +266,13 @@ class ScreenShareService: Service() {
                 if(cfg.phoneTranslation) {
                     val progress=launch{ScreenAssistant.phoneTranslator.status.collect{message->if(valid())ScreenState.update{it.copy(notice=message)}}}
                     try{ScreenAssistant.phoneTranslator.prepare(model.language,cfg.translationCellular)}finally{progress.cancel()}
+                    if(model.language=="en" && SubtitleTiming.selected(cfg.subtitleTiming)==SubtitleTiming.FAST) {
+                        if(valid())ScreenState.update{it.copy(notice="正在预热手机翻译，请就绪后播放视频")}
+                        // Initialize native inference before capture, so a cold first request does
+                        // not consume the preview latency budget while the player is speaking.
+                        draftSlow=try{withContext(Dispatchers.IO){ScreenAssistant.phoneTranslator.preview("Hello world.",model.language)}==null}
+                            catch(e:CancellationException){throw e}catch(_:Exception){true}
+                    }
                 }
                 if(!valid())return@launch
                 playback=PlaybackHearing(this@ScreenShareService,p,root,SubtitleTiming.selected(cfg.subtitleTiming),
