@@ -63,8 +63,40 @@ class VideoSubtitleSmokeTest {
                 val grant=device.wait(Until.findObject(By.res("android:id/button1")),10000)
                 assertNotNull("MediaProjection permission dialog must appear",grant);grant.click()
                 withTimeout(60000){while(!ScreenState.state.value.audio || !ScreenState.state.value.status.contains("已就绪"))delay(200)}
+                val captureStarted=SystemClock.elapsedRealtime()
                 device.executeShellCommand("am start -n ai.opennomi.playbackfixture/.PlaybackFixtureActivity")
+                if(timing==SubtitleTiming.FAST) {
+                    withTimeout(60000){while(ScreenState.state.value.captionDraft.isBlank()) {
+                        assertTrue("A useful provisional result must arrive before the first final caption",ScreenState.state.value.captionHistory.isEmpty())
+                        delay(20)
+                    }}
+                    val draft=ScreenState.state.value
+                    assertTrue(draft.captionDraft.any{it in '\u4e00'..'\u9fff'})
+                    assertTrue("Draft must not enter recent confirmed translations",draft.captionHistory.isEmpty())
+                    assertEquals("ai.opennomi.playbackfixture",device.currentPackageName)
+                    var visibleDraft=""
+                    withTimeout(10000){while(visibleDraft.isBlank()) {
+                        InstrumentationRegistry.getInstrumentation().runOnMainSync{
+                            val service=ScreenShareService.instance!!
+                            val overlay=ScreenShareService::class.java.getDeclaredField("overlay").apply{isAccessible=true}.get(service)
+                            val view=OrbitOverlay::class.java.getDeclaredField("caption").apply{isAccessible=true}.get(overlay) as? android.widget.TextView
+                            if(view?.isShown==true && view.isAttachedToWindow && view.text.contains("临时译文") && view.text.contains(draft.captionDraft))visibleDraft=view.text.toString()
+                        }
+                        if(visibleDraft.isBlank())delay(20)
+                    }}
+                    val report=org.json.JSONObject().put("first_draft_elapsed_ms",SystemClock.elapsedRealtime()-captureStarted)
+                        .put("source",draft.captionDraftOriginal).put("draft",draft.captionDraft).put("overlay",visibleDraft)
+                    val output=java.io.File(app.getExternalFilesDir(null),"translation-preview.json")
+                    output.writeText(report.toString(2))
+                    device.executeShellCommand("cp ${output.absolutePath} /data/local/tmp/translation-preview.json")
+                }
                 withTimeout(60000){while(!ScreenState.state.value.captionOriginal.contains("zero") || !ScreenState.state.value.caption.any{it in '\u4e00'..'\u9fff'})delay(200)}
+                if(timing==SubtitleTiming.FAST) {
+                    val output=java.io.File(app.getExternalFilesDir(null),"translation-preview.json")
+                    val report=org.json.JSONObject(output.readText()).put("first_confirmed_elapsed_ms",SystemClock.elapsedRealtime()-captureStarted)
+                    assertTrue(report.getLong("first_draft_elapsed_ms")<report.getLong("first_confirmed_elapsed_ms"))
+                    output.writeText(report.toString(2));device.executeShellCommand("cp ${output.absolutePath} /data/local/tmp/translation-preview.json")
+                }
                 assertTrue(ScreenState.state.value.audio)
                 assertTrue(ScreenState.state.value.captionOriginal.contains("zero"))
                 assertTrue(ScreenState.state.value.caption.any{it in '\u4e00'..'\u9fff'})
@@ -195,7 +227,7 @@ class VideoSubtitleSmokeTest {
                     withTimeout(10000){while(ScreenState.state.value.audio)delay(100)}
                     assertFalse("Pause must not enable OCR translation implicitly",ScreenState.state.value.translation)
                     assertFalse(ScreenState.state.value.audio);assertTrue(ScreenState.state.value.captionHistory.contains(recorded))
-                    delay(1500);assertEquals("Paused captions must not be replaced by OCR or late audio results","",ScreenState.state.value.caption)
+                    delay(1500);assertEquals("",ScreenState.state.value.captionDraft);assertEquals("Paused captions must not be replaced by OCR or late audio results","",ScreenState.state.value.caption)
                     clickText(device,"继续视频字幕")
                     withTimeout(10000){while(!ScreenState.state.value.audio)delay(100)}
                     assertEquals("Resume must reuse the approved screen sharing session",sharingSession,ScreenState.state.value.session)
@@ -233,6 +265,7 @@ class VideoSubtitleSmokeTest {
             cfg.subtitleOverlay=oldOverlay;cfg.subtitlePosition=oldPosition;cfg.subtitleOriginal=oldOriginal;cfg.subtitleLarge=oldLarge
             withTimeout(10000){while(ScreenState.state.value.active)delay(100)}
             assertTrue("Stopping sharing must clear recent captured text",ScreenState.state.value.captionHistory.isEmpty())
+            assertEquals("",ScreenState.state.value.captionDraft);assertEquals("",ScreenState.state.value.captionDraftOriginal)
         }
     }
     private suspend fun clickText(device:UiDevice,label:String) {

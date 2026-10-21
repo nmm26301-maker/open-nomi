@@ -23,6 +23,15 @@ class FloatingSubtitleRegressionTest {
         val rows=FloatingSubtitle.sections(WorkspaceState(active=true,audio=true,translation=true),true,true,true)
         assertTrue(rows.any{it.text.contains("等待视频原声")})
     }
+    @Test fun draftIsExplicitlyProvisionalAndDoesNotReplaceConfirmedHistory() {
+        val state=WorkspaceState(active=true,audio=true,translation=true,caption=recent.translated,
+            captionHistory=listOf(recent),captionDraft="不要开门",captionDraftOriginal="do not open the door")
+        val rows=FloatingSubtitle.sections(state,true,true,true)
+        assertEquals(recent.translated,rows[1].text)
+        assertTrue(rows.any{it.text.contains("临时译文") && it.text.contains("可能改写") && it.text.contains("不要开门")})
+        assertEquals(listOf(recent),state.captionHistory)
+        assertFalse(FloatingSubtitle.sections(state.copy(translation=false),true,true,true).any{it.text.contains("不要开门")})
+    }
     @Test fun hidingTheViewDoesNotMutateOrDiscardCapturedHistory() {
         val state=WorkspaceState(active=true,audio=true,translation=true,caption="current",captionHistory=listOf(recent))
         assertTrue(FloatingSubtitle.sections(state,false,true,true).isEmpty())

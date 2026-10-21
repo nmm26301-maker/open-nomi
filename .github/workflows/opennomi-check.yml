@@ -67,19 +67,19 @@ jobs:
           echo 'Unsigned verification output. Sign with the matching release key for the configured application ID before installation.' > build-handoff/README.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: opennomi-063-unsigned-and-signing-tools
+          name: opennomi-064-unsigned-and-signing-tools
           path: build-handoff/
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
-          name: opennomi-063-apk-parts
+          name: opennomi-064-apk-parts
           path: apk-transfer/opennomi-apk.part*
           if-no-files-found: error
           retention-days: 7
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: opennomi-063-check-reports
+          name: opennomi-064-check-reports
           path: |
             app/build/reports/
             app/build/test-results/
@@ -126,7 +126,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: opennomi-063-ui-smoke-api-${{ matrix.api }}
+          name: opennomi-064-ui-smoke-api-${{ matrix.api }}
           overwrite: true
           path: |
             ui-captures/

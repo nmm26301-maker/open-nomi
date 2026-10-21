@@ -23,11 +23,15 @@ object FloatingSubtitle {
         if(state.caption.isNotBlank()) {
             rows+=SubtitleSection(state.caption,true)
             if(state.audio && original && state.captionOriginal.isNotBlank())rows+=SubtitleSection("原文：${state.captionOriginal.take(300)}")
-        } else {
+        } else if(state.captionDraft.isBlank()) {
             rows+=SubtitleSection(if(state.audioPreview.isNotBlank())"识别中：${state.audioPreview.take(180)}" else if(state.audio)"正在等待视频原声…" else "正在等待画面外语文字…")
         }
+        if(state.audio && state.captionDraft.isNotBlank()) {
+            rows+=SubtitleSection("临时译文 · 识别中，可能改写：\n${state.captionDraft}",true)
+            if(original)rows+=SubtitleSection("片段原文：${state.captionDraftOriginal}")
+        }
         if(state.notice.isNotBlank())rows+=SubtitleSection(state.notice.take(240))
-        if(phone && state.caption.isNotBlank())rows+=SubtitleSection("由 Google 翻译")
+        if(phone && (state.caption.isNotBlank() || state.captionDraft.isNotBlank()))rows+=SubtitleSection("由 Google 翻译")
         return rows
     }
 }

@@ -56,6 +56,18 @@ class PhoneTranslator {
         prepareLocked(language,cellular)
     }
     suspend fun close() = mutex.withLock {translator?.close();translator=null;source="";ready=false;cache.clear()}
+    /** Opportunistic preview: no language detection, download, status or final-result cache.
+     * A queued final translation owns the mutex first. ML Kit Tasks cannot be cancelled;
+     * keep ownership until the native operation completes rather than overlap requests. */
+    suspend fun preview(text:String,language:String):String? {
+        if(text.isBlank() || text.length>96 || !mutex.tryLock())return null
+        try {
+            if(!ready || source!=language)return null
+            return withContext(NonCancellable) {
+                withTimeout(30000){checkNotNull(translator).translate(text).awaitResult()}
+            }.takeIf{it.isNotBlank()}
+        } finally {mutex.unlock()}
+    }
     suspend fun translate(text:String,selected:String="auto",cellular:Boolean=false):String = mutex.withLock {
         val input=text.trim();if(input.isBlank())return@withLock ""
         val language=if(selected=="auto") {

@@ -245,6 +245,11 @@ class WorkspaceActivity:ComponentActivity() {
                 if(showOriginal && state.captionOriginal.isNotBlank())Text("原文：${state.captionOriginal}",fontSize=12.sp)
                 if(phone)Text("由 Google 翻译",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            if(state.captionDraft.isNotBlank()) {
+                Text("临时译文 · 识别中，可能改写",fontSize=12.sp,color=MaterialTheme.colorScheme.primary)
+                Text(state.captionDraft)
+                if(showOriginal)Text("片段原文：${state.captionDraftOriginal}",fontSize=12.sp)
+            }
             if(state.audioPreview.isNotBlank())Text("识别中：${state.audioPreview}",fontSize=12.sp)
             Row(verticalAlignment=Alignment.CenterVertically){Text("显示识别原文，方便核对",Modifier.weight(1f),fontSize=13.sp);Switch(showOriginal,{showOriginal=it;cfg.subtitleOriginal=it;ScreenShareService.instance?.refreshOverlay()})}
             Row(horizontalArrangement=Arrangement.spacedBy(6.dp)) {
@@ -266,7 +271,7 @@ class WorkspaceActivity:ComponentActivity() {
             Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
                 SubtitleTiming.entries.forEach{mode->FilterChip(selected=timing==mode.name,onClick={timing=mode.name;cfg.subtitleTiming=mode.name},label={Text(mode.label)},enabled=!state.audio)}
             }
-            Text(if(timing==SubtitleTiming.FAST.name)"连续讲话约 3.5 秒后优先等短停顿分段，不停顿时最多额外等 1.2 秒。快显优先当前进度，未及显示的结果可在近期译文回看。" else "约 5.5 秒后优先等短停顿分段，不停顿时最多额外等 1.2 秒，保留更长上下文。浮层按阅读时长逐条显示，可能落后于播放。",fontSize=12.sp)
+            Text(if(timing==SubtitleTiming.FAST.name)"英语手机翻译会先显示稳定片段的临时译文，可能改写，不存入近期译文；手机处理较慢时自动停用预览。连续讲话约 3.5 秒后优先等短停顿分段，不停顿时最多额外等 1.2 秒。快显优先当前进度，未及显示的结果可在近期译文回看。" else "约 5.5 秒后优先等短停顿分段，不停顿时最多额外等 1.2 秒，保留更长上下文。浮层按阅读时长逐条显示，可能落后于播放。",fontSize=12.sp)
             TextButton(onClick={busy=true;videoPreparing=true;videoMessage="正在准备视频字幕模型";running=scope.launch {
                 try {
                     val preparation=currentCoroutineContext()[Job]!!

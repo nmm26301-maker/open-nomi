@@ -8,6 +8,10 @@ collect_quality() {
     cat ui-captures/translation-quality.json
     printf '\n'
   fi
+  if adb pull /data/local/tmp/translation-preview.json ui-captures/translation-preview.json; then
+    cat ui-captures/translation-preview.json
+    printf '\n'
+  fi
 }
 trap collect_quality EXIT
 adb install -r playback-fixture/build/outputs/apk/debug/playback-fixture-debug.apk
