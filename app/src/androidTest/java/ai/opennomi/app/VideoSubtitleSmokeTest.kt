@@ -80,10 +80,17 @@ class VideoSubtitleSmokeTest {
                             val service=ScreenShareService.instance!!
                             val overlay=ScreenShareService::class.java.getDeclaredField("overlay").apply{isAccessible=true}.get(service)
                             val view=OrbitOverlay::class.java.getDeclaredField("caption").apply{isAccessible=true}.get(overlay) as? android.widget.TextView
-                            if(view?.isShown==true && view.isAttachedToWindow && view.text.contains("临时译文") && view.text.contains(draft.captionDraft))visibleDraft=view.text.toString()
+                            if(view?.isShown==true && view.isAttachedToWindow && view.text.contains("临时译文") && view.text.contains(draft.captionDraft)) {
+                                val end=view.text.indexOf(draft.captionDraft)+draft.captionDraft.length
+                                assertTrue("Provisional Chinese must fit in the rendered overlay lines",view.layout.getLineForOffset(end)<=view.maxLines-1)
+                                visibleDraft=view.text.toString()
+                                val bitmap=android.graphics.Bitmap.createBitmap(view.width,view.height,android.graphics.Bitmap.Config.ARGB_8888)
+                                try{view.draw(android.graphics.Canvas(bitmap));java.io.FileOutputStream(java.io.File(app.getExternalFilesDir(null),"background-preview.png")).use{assertTrue(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,it))}}finally{bitmap.recycle()}
+                            }
                         }
                         if(visibleDraft.isBlank())delay(20)
                     }}
+                    device.executeShellCommand("cp ${java.io.File(app.getExternalFilesDir(null),"background-preview.png").absolutePath} /data/local/tmp/background-preview.png")
                     val report=org.json.JSONObject().put("first_draft_elapsed_ms",SystemClock.elapsedRealtime()-captureStarted)
                         .put("source",draft.captionDraftOriginal).put("draft",draft.captionDraft).put("overlay",visibleDraft)
                     val output=java.io.File(app.getExternalFilesDir(null),"translation-preview.json")

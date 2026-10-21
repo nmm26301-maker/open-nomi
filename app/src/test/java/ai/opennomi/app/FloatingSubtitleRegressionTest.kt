@@ -27,8 +27,9 @@ class FloatingSubtitleRegressionTest {
         val state=WorkspaceState(active=true,audio=true,translation=true,caption=recent.translated,
             captionHistory=listOf(recent),captionDraft="不要开门",captionDraftOriginal="do not open the door")
         val rows=FloatingSubtitle.sections(state,true,true,true)
-        assertEquals(recent.translated,rows[1].text)
-        assertTrue(rows.any{it.text.contains("临时译文") && it.text.contains("可能改写") && it.text.contains("不要开门")})
+        assertTrue(rows[1].text.contains("临时译文") && rows[1].text.contains("可能改写"))
+        assertEquals("不要开门",rows[2].text);assertTrue(rows[2].translated)
+        assertTrue(rows.any{it.text==recent.translated})
         assertEquals(listOf(recent),state.captionHistory)
         assertFalse(FloatingSubtitle.sections(state.copy(translation=false),true,true,true).any{it.text.contains("不要开门")})
     }

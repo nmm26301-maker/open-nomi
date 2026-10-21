@@ -16,6 +16,6 @@ collect_quality() {
 trap collect_quality EXIT
 adb install -r playback-fixture/build/outputs/apk/debug/playback-fixture-debug.apk
 gradle :app:connectedDebugAndroidTest -POPENNOMI_ABIS=x86_64 -Pkotlin.incremental=false --no-daemon
-for capture in fish-workstation conversation-home conversation-memory translation-workspace video-live-workspace background-subtitles; do
+for capture in fish-workstation conversation-home conversation-memory translation-workspace video-live-workspace background-subtitles background-preview; do
   adb pull "/data/local/tmp/$capture.png" "ui-captures/$capture.png"
 done
