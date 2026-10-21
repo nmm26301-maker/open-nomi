@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="ai.opennomi.app.PlaybackRecorderRegressionTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-21T02:48:29" hostname="runnervmxehtw" time="0.119">
+  <properties />
+  <testcase name="cancellingBeforeNativeStartPreventsRecordingAndStillReleases" classname="ai.opennomi.app.PlaybackRecorderRegressionTest" time="0.005" />
+  <testcase name="nativeStopFailureStillReleasesExactlyOnce" classname="ai.opennomi.app.PlaybackRecorderRegressionTest" time="0.0" />
+  <testcase name="blockedNativeStopReturnsToCallerAndCannotRaceWithRelease" classname="ai.opennomi.app.PlaybackRecorderRegressionTest" time="0.114" />
+  </testsuite>

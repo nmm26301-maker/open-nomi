@@ -1,0 +1,165 @@
+{
+  "version": "0.64.0",
+  "version_code": 64,
+  "application_id": "com.opennomi.android",
+  "source_commit": "a202201216defc8d918279fcbee63e42cbef3d51",
+  "workflow_run_id": 39534774548,
+  "expected_release_certificate_sha256": "8132825a68acba5653aba326b84e301bb65b28664af0d0727d7a5f5b41ad1b8e",
+  "signed_apk_delivered": false,
+  "signing_blocker": null,
+  "recognizer_changed": false,
+  "validation": {
+    "release_build": "passed",
+    "release_lint": "passed",
+    "junit": {
+      "unit": {
+        "tests": 197,
+        "failures": 0,
+        "errors": 0
+      },
+      "api-29": {
+        "tests": 24,
+        "failures": 0,
+        "errors": 0
+      },
+      "api-33": {
+        "tests": 24,
+        "failures": 0,
+        "errors": 0
+      }
+    },
+    "api29": "passed",
+    "api33": "passed",
+    "semantic_probes_per_api": 6
+  },
+  "artifacts": [
+    {
+      "id": 12317073611,
+      "node_id": "MDg6QXJ0aWZhY3QxMjMxNzA3MzYxMQ==",
+      "name": "opennomi-064-ui-smoke-api-33",
+      "size_in_bytes": 1262838,
+      "url": "https://api.github.com/repos/nmm26301-maker/open-nomi/actions/artifacts/12317073611",
+      "archive_download_url": "https://api.github.com/repos/nmm26301-maker/open-nomi/actions/artifacts/12317073611/zip",
+      "expired": false,
+      "digest": "sha256:ad1f22e760944a5592123df28272e3c565de44abe06a5268fc305a8a178a6499",
+      "created_at": "2026-10-21T02:53:39Z",
+      "updated_at": "2026-10-21T02:53:39Z",
+      "expires_at": "2026-10-28T02:53:38Z",
+      "workflow_run": {
+        "id": 39534774548,
+        "repository_id": 1404196115,
+        "head_repository_id": 1404196115,
+        "head_branch": "main",
+        "head_sha": "a202201216defc8d918279fcbee63e42cbef3d51"
+      }
+    },
+    {
+      "id": 12316953115,
+      "node_id": "MDg6QXJ0aWZhY3QxMjMxNjk1MzExNQ==",
+      "name": "opennomi-064-unsigned-and-signing-tools",
+      "size_in_bytes": 20660273,
+      "url": "https://api.github.com/repos/nmm26301-maker/open-nomi/actions/artifacts/12316953115",
+      "archive_download_url": "https://api.github.com/repos/nmm26301-maker/open-nomi/actions/artifacts/12316953115/zip",
+      "expired": false,
+      "digest": "sha256:47b8b3ae24797869022a5e982bb8602385e2836afd74e272c4a0e52af7918932",
+      "created_at": "2026-10-21T02:49:12Z",
+      "updated_at": "2026-10-21T02:49:12Z",
+      "expires_at": "2026-10-28T02:49:09Z",
+      "workflow_run": {
+        "id": 39534774548,
+        "repository_id": 1404196115,
+        "head_repository_id": 1404196115,
+        "head_branch": "main",
+        "head_sha": "a202201216defc8d918279fcbee63e42cbef3d51"
+      }
+    },
+    {
+      "id": 12316878560,
+      "node_id": "MDg6QXJ0aWZhY3QxMjMxNjg3ODU2MA==",
+      "name": "opennomi-064-ui-smoke-api-29",
+      "size_in_bytes": 1120272,
+      "url": "https://api.github.com/repos/nmm26301-maker/open-nomi/actions/artifacts/12316878560",
+      "archive_download_url": "https://api.github.com/repos/nmm26301-maker/open-nomi/actions/artifacts/12316878560/zip",
+      "expired": false,
+      "digest": "sha256:b98e15fdfc37ba78f61f8625183c9b8fdf6bc2fdf313d866216c88798996fbbf",
+      "created_at": "2026-10-21T02:53:12Z",
+      "updated_at": "2026-10-21T02:53:12Z",
+      "expires_at": "2026-10-28T02:53:11Z",
+      "workflow_run": {
+        "id": 39534774548,
+        "repository_id": 1404196115,
+        "head_repository_id": 1404196115,
+        "head_branch": "main",
+        "head_sha": "a202201216defc8d918279fcbee63e42cbef3d51"
+      }
+    },
+    {
+      "id": 12316748606,
+      "node_id": "MDg6QXJ0aWZhY3QxMjMxNjc0ODYwNg==",
+      "name": "opennomi-064-apk-parts",
+      "size_in_bytes": 67713533,
+      "url": "https://api.github.com/repos/nmm26301-maker/open-nomi/actions/artifacts/12316748606",
+      "archive_download_url": "https://api.github.com/repos/nmm26301-maker/open-nomi/actions/artifacts/12316748606/zip",
+      "expired": false,
+      "digest": "sha256:c2eef4d090419ad69c88d58e738267a6823da3558de54a2351395d2a6d8c8b4d",
+      "created_at": "2026-10-21T02:49:15Z",
+      "updated_at": "2026-10-21T02:49:15Z",
+      "expires_at": "2026-10-28T02:49:12Z",
+      "workflow_run": {
+        "id": 39534774548,
+        "repository_id": 1404196115,
+        "head_repository_id": 1404196115,
+        "head_branch": "main",
+        "head_sha": "a202201216defc8d918279fcbee63e42cbef3d51"
+      }
+    },
+    {
+      "id": 12316678655,
+      "node_id": "MDg6QXJ0aWZhY3QxMjMxNjY3ODY1NQ==",
+      "name": "opennomi-064-check-reports",
+      "size_in_bytes": 117507,
+      "url": "https://api.github.com/repos/nmm26301-maker/open-nomi/actions/artifacts/12316678655",
+      "archive_download_url": "https://api.github.com/repos/nmm26301-maker/open-nomi/actions/artifacts/12316678655/zip",
+      "expired": false,
+      "digest": "sha256:2f6d3811c77aaf3a0247671de61546d550f8ffcf0bea86911069a2cf6fb22f1e",
+      "created_at": "2026-10-21T02:49:16Z",
+      "updated_at": "2026-10-21T02:49:16Z",
+      "expires_at": "2026-10-28T02:49:15Z",
+      "workflow_run": {
+        "id": 39534774548,
+        "repository_id": 1404196115,
+        "head_repository_id": 1404196115,
+        "head_branch": "main",
+        "head_sha": "a202201216defc8d918279fcbee63e42cbef3d51"
+      }
+    }
+  ],
+  "preview_metrics": [
+    {
+      "api": 29,
+      "first_draft_elapsed_ms": 3711,
+      "source": "one zero zero zero",
+      "draft": "一个零零零",
+      "overlay": "OpenNomi · 视频实时字幕\n临时译文 · 识别中，可能改写\n一个零零零\n片段原文：one zero zero zero\n由 Google 翻译",
+      "first_confirmed_elapsed_ms": 4968,
+      "later_draft_elapsed_ms": 9188,
+      "later_source": "zero eight zero",
+      "later_draft": "零八零",
+      "first_draft_improvement_ms": 1257
+    },
+    {
+      "api": 33,
+      "first_draft_elapsed_ms": 3749,
+      "source": "one zero zero",
+      "draft": "一个零零",
+      "overlay": "OpenNomi · 视频实时字幕\n临时译文 · 识别中，可能改写\n一个零零\n片段原文：one zero zero\n由 Google 翻译",
+      "first_confirmed_elapsed_ms": 5176,
+      "later_draft_elapsed_ms": 9444,
+      "later_source": "zero one eight zero",
+      "later_draft": "零一个零零",
+      "first_draft_improvement_ms": 1427
+    }
+  ],
+  "real_phone_validated": false,
+  "bluetooth_validated": false
+}

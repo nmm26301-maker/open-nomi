@@ -1,0 +1,9 @@
+# OpenNomi 0.64.0
+
+Signed arm64 installer, package com.opennomi.android, version code 64. Reuses the certificate of 0.53–0.63. The older com.opennomi.android.voicetest package has a different signing identity.
+
+Run python3 restore.py --output-dir restored after downloading this complete directory, including every apk-parts file. The manifest validates every part and the final APK.
+
+Native English inference is warmed before audio capture. FAST English phone translation opportunistically previews a repeated whole-word prefix (at least three words, at most 96 characters, 1200ms throttle). Drafts are labelled provisional in the background overlay and foreground view, invalidate on hypothesis revisions/final/pause/resync/stop, and never enter confirmed history. No previews while final work is queued; at most one preview coroutine is scheduled at a time. A native preview that already started may delay a final translation until completion; previews taking over 400ms disable further previews for the capture session. ML Kit Tasks are not natively cancelled by coroutine cancellation or the 30-second timeout; an underlying Task may outlive its caller. Recognition and confirmed translation semantics remain 0.63; general accuracy and real-phone/Bluetooth latency are not claimed. First model downloads and playback-capture restrictions still apply.
+
+The signing directory contains only the encrypted existing key/password backup and its recovery tool. Keep the recovery key separate. Source, CI, actual quality evidence and signing validation are recorded alongside this archive. GitHub byte-identical readback verification follows after the archive workflow completes.

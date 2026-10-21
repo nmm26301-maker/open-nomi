@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="ai.opennomi.app.TaskContinuationRegressionTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-21T02:48:33" hostname="runnervmxehtw" time="0.019">
+  <properties />
+  <testcase name="quotedInputCanBeFollowedByAnExplicitStepAndBrokenQuotesAbort" classname="ai.opennomi.app.TaskContinuationRegressionTest" time="0.001" />
+  <testcase name="cancelAndStopRemainAvailableInEveryWaitingState" classname="ai.opennomi.app.TaskContinuationRegressionTest" time="0.005" />
+  <testcase name="confirmationMustArriveAfterTheTaskPromptAndCannotBeQueuedEarly" classname="ai.opennomi.app.TaskContinuationRegressionTest" time="0.0" />
+  <testcase name="pauseAndPageTimeoutKeepTheUnexecutedRemainder" classname="ai.opennomi.app.TaskContinuationRegressionTest" time="0.001" />
+  <testcase name="dictatedWordsIncludingThenAreAlwaysInputData" classname="ai.opennomi.app.TaskContinuationRegressionTest" time="0.006" />
+  <testcase name="waitingSelectionPreservesTheOriginalAppAndButton" classname="ai.opennomi.app.TaskContinuationRegressionTest" time="0.001" />
+  <testcase name="laterQueuedUtterancesCannotOverwriteAWaitingStep" classname="ai.opennomi.app.TaskContinuationRegressionTest" time="0.002" />
+  </testsuite>
