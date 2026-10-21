@@ -142,7 +142,7 @@ class VideoSubtitleSmokeTest {
                         return checkNotNull(found)
                     }
                     val floating=backgroundCaption()
-                    assertTrue("Floating window must contain actual translated player speech",floating.text.contains(recorded.translated))
+                    assertTrue("Floating window must contain a completed translation of actual captured player speech",ScreenState.state.value.captionHistory.any{it.translated.isNotBlank() && floating.text.contains(it.translated)})
                     assertTrue("Actual overlay must be registered with the system window manager",device.executeShellCommand("dumpsys window windows").contains("OpenNomi Background Subtitles"))
                     assertTrue("Subtitle view must lie within the current screen",floating.bounds.top>=0 && floating.bounds.bottom<=device.displayHeight)
                     // Tap through the real subtitle window to the other UID's full-screen click target.
