@@ -5,7 +5,7 @@
   "source_commit": "a202201216defc8d918279fcbee63e42cbef3d51",
   "workflow_run_id": 39534774548,
   "expected_release_certificate_sha256": "8132825a68acba5653aba326b84e301bb65b28664af0d0727d7a5f5b41ad1b8e",
-  "signed_apk_delivered": false,
+  "signed_apk_delivered": true,
   "signing_blocker": null,
   "recognizer_changed": false,
   "validation": {
@@ -161,5 +161,9 @@
     }
   ],
   "real_phone_validated": false,
-  "bluetooth_validated": false
+  "bluetooth_validated": false,
+  "apk_sha256": "74c01eebd57459998a187f724380465d8a6eb27cc89f5f57d2cc1608510641a2",
+  "apk_bytes": 89871597,
+  "archive_workflow_run_id": 39535738876,
+  "github_readback": "passed"
 }

@@ -20,3 +20,5 @@ Validated source: `a202201216defc8d918279fcbee63e42cbef3d51`. Full CI: https://g
 | 33 | 3749 ms | 5176 ms | 9444 ms | 1427 ms |
 
 Times run from launching the authored external player after models are prepared; they are one emulator sample per API, include player start/capture/recognition/translation/display, and are not a real-phone performance guarantee. Raw JSON and rendered preview/confirmed-overlay images are retained in the release validation directory. The provisional number-sequence output is not a general translation accuracy assessment.
+
+Signed 0.64.0 (version code 64, com.opennomi.android, arm64-v8a) retains the 0.53–0.63 certificate. All 122 GitHub backup parts were restored independently and compared byte for byte with the saved installer. The encrypted signing backup was privately restored and compared with all original signing inputs. Final proof: `validation/0.64.0-release-verification.json`.
