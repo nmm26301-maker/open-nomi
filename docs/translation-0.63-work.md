@@ -1,6 +1,6 @@
 # OpenNomi 0.63.0 translation work
 
-Status: source validated; **no signed installer delivered**. The local execution environment is unavailable, so original-certificate signing and release-backup readback remain pending.
+Status: **signed 0.63.0 installer verified and made available**. Package com.opennomi.android, version code 63; the original 0.53–0.62 certificate is preserved. GitHub backup readback reconstructed the exact delivered bytes and recovered the same signing key/passwords/certificate.
 
 Validated source: [56130dc28359a479671cfcd4eeb720c8526c5278](https://github.com/nmm26301-maker/open-nomi/commit/56130dc28359a479671cfcd4eeb720c8526c5278). Final checks: [workflow 39475774099](https://github.com/nmm26301-maker/open-nomi/actions/runs/39475774099).
 
@@ -35,8 +35,12 @@ The initial real-model run [39471111737](https://github.com/nmm26301-maker/open-
 
 Simply shortening native utterances increased enhanced-model word errors from 1 to 3–4. Preserving audio features at the old manual boundary also increased enhanced-model errors from 1 to 2. Both speech changes were rejected and reverted. Raw evidence: [short endpoint API 29](validation/0.63-rejected-short-endpoint-api29.json), [API 33](validation/0.63-rejected-short-endpoint-api33.json), [continuity API 29](validation/0.63-rejected-continuity-api29.json), [API 33](validation/0.63-rejected-continuity-api33.json).
 
-## Installer handoff
+## Signed release and recovery
 
-[Source validation and exact build artifacts](validation/0.63-source-handoff.json) record the final source, jobs, artifact digests and expiry. These artifacts are unsigned verification output. Restore the execution environment, reuse the existing release key and scripts/sign-release.py, then complete the required signed-APK backup/reconstruction checks before delivering an update. No new installer, signing result or release-backup verification is represented by this source validation.
+The signed APK SHA-256 is `6677b16d4824c721eb462f998bc8b1251cf0273d0e8fd26df4fc96e6c70c04c2` (89,855,213 bytes). Package/version/ABI, v2/v3 signing and 16 KB ZIP alignment were checked. The original certificate SHA-256 is `8132825a68acba5653aba326b84e301bb65b28664af0d0727d7a5f5b41ad1b8e`.
+
+The [complete release archive](../backups/releases/0.63.0/) contains all 122 parts, manifest, restore.py and the encrypted existing signing backup. [Archive workflow 39524972368](https://github.com/nmm26301-maker/open-nomi/actions/runs/39524972368) fetched the committed release from a fresh GitHub clone. The resulting backup was downloaded independently, restored with restore.py and compared byte-for-byte with the signed output. Its encrypted signing backup was decrypted privately and every recovered signing file matched the original inputs. See [readback verification](../backups/releases/0.63.0/github-readback-verification.json).
+
+[Source validation and build handoff](validation/0.63-source-handoff.json) records the exact built commit and completed signing/recovery checks. No real-phone/Bluetooth or general accuracy/latency claim is added by signing the package.
 
 ML Kit limitations: https://developers.google.com/ml-kit/language/translation .

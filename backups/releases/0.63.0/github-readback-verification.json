@@ -1,0 +1,25 @@
+{
+  "version": "0.63.0",
+  "fetched_commit": "fbfbea6b5eba0b20dfd38809fc255fd3c2794f7d",
+  "fresh_github_clone_proof": {
+    "repository": "nmm26301-maker/open-nomi",
+    "fetched_commit": "fbfbea6b5eba0b20dfd38809fc255fd3c2794f7d",
+    "release_version": "0.63.0",
+    "from_fresh_github_clone": true,
+    "apk_sha256": "6677b16d4824c721eb462f998bc8b1251cf0273d0e8fd26df4fc96e6c70c04c2",
+    "manifest_sha256": "e83f2b7d38fa523b24bc28fb8845368fbda221ab719001c8fc8619d337d0d52e",
+    "verified_parts": 122,
+    "workflow_run_id": "39524972368",
+    "verified_at_utc": "2026-10-21T01:03:02.271081+00:00"
+  },
+  "archive_workflow_run_id": 39524972368,
+  "downloaded_artifact_id": 12312524821,
+  "downloaded_artifact_sha256": "e9f990cc9d8d55d3a07f7fb87c7491a4539f024ebee7ff9fdf509deed7f021db",
+  "part_count": 122,
+  "all_part_checksums": "passed",
+  "apk_byte_identical": true,
+  "apk_sha256": "6677b16d4824c721eb462f998bc8b1251cf0273d0e8fd26df4fc96e6c70c04c2",
+  "encrypted_signing_backup_recovered": true,
+  "keystore_alias_passwords_certificate_match_original_inputs": true,
+  "certificate_sha256": "8132825a68acba5653aba326b84e301bb65b28664af0d0727d7a5f5b41ad1b8e"
+}

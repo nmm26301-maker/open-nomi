@@ -60,5 +60,8 @@
   },
   "encrypted_signing_backup_sha256": "0691bf97e096b598a71537e6f828423b94a2ba77a2039e81f4caeda267afb790",
   "signing_keystore_sha256": "4c29ceb350a65fdf5f441fe0bf3290a7840af092fdb158764c0c6f9f0ac99ff4",
-  "github_readback": "pending"
+  "github_readback": "passed",
+  "readback_proof": "github-readback-verification.json",
+  "archive_commit": "fbfbea6b5eba0b20dfd38809fc255fd3c2794f7d",
+  "signing_backup_recovery_matches_inputs": true
 }

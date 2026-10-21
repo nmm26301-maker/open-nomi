@@ -4,8 +4,8 @@
   "application_id": "com.opennomi.android",
   "source_commit": "56130dc28359a479671cfcd4eeb720c8526c5278",
   "workflow_run_id": 39475774099,
-  "signed_apk_delivered": false,
-  "signing_blocker": "No usable execution environment is available; scripts/sign-release.py cannot run.",
+  "signed_apk_delivered": true,
+  "signing_blocker": null,
   "recognizer_changed": false,
   "translation_scope": "Conservative English directional-contrast completion only; no general accuracy improvement claim.",
   "phone_and_bluetooth_verified": false,
@@ -82,9 +82,11 @@
       "source_commit": "56130dc28359a479671cfcd4eeb720c8526c5278"
     }
   ],
-  "next_steps": [
-    "Restore the execution environment; download every APK transfer part from the recorded final workflow and verify unsigned-sha256.txt.",
-    "Recover the existing signing key securely; reuse scripts/sign-release.py. Do not substitute a certificate or publish an unsigned/debug installer.",
-    "Archive the signed APK and encrypted signing backup; reconstruct from committed GitHub backup and compare byte-identically before delivering the installer."
-  ]
+  "next_steps": [],
+  "signing_completed": true,
+  "signed_apk_sha256": "6677b16d4824c721eb462f998bc8b1251cf0273d0e8fd26df4fc96e6c70c04c2",
+  "release_archive_commit": "fbfbea6b5eba0b20dfd38809fc255fd3c2794f7d",
+  "archive_workflow_run_id": 39524972368,
+  "github_byte_identical_readback": true,
+  "signing_backup_recovery_verified": true
 }
