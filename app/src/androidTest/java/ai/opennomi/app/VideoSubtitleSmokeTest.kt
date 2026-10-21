@@ -80,7 +80,7 @@ class VideoSubtitleSmokeTest {
                             val service=ScreenShareService.instance!!
                             val overlay=ScreenShareService::class.java.getDeclaredField("overlay").apply{isAccessible=true}.get(service)
                             val view=OrbitOverlay::class.java.getDeclaredField("caption").apply{isAccessible=true}.get(overlay) as? android.widget.TextView
-                            if(view?.isShown==true && view.isAttachedToWindow && view.text.contains("临时译文") && view.text.contains(draft.captionDraft)) {
+                            if(view?.isShown==true && view.isAttachedToWindow && view.width>0 && view.height>0 && view.layout?.text?.toString()==view.text.toString() && view.text.contains("临时译文") && view.text.contains(draft.captionDraft)) {
                                 val end=view.text.indexOf(draft.captionDraft)+draft.captionDraft.length
                                 assertTrue("Provisional Chinese must fit in the rendered overlay lines",view.layout.getLineForOffset(end)<=view.maxLines-1)
                                 visibleDraft=view.text.toString()
