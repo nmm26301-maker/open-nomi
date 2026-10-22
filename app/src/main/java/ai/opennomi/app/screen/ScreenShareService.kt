@@ -31,8 +31,9 @@ class ScreenShareService: Service() {
     private var draftJob:Job?=null
     private var displayedDraft:AudioDraftTicket?=null
     private var draftSlow=false
+    private var streamGeneration=0L
     private fun resetAudioDraft() {
-        audioDrafts.reset();displayedDraft=null
+        audioDrafts.reset();displayedDraft=null;streamGeneration++
         ScreenState.update{it.copy(captionDraft="",captionDraftOriginal="")}
     }
     private fun pumpAudioDraft() {
@@ -182,14 +183,18 @@ class ScreenShareService: Service() {
         pumpTranslation()
     }
     private fun pumpTranslation() {
-        if(translationJob?.isActive==true || !ScreenState.valid(session) || !ScreenState.state.value.translation)return
+        if(!ScreenState.valid(session) || !ScreenState.state.value.translation)return
         val currentConfig=ScreenAssistant.settings().translationFingerprint()
-        if(currentConfig!=translationConfig){translations.reset();audioQueue.reset();audioCaptions.reset();resetAudioDraft();audioContext="";translationConfig=currentConfig}
+        if(currentConfig!=translationConfig){
+            translationGeneration++;translationJob?.cancel();translationJob=null;ScreenAssistant.cancelTranslation()
+            translations.reset();audioQueue.reset();audioCaptions.reset();resetAudioDraft();audioContext="";translationConfig=currentConfig
+        }
+        if(translationJob?.isActive==true)return
         val audio=ScreenState.state.value.audio
         if(audio && !audioCaptions.canAccept)return
         val utterance=if(audio)audioQueue.nextBatch(SystemClock.elapsedRealtime()) else null
         val line=if(audio)utterance?.text ?: return else translations.next(System.currentTimeMillis()) ?: return
-        val id=session;val generation=translationGeneration;val config=translationConfig
+        val id=session;val generation=translationGeneration;val config=translationConfig;val stream=++streamGeneration
         translationJob=scope.launch {
             val modelProgress=if(!audio && ScreenAssistant.settings().phoneTranslation)launch {
                 ScreenAssistant.translationStatus.collect { progress ->
@@ -199,10 +204,11 @@ class ScreenShareService: Service() {
             } else null
             try {
                 val text=(if(audio)null else translations.cached(line)) ?: withContext(Dispatchers.IO){ScreenAssistant.translate(line,if(audio)audioSource else null,if(audio)audioContext else "",partial={piece->main.post{
-                    if(ScreenState.valid(id) && generation==translationGeneration && config==ScreenAssistant.settings().translationFingerprint() && ScreenState.state.value.translation) {
+                    if(ScreenState.valid(id) && generation==translationGeneration && stream==streamGeneration && config==ScreenAssistant.settings().translationFingerprint() && ScreenState.state.value.translation) {
                         ScreenState.update{it.copy(captionDraft=piece,captionDraftOriginal=line,captionDraftLabel="临时译文 · Hy-MT2 正在生成")}
                     }
                 }})}
+                if(stream==streamGeneration)streamGeneration++
                 if(ScreenState.valid(id) && generation==translationGeneration && config==ScreenAssistant.settings().translationFingerprint() && ScreenState.state.value.translation){
                     if(ScreenAssistant.settings().hyMtTranslation)ScreenState.update{it.copy(captionDraft="",captionDraftOriginal="")}
                     if(audio && utterance!=null) {
@@ -228,6 +234,7 @@ class ScreenShareService: Service() {
                     ScreenState.update{it.copy(notice=error)};ScreenState.event(error)
                 }
             } finally {
+                if(stream==streamGeneration)streamGeneration++
                 modelProgress?.cancel()
                 if(generation==translationGeneration){translationJob=null;if(audio)main.post{pumpTranslation()}}
             }

@@ -49,7 +49,7 @@ class HyMtSmokeTest {
             withTimeout(60000){firstToken.await()}
             val cancelAt=SystemClock.elapsedRealtime();withTimeout(4000){long.cancelAndJoin()}
             report.put("caller_cancel_ms",SystemClock.elapsedRealtime()-cancelAt)
-            val after=withTimeout(90000){engine.translate(app,"Hello world.",true)}
+            val after=withTimeout(90000){engine.translate(app,"The door is closed.",true)}
             assertTrue(after.any{it in '\u4e00'..'\u9fff'});report.put("after_cancel",after)
             engine.close()
             device.executeShellCommand("svc wifi disable");device.executeShellCommand("svc data disable")
@@ -63,7 +63,7 @@ class HyMtSmokeTest {
             ActivityScenario.launch<WorkspaceActivity>(Intent(app,WorkspaceActivity::class.java).putExtra("tab","translation").putExtra("translation-mode","text")).use{scenario->
                 withTimeout(15000){while(!device.hasObject(By.text("Hy-MT2 离线")))delay(100)}
                 withTimeout(15000){while(!device.hasObject(By.clazz("android.widget.EditText"))){device.findObjects(By.scrollable(true)).firstOrNull()?.scroll(Direction.DOWN,.3f);delay(100)}}
-                val input=device.findObject(By.clazz("android.widget.EditText"));assertNotNull(input);input.text="Do not open the door."
+                val input=device.findObject(By.clazz("android.widget.EditText"));assertNotNull(input);input.click();input.text="Do not open the door."
                 device.pressBack()
                 withTimeout(15000){while(!device.hasObject(By.text("翻译为中文"))){device.findObjects(By.scrollable(true)).firstOrNull()?.scroll(Direction.DOWN,.3f);delay(100)}}
                 val button=device.findObject(By.text("翻译为中文"));assertNotNull(button);button.click()
