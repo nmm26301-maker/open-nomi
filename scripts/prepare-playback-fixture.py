@@ -34,3 +34,5 @@ quality_path = root / 'app/src/androidTest/assets/quality-jfk.pcm'
 quality_path.parent.mkdir(parents=True, exist_ok=True)
 quality_path.write_bytes(pcm)
 print('Pinned natural speech WAV SHA-256:', hashlib.sha256(quality_data).hexdigest())
+
+(root / "playback-fixture/src/main/res/raw/jfk.wav").write_bytes(quality_data)

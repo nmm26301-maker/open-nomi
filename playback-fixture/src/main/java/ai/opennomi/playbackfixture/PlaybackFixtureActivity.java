@@ -25,7 +25,7 @@ public class PlaybackFixtureActivity extends Activity {
             player = new MediaPlayer();
             player.setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).setAllowedCapturePolicy(AudioAttributes.ALLOW_CAPTURE_BY_ALL).build());
-            try (android.content.res.AssetFileDescriptor file=getResources().openRawResourceFd(R.raw.speech)) {
+            try (android.content.res.AssetFileDescriptor file=getResources().openRawResourceFd(getIntent().getBooleanExtra("natural", false) ? R.raw.jfk : R.raw.speech)) {
                 player.setDataSource(file.getFileDescriptor(),file.getStartOffset(),file.getLength());
             }
             player.setLooping(true);player.prepare();player.start();

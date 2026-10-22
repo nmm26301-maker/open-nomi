@@ -10,7 +10,7 @@ data class SubtitleSection(val text:String,val translated:Boolean=false)
 /** Compose from the foreground service state, independently of the Activity lifecycle. */
 object FloatingSubtitle {
     const val WINDOW_ALPHA=.78f
-    fun sections(state:WorkspaceState,visible:Boolean,original:Boolean,phone:Boolean):List<SubtitleSection> {
+    fun sections(state:WorkspaceState,visible:Boolean,original:Boolean,phone:Boolean,provider:String="Google 翻译"):List<SubtitleSection> {
         if(!state.active || !visible)return emptyList()
         if(!state.translation) {
             if(state.captionHistory.isNotEmpty())return listOf(
@@ -22,7 +22,7 @@ object FloatingSubtitle {
         val rows=mutableListOf(SubtitleSection(if(state.audio)"OpenNomi · 视频实时字幕" else "OpenNomi · 画面文字翻译"))
         val draft=state.audio && state.captionDraft.isNotBlank()
         if(draft) {
-            rows+=SubtitleSection("临时译文 · 识别中，可能改写")
+            rows+=SubtitleSection(state.captionDraftLabel)
             rows+=SubtitleSection(state.captionDraft,true)
             if(original)rows+=SubtitleSection("片段原文：${state.captionDraftOriginal}")
         }
@@ -34,7 +34,7 @@ object FloatingSubtitle {
             rows+=SubtitleSection(if(state.audioPreview.isNotBlank())"识别中：${state.audioPreview.take(180)}" else if(state.audio)"正在等待视频原声…" else "正在等待画面外语文字…")
         }
         if(state.notice.isNotBlank())rows+=SubtitleSection(state.notice.take(240))
-        if(phone && (state.caption.isNotBlank() || state.captionDraft.isNotBlank()))rows+=SubtitleSection("由 Google 翻译")
+        if(phone && (state.caption.isNotBlank() || state.captionDraft.isNotBlank()))rows+=SubtitleSection(if(provider=="Google 翻译")"由 Google 翻译" else provider)
         return rows
     }
 }

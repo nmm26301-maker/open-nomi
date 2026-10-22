@@ -88,7 +88,7 @@ class OrbitOverlay(private val service:ScreenShareService) {
         ball?.mode=when{state.voiceOn->if(state.voiceStatus.contains("回应"))4 else 1;state.busy->2;state.proposed!=null->3;state.audio->1;state.status.contains("完成")->4;else->0}
         description?.text=(if(state.voiceOn)"小智：${state.voiceStatus}\n" else "")+state.status+"\n"+state.reply.take(600)
         val cfg=ScreenAssistant.settings()
-        val rows=FloatingSubtitle.sections(state,cfg.subtitleOverlay,cfg.subtitleOriginal,cfg.phoneTranslation)
+        val rows=FloatingSubtitle.sections(state,cfg.subtitleOverlay,cfg.subtitleOriginal,cfg.phoneTranslation,cfg.translationAttribution())
         if(rows.isNotEmpty()) {
             if(caption==null) {
                 val text=TextView(service).apply{setTextColor(0xFFE9F3FF.toInt());textSize=13f;setPadding(dp(16),dp(10),dp(16),dp(10));background=bg();importantForAccessibility=View.IMPORTANT_FOR_ACCESSIBILITY_YES}

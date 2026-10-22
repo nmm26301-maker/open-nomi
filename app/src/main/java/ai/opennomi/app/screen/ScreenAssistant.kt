@@ -29,6 +29,8 @@ class WorkspaceSettings(context: Context) {
     var autoGlm: Boolean get()=prefs.getBoolean("autoglm",false);set(v){prefs.edit().putBoolean("autoglm",v).apply()}
     var translationModel: String get()=prefs.getString("translation-model","").orEmpty();set(v){prefs.edit().putString("translation-model",v.trim()).apply()}
     var phoneTranslation: Boolean get()=prefs.getBoolean("phone-translation",true);set(v){prefs.edit().putBoolean("phone-translation",v).apply()}
+    var hyMtTranslation:Boolean get()=prefs.getBoolean("hymt2-translation",false);set(v){prefs.edit().putBoolean("hymt2-translation",v).apply()}
+    fun translationAttribution()=if(phoneTranslation && hyMtTranslation)"Hy-MT2 · 本机离线翻译" else if(phoneTranslation)"Google 翻译" else "在线翻译"
     var translationSource: String get()=prefs.getString("translation-source","auto").orEmpty();set(v){prefs.edit().putString("translation-source",v).apply()}
     var translationCellular: Boolean get()=prefs.getBoolean("translation-cellular",false);set(v){prefs.edit().putBoolean("translation-cellular",v).apply()}
     var playbackModel: String get()=prefs.getString("playback-model","en").orEmpty();set(v){prefs.edit().putString("playback-model",PlaybackModels.selected(v).id).apply()}
@@ -62,7 +64,7 @@ class WorkspaceSettings(context: Context) {
     fun translationReady() = phoneTranslation || modelReady() || libre.isNotBlank()
     fun translationFingerprint(): String = java.security.MessageDigest.getInstance("SHA-256")
         // Configuration polling needs change detection, not repeated hardware-key decryption.
-        .digest((base+"\n"+model+"\n"+translationModel+"\n"+prefs.getString("secret","")+"\n"+libre+"\n"+prefs.getString("libre-secret","")+"\n"+phoneTranslation+"\n"+translationSource+"\n"+translationCellular+"\n"+playbackModel).toByteArray()).joinToString("") { "%02x".format(it) }
+        .digest((base+"\n"+model+"\n"+translationModel+"\n"+prefs.getString("secret","")+"\n"+libre+"\n"+prefs.getString("libre-secret","")+"\n"+phoneTranslation+"\n"+translationSource+"\n"+translationCellular+"\n"+playbackModel+"\n"+hyMtTranslation).toByteArray()).joinToString("") { "%02x".format(it) }
     fun connection() = VisionConnection(base,model,apiKey)
     private fun fingerprint(): String = java.security.MessageDigest.getInstance("SHA-256").digest((base+"\n"+model+"\n"+apiKey).toByteArray()).joinToString("") { "%02x".format(it) }
     fun visionVerified() = modelReady() && prefs.getString("verified", "") == fingerprint()
@@ -74,6 +76,13 @@ class WorkspaceSettings(context: Context) {
 }
 object ScreenAssistant {
     val phoneTranslator by lazy { PhoneTranslator() }
+    val hyMtTranslator by lazy { HyMtTranslator() }
+    val translationStatus get()=if(settings().phoneTranslation && settings().hyMtTranslation)hyMtTranslator.status else phoneTranslator.status
+    suspend fun prepareTranslation(language:String,cellular:Boolean=false) {
+        if(settings().hyMtTranslation)hyMtTranslator.prepare(context,cellular) else phoneTranslator.prepare(language,cellular)
+    }
+    fun cancelTranslation(){hyMtTranslator.cancel()}
+    fun clearTranslationCaches(){phoneTranslator.clearCachedTranslations();hyMtTranslator.clearCachedTranslations()}
     private val vision=VisionApi()
     private val translationVision=VisionApi(OkHttpClient.Builder().callTimeout(15,TimeUnit.SECONDS).connectTimeout(6,TimeUnit.SECONDS).followRedirects(false).followSslRedirects(false).build())
     private val client=OkHttpClient.Builder().followRedirects(false).followSslRedirects(false).callTimeout(15,TimeUnit.SECONDS).connectTimeout(10,TimeUnit.SECONDS).build()
@@ -228,9 +237,10 @@ object ScreenAssistant {
         check(page.text.isNotBlank()) { "还没有屏幕文字，请开启无障碍读取，或连接视觉模型" }
         return ai.opennomi.app.voice.ScreenVoiceContext.textPrompt(question,page.app,page.text)
     }
-    suspend fun translate(text: String,sourceOverride:String?=null,previous:String=""): String {
+    suspend fun translate(text: String,sourceOverride:String?=null,previous:String="",partial:((String)->Unit)?=null): String {
         if(text.isBlank())return ""
         val cfg=settings()
+        if(cfg.phoneTranslation && cfg.hyMtTranslation)return hyMtTranslator.translate(context,text,cfg.translationCellular,previous,partial)
         if(cfg.phoneTranslation)return phoneTranslator.translate(text.take(1400),sourceOverride ?: cfg.translationSource,cfg.translationCellular)
         if(sourceOverride==null && TranslationText.chineseOnly(text))return text
         if(cfg.libre.isNotBlank()) {

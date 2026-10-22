@@ -16,3 +16,5 @@ build-handoff/
 
 __pycache__/
 playback-fixture/src/main/res/raw/speech.wav
+
+/vendor/

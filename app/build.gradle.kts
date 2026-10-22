@@ -7,16 +7,19 @@ android {
     namespace = "ai.opennomi.app"
     compileSdk = 35
     buildToolsVersion = "35.0.0"
+    ndkVersion = "27.2.12479018"
+    externalNativeBuild { cmake { path = file("src/main/cpp/CMakeLists.txt"); version = "3.22.1" } }
 
     defaultConfig {
         applicationId = providers.gradleProperty("OPENNOMI_APPLICATION_ID").orElse("com.opennomi.android").get()
         minSdk = 26
         targetSdk = 35
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        versionCode = providers.gradleProperty("OPENNOMI_VERSION_CODE").orElse("64").get().toInt()
-        versionName = providers.gradleProperty("OPENNOMI_VERSION_NAME").orElse("0.64.0").get()
+        versionCode = providers.gradleProperty("OPENNOMI_VERSION_CODE").orElse("65").get().toInt()
+        versionName = providers.gradleProperty("OPENNOMI_VERSION_NAME").orElse("0.65.0").get()
 
         ndk { abiFilters += providers.gradleProperty("OPENNOMI_ABIS").orElse("arm64-v8a").get().split(",") }
+        externalNativeBuild { cmake { arguments += listOf("-DCMAKE_BUILD_TYPE=Release", "-DANDROID_STL=c++_static") } }
         vectorDrawables { useSupportLibrary = true }
     }
 

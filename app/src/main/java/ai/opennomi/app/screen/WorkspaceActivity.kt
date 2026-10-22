@@ -67,6 +67,13 @@ class WorkspaceActivity:ComponentActivity() {
         } else ScreenState.event("未允许麦克风权限，无法接收语音指令。")
         refresh.intValue++
     }
+    private val hyMtImport=registerForActivityResult(ActivityResultContracts.OpenDocument()){uri->if(uri!=null)lifecycleScope.launch{
+        try {
+            val job=currentCoroutineContext()[Job]!!
+            withContext(Dispatchers.IO){HyMtModel.import(this@WorkspaceActivity,uri,{job.isActive},{message->ScreenState.event(message)})}
+            ScreenState.event("Hy-MT2 模型已校验并导入，可离线使用");refresh.intValue++
+        }catch(e:CancellationException){throw e}catch(e:Exception){ScreenState.event(e.message ?: "Hy-MT2 导入失败")}
+    }}
     private val image=registerForActivityResult(ActivityResultContracts.GetContent()){uri->if(uri!=null)import(uri,"")}
     override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);window.addFlags(WindowManager.LayoutParams.FLAG_SECURE);ScreenAssistant.init(this);tab.value=intent.getStringExtra("tab") ?: "vision";readTranslationMode(intent);handleShare(intent);setContent{Workspace()}}
     override fun onResume(){super.onResume();refresh.intValue++;ScreenShareService.instance?.refreshOverlay();if(pendingOverlay && Settings.canDrawOverlays(this)){pendingOverlay=false;requestVideo()}}
@@ -197,6 +204,7 @@ class WorkspaceActivity:ComponentActivity() {
         val cfg=remember{ScreenAssistant.settings()}
         val scope=rememberCoroutineScope()
         var phone by remember{mutableStateOf(cfg.phoneTranslation)}
+        var hyMt by remember{mutableStateOf(cfg.hyMtTranslation)}
         var source by remember{mutableStateOf(cfg.translationSource)}
         var cellular by remember{mutableStateOf(cfg.translationCellular)}
         var downloadOptions by remember{mutableStateOf(false)}
@@ -220,9 +228,24 @@ class WorkspaceActivity:ComponentActivity() {
                 resultPosition.bringIntoView()
             }
         }
-        val progress by ScreenAssistant.phoneTranslator.status.collectAsStateWithLifecycle()
+        val progress by ScreenAssistant.translationStatus.collectAsStateWithLifecycle()
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)){
             listOf("video" to "视频字幕","text" to "文字翻译","screen" to "画面文字","history" to "近期译文").forEach{(key,label)->FilterChip(selected=mode==key,onClick={mode=key},label={Text(label)},enabled=!busy)}
+        }
+        if(mode!="history") {
+            Text("翻译引擎",fontSize=12.sp)
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+                listOf("google" to "Google 离线","hymt2" to "Hy-MT2 离线","online" to "在线翻译").forEach{(key,label)->
+                    val selected=if(!phone)"online" else if(hyMt)"hymt2" else "google"
+                    FilterChip(selected=selected==key,onClick={phone=key!="online";hyMt=key=="hymt2";cfg.phoneTranslation=phone;cfg.hyMtTranslation=hyMt;output="";refresh.intValue++},label={Text(label)},enabled=!busy && !state.audio)
+                }
+            }
+            if(phone && hyMt) {
+                Text("Hy-MT2 1.8B · 本机推理，无需 API Key。首次下载约 1.13 GB，之后离线可用；速度取决于手机性能，语音识别仍由已选语音模型完成。",fontSize=12.sp)
+                Text(if(HyMtModel.ready(this@WorkspaceActivity))"Hy-MT2 模型已准备好" else "Hy-MT2 尚未下载，可提前准备模型或导入官方文件",fontSize=12.sp)
+                TextButton(onClick={hyMtImport.launch(arrayOf("*/*"))},enabled=!busy && !state.audio){Text("导入 Hy-MT2 官方 GGUF 模型")}
+                if(state.notice.isNotBlank() && !state.audio)Text(state.notice,fontSize=12.sp)
+            }
         }
         if(mode=="video")CardBlock("无字幕视频 · 实时中文字幕") {
             Text("直接听视频原声，不需要视频自带字幕。先选原声语言，准备好模型后再播放。",fontSize=14.sp)
@@ -243,10 +266,10 @@ class WorkspaceActivity:ComponentActivity() {
             if(state.caption.isNotBlank()) {
                 SelectionContainer{Text(state.caption)}
                 if(showOriginal && state.captionOriginal.isNotBlank())Text("原文：${state.captionOriginal}",fontSize=12.sp)
-                if(phone)Text("由 Google 翻译",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                if(phone)Text(if(hyMt)"Hy-MT2 · 本机离线翻译" else "由 Google 翻译",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if(state.captionDraft.isNotBlank()) {
-                Text("临时译文 · 识别中，可能改写",fontSize=12.sp,color=MaterialTheme.colorScheme.primary)
+                Text(state.captionDraftLabel,fontSize=12.sp,color=MaterialTheme.colorScheme.primary)
                 Text(state.captionDraft)
                 if(showOriginal)Text("片段原文：${state.captionDraftOriginal}",fontSize=12.sp)
             }
@@ -259,7 +282,7 @@ class WorkspaceActivity:ComponentActivity() {
             if(!state.audio || videoOptions) {
             Row(verticalAlignment=Alignment.CenterVertically){Text("手机翻译 · 无需 API Key",Modifier.weight(1f),fontSize=13.sp);Switch(phone,{phone=it;cfg.phoneTranslation=it},enabled=!state.audio && !busy)}
             if(!phone)TextButton(onClick={tab.value="settings"}){Text("配置在线翻译服务")}
-            if(phone)Text("手机离线翻译适合简单句。原文正确但译文生硬或意思有误时，可切换已配置的在线翻译；日语等语言译成中文会经英语中转，质量可能受影响。",fontSize=12.sp)
+            if(phone && !hyMt)Text("手机离线翻译适合简单句。原文正确但译文生硬或意思有误时，可切换已配置的在线翻译；日语等语言译成中文会经英语中转，质量可能受影响。",fontSize=12.sp)
             Text("原声语言 · 左右滑动选择",fontSize=12.sp)
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
                 PlaybackModels.choices.forEach { model ->
@@ -276,13 +299,13 @@ class WorkspaceActivity:ComponentActivity() {
                 try {
                     val preparation=currentCoroutineContext()[Job]!!
                     withContext(Dispatchers.IO){PlaybackModels.prepare(this@WorkspaceActivity,selected,cfg.translationCellular,{preparation.isActive},{message->scope.launch{if(preparation.isActive)videoMessage=message}})}
-                    if(cfg.phoneTranslation)ScreenAssistant.phoneTranslator.prepare(selected.language,cfg.translationCellular)
+                    if(cfg.phoneTranslation)ScreenAssistant.prepareTranslation(selected.language,cfg.translationCellular)
                     videoMessage="${selected.label}语音和翻译模型已就绪，可以播放视频"
                 }catch(e:CancellationException){throw e}
                 catch(e:Exception){videoMessage=e.message ?: "视频字幕模型准备失败"}
                 finally{busy=false;videoPreparing=false;running=null}
             }},enabled=!busy && !state.audio){Text("提前准备视频字幕模型")}
-            if(videoPreparing){LinearProgressIndicator(Modifier.fillMaxWidth());TextButton(onClick={running?.cancel();videoMessage="已取消模型准备，已安装模型保留"}){Text("取消视频模型准备")}}
+            if(videoPreparing){LinearProgressIndicator(Modifier.fillMaxWidth());TextButton(onClick={running?.cancel();ScreenAssistant.cancelTranslation();videoMessage="已取消模型准备，已安装模型保留"}){Text("取消视频模型准备")}}
             if(videoMessage.isNotBlank())Text(videoMessage,fontSize=12.sp,color=MaterialTheme.colorScheme.primary)
             Row(verticalAlignment=Alignment.CenterVertically){Text("允许移动网络下载模型",Modifier.weight(1f),fontSize=13.sp);Switch(cellular,{cellular=it;cfg.translationCellular=it},enabled=!busy && !state.audio)}
             Text("默认只在 Wi-Fi 下载。原文会先显示；积压时合并相邻语句翻译以追赶进度。英语可选增强模型（首次约 128 MB），应对照原文比较效果；模型更大并不保证每句更准或更快。口音、音乐和重叠讲话会影响识别。",fontSize=12.sp)
@@ -326,19 +349,19 @@ class WorkspaceActivity:ComponentActivity() {
                 finally{busy=false;running=null}
             }},enabled=!busy && !state.audio && input.isNotBlank(),modifier=Modifier.fillMaxWidth()){Text(if(busy)"正在处理…" else "翻译为中文")}
             if(state.audio)Text("视频字幕运行中；请先在视频字幕页停止，再进行文字翻译或更改语言设置。",fontSize=12.sp)
-            if(busy){LinearProgressIndicator(Modifier.fillMaxWidth());TextButton(onClick={running?.cancel();output="已取消本次翻译"}){Text("取消")}}
+            if(busy){LinearProgressIndicator(Modifier.fillMaxWidth());TextButton(onClick={running?.cancel();ScreenAssistant.cancelTranslation();output="已取消本次翻译"}){Text("取消")}}
             if(output.isNotBlank())Column(Modifier.fillMaxWidth().bringIntoViewRequester(resultPosition)) {
                 Text("译文",fontSize=12.sp,color=MaterialTheme.colorScheme.primary)
                 SelectionContainer {Text(output)}
-                if(phone)Text("由 Google 翻译",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                if(phone)Text(if(hyMt)"Hy-MT2 · 本机离线翻译" else "由 Google 翻译",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if(phone) {
                 TextButton(onClick={downloadOptions=!downloadOptions},enabled=!busy){Text(if(downloadOptions)"收起模型与下载设置" else "模型与下载设置")}
                 if(downloadOptions) {
                 Row(verticalAlignment=Alignment.CenterVertically){Text("允许移动网络下载模型",Modifier.weight(1f),fontSize=13.sp);Switch(cellular,{cellular=it;cfg.translationCellular=it},enabled=!busy && !state.audio)}
-                Text("默认只在 Wi-Fi 下载。每种语言模型约 30 MB；模型服务不可达时会显示原因。文字在本机翻译；SDK 会发送运行统计数据。",fontSize=12.sp)
+                Text(if(hyMt)"默认只在 Wi-Fi 下载，Hy-MT2 约 1.13 GB；支持取消后续传和官方模型文件导入。文字与译文在本机处理。" else "默认只在 Wi-Fi 下载。每种语言模型约 30 MB；模型服务不可达时会显示原因。文字在本机翻译；SDK 会发送运行统计数据。",fontSize=12.sp)
                 TextButton(onClick={busy=true;output="";running=scope.launch {
-                    try {ScreenAssistant.phoneTranslator.prepare(if(source=="auto")"en" else source,cellular);output="语言模型已准备好，可以翻译"}
+                    try {ScreenAssistant.prepareTranslation(if(source=="auto")"en" else source,cellular);output="语言模型已准备好，可以翻译"}
                     catch(e:CancellationException){throw e}
                     catch(e:Exception){output=e.message ?: "模型准备未完成"}
                     finally{busy=false;running=null}
@@ -463,7 +486,7 @@ class WorkspaceActivity:ComponentActivity() {
             if(runCatching{VisionApi.endpoint(config.base).host}.getOrNull()=="open.bigmodel.cn" && config.apiKey.isBlank())Text("智谱 API Key：尚未填写",color=MaterialTheme.colorScheme.error)
             Text("NOMI 原声：${if(pairing!=null) "需要在小智后台绑定设备" else if(connected) "已连接" else "尚未连接"}")
             Text("屏幕共享：${if(state.active) "已开启" else "未开启"} · 无障碍：${if(ScreenAccessService.instance!=null) "已连接" else "未开启"}")
-            Text("翻译来源：${if(config.phoneTranslation) "手机翻译（Google）" else if(config.libre.isNotBlank()) "LibreTranslate（优先）" else if(modelConfigured) "已保存的模型" else "尚未配置翻译服务"}")
+            Text("翻译来源：${if(config.phoneTranslation) config.translationAttribution() else if(config.libre.isNotBlank()) "LibreTranslate（优先）" else if(modelConfigured) "已保存的模型" else "尚未配置翻译服务"}")
             Text("连接设置和图片测试不会替你开启系统权限。Agent 需要共享和无障碍；翻译浮条需要共享。",fontSize=12.sp)
             TextButton(onClick={tab.value="help"}){Text("看申请与开启步骤")}
         }

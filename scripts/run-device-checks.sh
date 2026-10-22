@@ -13,9 +13,17 @@ collect_quality() {
     printf '\n'
   fi
 }
-trap collect_quality EXIT
+collect_hymt() {
+  collect_quality
+  for name in hymt-quality hymt-video; do
+    if adb pull "/data/local/tmp/$name.json" "ui-captures/$name.json"; then
+      cat "ui-captures/$name.json"
+    fi
+  done
+}
+trap collect_hymt EXIT
 adb install -r playback-fixture/build/outputs/apk/debug/playback-fixture-debug.apk
 gradle :app:connectedDebugAndroidTest -POPENNOMI_ABIS=x86_64 -Pkotlin.incremental=false --no-daemon
-for capture in fish-workstation conversation-home conversation-memory translation-workspace video-live-workspace background-subtitles background-preview; do
+for capture in fish-workstation conversation-home conversation-memory translation-workspace video-live-workspace background-subtitles background-preview hymt-workspace hymt-background; do
   adb pull "/data/local/tmp/$capture.png" "ui-captures/$capture.png"
 done

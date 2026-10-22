@@ -1,13 +1,18 @@
 {
-  "model_repository": "tencent/Hy-MT2-1.8B-1.25Bit-GGUF",
-  "model_revision": "9df5c824a00a744fb0512a29c640466f4d97dfb0",
-  "model_file": "Hy-MT2-1.8B-1.25Bit.gguf",
-  "model_bytes": 461860800,
-  "model_sha256": "cc497fe8f033b52b3b8b00a7669e9661435432f9d4cd43f7ed24400c01507a93",
+  "model_repository": "tencent/Hy-MT2-1.8B-GGUF",
+  "model_revision": "b27182d810fa3ceb6ed04e7c324c54e35c0d209c",
+  "model_file": "Hy-MT2-1.8B-Q4_K_M.gguf",
+  "model_bytes": 1133080448,
+  "model_sha256": "dc5f44fcf1fa496ee7ad725982c0c8c553a4de00259b53af84c4b89fb0c06699",
   "model_license": "Apache-2.0",
-  "runtime_repository": "sjl623/llama.cpp",
-  "runtime_commit": "1e411d8f5a1e23525fa3265dfb4bd76265465397",
+  "runtime_repository": "ggml-org/llama.cpp",
+  "runtime_commit": "a37cc46104eb50900d5ab4a9ba02a0abdac039db",
   "runtime_license": "MIT",
-  "runtime_upstream_pr": "https://github.com/ggml-org/llama.cpp/pull/22836",
-  "official_source": "https://github.com/Tencent-Hunyuan/Hy-MT2"
+  "official_source": "https://github.com/Tencent-Hunyuan/Hy-MT2",
+  "rejected_variant": {
+    "model_file": "Hy-MT2-1.8B-1.25Bit.gguf",
+    "sha256": "cc497fe8f033b52b3b8b00a7669e9661435432f9d4cd43f7ed24400c01507a93",
+    "runtime_pr_head": "1e411d8f5a1e23525fa3265dfb4bd76265465397",
+    "reason": "Verified official bytes fail GGUF tensor offset validation in the linked STQ runtime; no usable release claimed."
+  }
 }

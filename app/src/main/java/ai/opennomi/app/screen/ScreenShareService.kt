@@ -37,7 +37,7 @@ class ScreenShareService: Service() {
     }
     private fun pumpAudioDraft() {
         val state=ScreenState.state.value;val cfg=ScreenAssistant.settings()
-        val enabled=state.audio && state.translation && cfg.phoneTranslation && audioSource=="en" &&
+        val enabled=state.audio && state.translation && cfg.phoneTranslation && !cfg.hyMtTranslation && audioSource=="en" &&
             SubtitleTiming.selected(cfg.subtitleTiming)==SubtitleTiming.FAST
         if(!enabled){if(displayedDraft!=null)resetAudioDraft();return}
         if(draftSlow || draftJob?.isActive==true || translationJob?.isActive==true || audioQueue.size>0 || audioCaptions.size>0)return
@@ -50,7 +50,7 @@ class ScreenShareService: Service() {
                 if(output!=null && ScreenState.valid(id) && generation==translationGeneration &&
                     config==ScreenAssistant.settings().translationFingerprint() && ScreenState.state.value.audio && audioDrafts.accepts(ticket)) {
                     displayedDraft=ticket
-                    ScreenState.update{it.copy(captionDraft=output,captionDraftOriginal=ticket.text)}
+                    ScreenState.update{it.copy(captionDraft=output,captionDraftOriginal=ticket.text,captionDraftLabel="临时译文 · 识别中，可能改写")}
                 }
             } catch(e:CancellationException){throw e} catch(_:Exception){/* Final captions continue normally. */}
             finally {
@@ -167,7 +167,7 @@ class ScreenShareService: Service() {
         val on=!ScreenState.state.value.translation
         if(on && !ScreenAssistant.settings().translationReady()){ScreenState.event("请在翻译页开启手机翻译，或填写模型／翻译服务");return}
         if(on)ScreenAssistant.settings().subtitleOverlay=true
-        translationGeneration++;translationJob?.cancel();translationJob=null
+        translationGeneration++;translationJob?.cancel();translationJob=null;ScreenAssistant.cancelTranslation()
         captions=CaptionGate();translations.reset();audioQueue.reset();audioCaptions.reset();resetAudioDraft();audioContext=""
         if(!on){playbackGeneration++;audioPreparation?.cancel();audioPreparation=null;playback?.close();playback=null}
         ScreenState.update { it.copy(translation=on,audio=if(on)it.audio else false,caption="",captionOriginal="",audioPreview="",captionDraft="",captionDraftOriginal="",notice="",status=if(on)"屏幕翻译已开启" else "屏幕翻译已暂停") }
@@ -192,14 +192,19 @@ class ScreenShareService: Service() {
         val id=session;val generation=translationGeneration;val config=translationConfig
         translationJob=scope.launch {
             val modelProgress=if(!audio && ScreenAssistant.settings().phoneTranslation)launch {
-                ScreenAssistant.phoneTranslator.status.collect { progress ->
+                ScreenAssistant.translationStatus.collect { progress ->
                     if(ScreenState.valid(id) && generation==translationGeneration && ScreenState.state.value.translation)
                         ScreenState.update{it.copy(notice=progress)}
                 }
             } else null
             try {
-                val text=(if(audio)null else translations.cached(line)) ?: withContext(Dispatchers.IO){ScreenAssistant.translate(line,if(audio)audioSource else null,if(audio)audioContext else "")}
+                val text=(if(audio)null else translations.cached(line)) ?: withContext(Dispatchers.IO){ScreenAssistant.translate(line,if(audio)audioSource else null,if(audio)audioContext else "",partial={piece->main.post{
+                    if(ScreenState.valid(id) && generation==translationGeneration && config==ScreenAssistant.settings().translationFingerprint() && ScreenState.state.value.translation) {
+                        ScreenState.update{it.copy(captionDraft=piece,captionDraftOriginal=line,captionDraftLabel="临时译文 · Hy-MT2 正在生成")}
+                    }
+                }})}
                 if(ScreenState.valid(id) && generation==translationGeneration && config==ScreenAssistant.settings().translationFingerprint() && ScreenState.state.value.translation){
+                    if(ScreenAssistant.settings().hyMtTranslation)ScreenState.update{it.copy(captionDraft="",captionDraftOriginal="")}
                     if(audio && utterance!=null) {
                         val caption=AudioCaption(text,line,utterance.confidence,PlaybackModels.selected(ScreenAssistant.settings().playbackModel).label)
                         val displayed=audioCaptions.offer(caption,SystemClock.elapsedRealtime())
@@ -218,6 +223,7 @@ class ScreenShareService: Service() {
             catch(t:Throwable){
                 if(ScreenState.valid(id) && generation==translationGeneration){
                     if(audio)audioQueue.failed(SystemClock.elapsedRealtime()) else translations.failed(System.currentTimeMillis())
+                    ScreenState.update{it.copy(captionDraft="",captionDraftOriginal="")}
                     val error="翻译暂未完成：${t.message ?: "网络不可用"} · 正在等待重试，翻译保持开启"
                     ScreenState.update{it.copy(notice=error)};ScreenState.event(error)
                 }
@@ -242,7 +248,7 @@ class ScreenShareService: Service() {
     fun toggleAudio(restart:Boolean=false) {
         val pausing=ScreenState.state.value.audio && !restart
         playbackGeneration++;val generation=playbackGeneration
-        translationGeneration++;translationJob?.cancel();translationJob=null
+        translationGeneration++;translationJob?.cancel();translationJob=null;ScreenAssistant.cancelTranslation()
         // Publish pause immediately; native AudioRecord.stop can take time to return.
         if(pausing)ScreenState.pauseVideo()
         audioPreparation?.cancel();audioPreparation=null;playback?.close();playback=null
@@ -264,9 +270,9 @@ class ScreenShareService: Service() {
             try {
                 val root=withContext(Dispatchers.IO){PlaybackModels.prepare(this@ScreenShareService,model,cfg.translationCellular,{valid()},{progress->main.post{if(valid())ScreenState.update{it.copy(notice=progress)}}})}
                 if(cfg.phoneTranslation) {
-                    val progress=launch{ScreenAssistant.phoneTranslator.status.collect{message->if(valid())ScreenState.update{it.copy(notice=message)}}}
-                    try{ScreenAssistant.phoneTranslator.prepare(model.language,cfg.translationCellular)}finally{progress.cancel()}
-                    if(model.language=="en" && SubtitleTiming.selected(cfg.subtitleTiming)==SubtitleTiming.FAST) {
+                    val progress=launch{ScreenAssistant.translationStatus.collect{message->if(valid())ScreenState.update{it.copy(notice=message)}}}
+                    try{ScreenAssistant.prepareTranslation(model.language,cfg.translationCellular)}finally{progress.cancel()}
+                    if(!cfg.hyMtTranslation && model.language=="en" && SubtitleTiming.selected(cfg.subtitleTiming)==SubtitleTiming.FAST) {
                         if(valid())ScreenState.update{it.copy(notice="正在预热手机翻译，请就绪后播放视频")}
                         // Initialize native inference before capture, so a cold first request does
                         // not consume the preview latency budget while the player is speaking.
@@ -277,7 +283,7 @@ class ScreenShareService: Service() {
                 if(!valid())return@launch
                 playback=PlaybackHearing(this@ScreenShareService,p,root,SubtitleTiming.selected(cfg.subtitleTiming),
                     {text,confidence->main.post{if(valid()){
-                        resetAudioDraft()
+                        if(!cfg.hyMtTranslation)resetAudioDraft()
                         if(!audioQueue.offer(text,confidence))ScreenState.update{it.copy(notice="翻译速度暂时跟不上；这句未加入字幕，请降低播放速度后重试")}
                         updateAudioQueueState()
                         pumpTranslation()
@@ -289,7 +295,7 @@ class ScreenShareService: Service() {
                         pumpAudioDraft()
                     }}},
                     {message->main.post{if(valid()){ScreenState.update{it.copy(notice=message)};ScreenState.event(message)}}},
-                    {main.post{if(valid()){translationGeneration++;translationJob?.cancel();translationJob=null;audioQueue.reset();audioCaptions.reset();resetAudioDraft();ScreenState.pauseVideo(notice=ScreenState.state.value.notice,status="视频声音捕获已停止，请重新开启字幕")}}},
+                    {main.post{if(valid()){translationGeneration++;translationJob?.cancel();translationJob=null;ScreenAssistant.cancelTranslation();audioQueue.reset();audioCaptions.reset();resetAudioDraft();ScreenState.pauseVideo(notice=ScreenState.state.value.notice,status="视频声音捕获已停止，请重新开启字幕")}}},
                     {main.post{if(valid())ScreenState.update{it.copy(notice="",status="${model.label}视频字幕已就绪 · 请播放无字幕视频")}}}
                 )
                 ScreenState.update{it.copy(notice="正在加载原声识别器，请就绪后播放视频")}
@@ -301,7 +307,7 @@ class ScreenShareService: Service() {
     }
     override fun onDestroy() {
         instance=null;audioQueue.reset();audioCaptions.reset();resetAudioDraft();playbackGeneration++;audioPreparation?.cancel();audioPreparation=null;ScreenAssistant.stop();ScreenState.end();scope.cancel();overlay?.close();overlay=null
-        ScreenAssistant.phoneTranslator.clearCachedTranslations()
+        ScreenAssistant.cancelTranslation();ScreenAssistant.clearTranslationCaches();ScreenAssistant.hyMtTranslator.release()
         playback?.close();playback=null
         val p=projection;projection=null
         val screenWorker=worker

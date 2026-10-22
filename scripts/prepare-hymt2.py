@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Restore the official-model STQ runtime at a pinned commit; optionally fetch verified weights."""
+"""Restore the official-model llama.cpp runtime at a pinned commit; optionally fetch verified weights."""
 import argparse
 import hashlib
 import json
@@ -24,7 +24,7 @@ if actual.returncode or actual.stdout.strip() != spec['runtime_commit']:
     subprocess.run(['git', '-C', str(vendor), 'fetch', '--depth=1', 'origin', spec['runtime_commit']], check=True)
     subprocess.run(['git', '-C', str(vendor), 'checkout', '--detach', 'FETCH_HEAD'], check=True)
 assert subprocess.check_output(['git', '-C', str(vendor), 'rev-parse', 'HEAD'], text=True).strip() == spec['runtime_commit']
-print('Verified pinned STQ runtime:', spec['runtime_commit'], flush=True)
+print('Verified pinned llama.cpp runtime:', spec['runtime_commit'], flush=True)
 if args.model:
     model = root / 'build/hymt2' / spec['model_file']
     model.parent.mkdir(parents=True, exist_ok=True)
