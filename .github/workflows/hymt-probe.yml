@@ -1,0 +1,26 @@
+name: Hy-MT2 real model probe
+on:
+  push:
+    branches: [codex/hy-mt2]
+    paths: ['app/src/main/cpp/**', 'third-party/hymt2.json', 'scripts/prepare-hymt2.py', '.github/workflows/hymt-probe.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/prepare-hymt2.py --model
+      - run: cmake -S app/src/main/cpp -B build/hymt-native -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build build/hymt-native --target opennomi-hymt-probe -j 3
+      - name: Actual Hy-MT2 translation with production core
+        run: |
+          set -euo pipefail
+          build/hymt-native/opennomi-hymt-probe build/hymt2/Hy-MT2-1.8B-1.25Bit.gguf | tee build/hymt-probe.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hymt2-native-probe
+          path: build/hymt-probe.txt
