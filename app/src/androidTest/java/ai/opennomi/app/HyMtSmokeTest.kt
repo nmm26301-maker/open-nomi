@@ -59,9 +59,29 @@ class HyMtSmokeTest {
             assertTrue(after.any{it in '\u4e00'..'\u9fff'});report.put("after_cancel",after)
             engine.close()
             device.executeShellCommand("svc wifi disable");device.executeShellCommand("svc data disable")
+            val network=app.getSystemService(android.net.ConnectivityManager::class.java)
+            withTimeout(15000){while(network.activeNetwork!=null)delay(100)}
+            assertNull(network.activeNetwork)
+            val downloaded=File(HyMtModel.file(app).parentFile,"${HyMtModel.FILE}.download")
+            assertTrue("Simulate interruption after the complete model download",HyMtModel.file(app).renameTo(downloaded))
+            File(downloaded.parentFile,"verified.sha256").delete()
+            val badRoot=File(app.cacheDir,"hymt-corrupt-download").apply{mkdirs()}
+            val badContext=object:android.content.ContextWrapper(app){override fun getFilesDir():File=badRoot}
+            val corrupt=File(HyMtModel.file(badContext).parentFile,"${HyMtModel.FILE}.download")
+            corrupt.parentFile!!.mkdirs()
+            java.io.RandomAccessFile(corrupt,"rw").use{it.setLength(HyMtModel.BYTES)}
+            try {
+                val cancelled=withContext(Dispatchers.IO){runCatching{HyMtModel.prepare(badContext,false,{false},{})}.exceptionOrNull()}
+                assertNotNull(cancelled);assertTrue("Cancelled verification must preserve download",corrupt.exists())
+                val invalid=withContext(Dispatchers.IO){runCatching{HyMtModel.prepare(badContext,false,{true},{})}.exceptionOrNull()}
+                assertTrue("Complete corrupt download must fail checksum before any network request",invalid?.message.orEmpty().contains("校验失败"))
+                assertFalse("Corrupt completed download must not trap future retries",corrupt.exists())
+                report.put("cancelled_download_preserved",true).put("corrupt_download_removed_offline",true)
+            }finally{badRoot.deleteRecursively()}
             val offline=HyMtTranslator()
             try {
                 withTimeout(90000){offline.prepare(app,false)}
+                assertTrue(HyMtModel.ready(app));assertFalse(downloaded.exists());report.put("complete_download_installed_offline",true)
                 val result=withTimeout(90000){offline.translate(app,"The meeting is tomorrow, not today.")}
                 assertTrue(result.contains("明天") && result.contains("今天"));report.put("offline_reload",result)
             }finally{offline.close()}
@@ -90,3 +110,4 @@ class HyMtSmokeTest {
         }
     }
 }
+

@@ -44,14 +44,21 @@ object HyMtModel {
         marker(context).writeText("$SHA256\n${path.lastModified()}")
         return path
     }
+    private fun installDownload(context:Context,staging:File,active:()->Boolean):File {
+        return try{install(context,staging,active)}catch(e:Exception){if(staging.length()==BYTES && active())staging.delete();throw e}
+    }
     @Synchronized fun prepare(context:Context,cellular:Boolean,active:()->Boolean,progress:(String)->Unit):File {
         if(ready(context))return file(context)
-        val manager=context.getSystemService(ConnectivityManager::class.java)
-        val caps=manager.getNetworkCapabilities(manager.activeNetwork ?: error("首次下载 Hy-MT2 需要联网，也可导入官方模型文件"))
-        check(cellular || caps?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)==true || caps?.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)==true){"请连接 Wi-Fi，或允许移动网络下载 Hy-MT2（约 1.13 GB）"}
         val path=file(context);check(path.parentFile!!.let{it.isDirectory || it.mkdirs()}){"无法创建 Hy-MT2 目录"}
         val staging=File(path.parentFile,"$FILE.download")
         if(staging.length()>BYTES)staging.delete()
+        if(staging.length()==BYTES) {
+            progress("正在校验已下载的 Hy-MT2，无需重新联网")
+            return installDownload(context,staging,active)
+        }
+        val manager=context.getSystemService(ConnectivityManager::class.java)
+        val caps=manager.getNetworkCapabilities(manager.activeNetwork ?: error("首次下载 Hy-MT2 需要联网，也可导入官方模型文件"))
+        check(cellular || caps?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)==true || caps?.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)==true){"请连接 Wi-Fi，或允许移动网络下载 Hy-MT2（约 1.13 GB）"}
         val offset=staging.length()
         check(path.parentFile!!.usableSpace>BYTES-offset+128L*1024*1024){"手机存储不足，请腾出约 1.3 GB 后重试"}
         check(active()){"已取消模型下载"}
@@ -60,7 +67,6 @@ object HyMtModel {
         val current=client.newCall(request);call=current
         try {
             current.execute().use{response->
-                if(response.code==416 && offset==BYTES)return install(context,staging,active)
                 check(response.code==200 || response.code==206){"Hy-MT2 下载失败（HTTP ${response.code}），可稍后重试或导入模型"}
                 check(response.request.url.scheme=="https"){"Hy-MT2 下载来源异常"}
                 val append=response.code==206 && offset>0
@@ -77,7 +83,7 @@ object HyMtModel {
                 }}
             }
             progress("正在校验 Hy-MT2，请稍候")
-            return try{install(context,staging,active)}catch(e:Exception){if(staging.length()==BYTES && active())staging.delete();throw e}
+            return installDownload(context,staging,active)
         } finally {if(call===current)call=null}
     }
     @Synchronized fun import(context:Context,uri:Uri,active:()->Boolean,progress:(String)->Unit):File {
@@ -96,3 +102,4 @@ object HyMtModel {
         } finally {staging.delete()}
     }
 }
+

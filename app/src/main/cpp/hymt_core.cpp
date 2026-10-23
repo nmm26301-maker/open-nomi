@@ -90,7 +90,18 @@ std::string HyMtCore::translate(const std::string & instruction, const std::func
     if (cancelled_.load()) throw std::runtime_error("Hy-MT2 已取消");
     auto input = promptTokens(instruction);
     if (input.empty() || input.size() > 740) throw std::runtime_error("原文和上下文过长，请分段翻译");
-    llama_memory_clear(llama_get_memory(context_), true);
+    size_t shared = 0;
+    while (shared < prompt_cache_.size() && shared + 1 < input.size() && prompt_cache_[shared] == input[shared]) ++shared;
+    const auto memory = llama_get_memory(context_);
+    // 保留完全相同的前缀，删除旧原文的剩余部分和全部生成内容；最后一个提示词始终重新解码。
+    if (shared == 0 || !llama_memory_seq_rm(memory, 0, static_cast<llama_pos>(shared), -1)) {
+        llama_memory_clear(memory, true);
+        shared = 0;
+    }
+    // 只有完整成功的结果才能重用；取消、解码失败和截断会令下一句从空上下文开始。
+    prompt_cache_.clear();
+    reused_tokens_ = shared;
+    input_tokens_ = input.size();
     auto sampler = std::unique_ptr<llama_sampler, decltype(&llama_sampler_free)>(
         llama_sampler_chain_init(llama_sampler_chain_default_params()), llama_sampler_free);
     llama_sampler_chain_add(sampler.get(), llama_sampler_init_top_k(20));
@@ -98,7 +109,7 @@ std::string HyMtCore::translate(const std::string & instruction, const std::func
     llama_sampler_chain_add(sampler.get(), llama_sampler_init_penalties(llama_vocab_n_tokens(vocab_), 128, 1.05f, 0.f, 0.f));
     llama_sampler_chain_add(sampler.get(), llama_sampler_init_temp(.7f));
     llama_sampler_chain_add(sampler.get(), llama_sampler_init_dist(2026));
-    for (size_t offset = 0; offset < input.size(); offset += 512) {
+    for (size_t offset = shared; offset < input.size(); offset += 512) {
         const auto size = std::min<size_t>(512, input.size() - offset);
         if (cancelled_.load() || llama_decode(context_, llama_batch_get_one(input.data() + offset, static_cast<int>(size))))
             throw std::runtime_error("Hy-MT2 推理已中断");
@@ -111,6 +122,7 @@ std::string HyMtCore::translate(const std::string & instruction, const std::func
         if (llama_vocab_is_eog(vocab_, token)) {
             if (output.empty() || !completeUtf8(output)) throw std::runtime_error("Hy-MT2 未返回完整译文");
             if (partial) partial(output);
+            prompt_cache_ = input;
             return output;
         }
         std::vector<char> piece(256);
@@ -125,3 +137,4 @@ std::string HyMtCore::translate(const std::string & instruction, const std::func
     }
     throw std::runtime_error("Hy-MT2 译文未结束，请缩短原文后重试");
 }
+

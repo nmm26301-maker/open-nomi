@@ -13,10 +13,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: python3 scripts/prepare-hymt2.py --model
-      - name: Inspect official GGUF tensor metadata
-        run: |
-          mkdir -p build/hymt-inspect
-          head -c 5000000 build/hymt2/Hy-MT2-1.8B-Q4_K_M.gguf > build/hymt-inspect/header.bin
       - run: cmake -S app/src/main/cpp -B build/hymt-native -DCMAKE_BUILD_TYPE=Release
       - run: cmake --build build/hymt-native --target opennomi-hymt-probe -j 3
       - name: Actual Hy-MT2 translation with production core
@@ -29,4 +25,4 @@ jobs:
           name: hymt2-native-probe
           path: |
             build/hymt-probe.txt
-            build/hymt-inspect/header.bin
+

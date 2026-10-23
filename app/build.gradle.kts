@@ -15,8 +15,8 @@ android {
         minSdk = 26
         targetSdk = 35
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        versionCode = providers.gradleProperty("OPENNOMI_VERSION_CODE").orElse("65").get().toInt()
-        versionName = providers.gradleProperty("OPENNOMI_VERSION_NAME").orElse("0.65.0").get()
+        versionCode = providers.gradleProperty("OPENNOMI_VERSION_CODE").orElse("66").get().toInt()
+        versionName = providers.gradleProperty("OPENNOMI_VERSION_NAME").orElse("0.66.0").get()
 
         ndk { abiFilters += providers.gradleProperty("OPENNOMI_ABIS").orElse("arm64-v8a").get().split(",") }
         externalNativeBuild { cmake { arguments += listOf("-DCMAKE_BUILD_TYPE=Release", "-DANDROID_STL=c++_static") } }
@@ -100,3 +100,4 @@ dependencies {
     androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
     androidTestImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 }
+
