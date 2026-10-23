@@ -1,0 +1,16 @@
+{
+  "model_sha256": "dc5f44fcf1fa496ee7ad725982c0c8c553a4de00259b53af84c4b89fb0c06699",
+  "fixture": "Pinned public JFK recording; separate player UID",
+  "ui_stage": "native_stream",
+  "before_grant_active": false,
+  "before_grant_audio": false,
+  "before_grant_package": "com.opennomi.android.dev",
+  "first_stream_elapsed_ms": 29381,
+  "first_final_elapsed_ms": 43779,
+  "overlay": "OpenNomi · 视频实时字幕\n以及我的亲美立场\n原文：and my pro america\n这句包含不确定的识别词，请对照原文\nHy-MT2 · 本机离线翻译",
+  "captured_original": "and my pro america",
+  "translated": "以及我的亲美立场",
+  "resume_same_session": true,
+  "final_package": "ai.opennomi.playbackfixture",
+  "final_status": "视频实时字幕 · 英语 · 内置"
+}

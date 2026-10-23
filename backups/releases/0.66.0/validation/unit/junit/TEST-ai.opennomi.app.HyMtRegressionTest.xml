@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="ai.opennomi.app.HyMtRegressionTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-23T14:02:07" hostname="runnervm8k3b6" time="0.003">
+  <properties />
+  <testcase name="previousSpeechCannotContaminateOrChangeCurrentTranslationInput" classname="ai.opennomi.app.HyMtRegressionTest" time="0.003" />
+  <testcase name="translationKeepsNegationNumbersAndUnicodeInTheCurrentInput" classname="ai.opennomi.app.HyMtRegressionTest" time="0.0" />
+  <testcase name="hyMtDraftAndFinalViewShowCorrectProviderAttribution" classname="ai.opennomi.app.HyMtRegressionTest" time="0.0" />
+  <testcase name="emptyOrOversizedInputIsRejectedInsteadOfSilentlyTruncated" classname="ai.opennomi.app.HyMtRegressionTest" time="0.0" />
+  </testsuite>

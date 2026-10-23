@@ -1,0 +1,97 @@
+[
+  {
+    "id": 12507071971,
+    "name": "opennomi-066-unsigned-and-signing-tools",
+    "size_in_bytes": 20660273,
+    "url": "https://api.github.com/repos/nmm26301-maker/open-nomi/actions/artifacts/12507071971",
+    "archive_download_url": "https://api.github.com/repos/nmm26301-maker/open-nomi/actions/artifacts/12507071971/zip",
+    "expired": false,
+    "created_at": "2026-10-23T14:02:36Z",
+    "expires_at": "2026-10-30T14:02:33Z",
+    "updated_at": "2026-10-23T14:02:36Z",
+    "digest": "sha256:00cc0780283d827f0d78c438d6ab2ce3847e2c99650494c191fecfb827e7df32",
+    "workflow_run": {
+      "id": 39965335976,
+      "repository_id": 1404196115,
+      "head_repository_id": 1404196115,
+      "head_branch": "codex/hy-mt2",
+      "head_sha": "909ac469c06274a4b5ec2c214959bb043fb97f24"
+    }
+  },
+  {
+    "id": 12506714659,
+    "name": "opennomi-066-ui-smoke-api-33",
+    "size_in_bytes": 1533067,
+    "url": "https://api.github.com/repos/nmm26301-maker/open-nomi/actions/artifacts/12506714659",
+    "archive_download_url": "https://api.github.com/repos/nmm26301-maker/open-nomi/actions/artifacts/12506714659/zip",
+    "expired": false,
+    "created_at": "2026-10-23T14:12:41Z",
+    "expires_at": "2026-10-30T14:12:40Z",
+    "updated_at": "2026-10-23T14:12:41Z",
+    "digest": "sha256:14cb4aa4e55d8027fb13fc8ed55aec61cc986e809c93fae25a571fef1f76bca6",
+    "workflow_run": {
+      "id": 39965335976,
+      "repository_id": 1404196115,
+      "head_repository_id": 1404196115,
+      "head_branch": "codex/hy-mt2",
+      "head_sha": "909ac469c06274a4b5ec2c214959bb043fb97f24"
+    }
+  },
+  {
+    "id": 12506683163,
+    "name": "opennomi-066-check-reports",
+    "size_in_bytes": 122349,
+    "url": "https://api.github.com/repos/nmm26301-maker/open-nomi/actions/artifacts/12506683163",
+    "archive_download_url": "https://api.github.com/repos/nmm26301-maker/open-nomi/actions/artifacts/12506683163/zip",
+    "expired": false,
+    "created_at": "2026-10-23T14:02:40Z",
+    "expires_at": "2026-10-30T14:02:39Z",
+    "updated_at": "2026-10-23T14:02:40Z",
+    "digest": "sha256:00039016294a7199988bedfc4bb865ac216c440f89c9f3ed8f745243520e76c2",
+    "workflow_run": {
+      "id": 39965335976,
+      "repository_id": 1404196115,
+      "head_repository_id": 1404196115,
+      "head_branch": "codex/hy-mt2",
+      "head_sha": "909ac469c06274a4b5ec2c214959bb043fb97f24"
+    }
+  },
+  {
+    "id": 12506539153,
+    "name": "opennomi-066-ui-smoke-api-29",
+    "size_in_bytes": 1374554,
+    "url": "https://api.github.com/repos/nmm26301-maker/open-nomi/actions/artifacts/12506539153",
+    "archive_download_url": "https://api.github.com/repos/nmm26301-maker/open-nomi/actions/artifacts/12506539153/zip",
+    "expired": false,
+    "created_at": "2026-10-23T14:11:06Z",
+    "expires_at": "2026-10-30T14:11:05Z",
+    "updated_at": "2026-10-23T14:11:06Z",
+    "digest": "sha256:019b6e8859e91b95252bf02a50008cf5f4bcaae3bfaa63ac62a9b1e520728ea6",
+    "workflow_run": {
+      "id": 39965335976,
+      "repository_id": 1404196115,
+      "head_repository_id": 1404196115,
+      "head_branch": "codex/hy-mt2",
+      "head_sha": "909ac469c06274a4b5ec2c214959bb043fb97f24"
+    }
+  },
+  {
+    "id": 12506449236,
+    "name": "opennomi-066-apk-parts",
+    "size_in_bytes": 70206933,
+    "url": "https://api.github.com/repos/nmm26301-maker/open-nomi/actions/artifacts/12506449236",
+    "archive_download_url": "https://api.github.com/repos/nmm26301-maker/open-nomi/actions/artifacts/12506449236/zip",
+    "expired": false,
+    "created_at": "2026-10-23T14:02:39Z",
+    "expires_at": "2026-10-30T14:02:36Z",
+    "updated_at": "2026-10-23T14:02:39Z",
+    "digest": "sha256:dafe0fecb447afa3eac6680752ac2ed473c3f022f888940c125f9d920a192517",
+    "workflow_run": {
+      "id": 39965335976,
+      "repository_id": 1404196115,
+      "head_repository_id": 1404196115,
+      "head_branch": "codex/hy-mt2",
+      "head_sha": "909ac469c06274a4b5ec2c214959bb043fb97f24"
+    }
+  }
+]

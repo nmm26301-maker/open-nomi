@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="ai.opennomi.app.AudioDraftRegressionTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-23T14:02:05" hostname="runnervm8k3b6" time="0.012">
+  <properties />
+  <testcase name="blankRecognitionClearsTheCandidateAndOversizedSpeechIsBoundedAtAWord" classname="ai.opennomi.app.AudioDraftRegressionTest" time="0.007" />
+  <testcase name="growingSpeechYieldsOnlyRepeatedCompleteWordsAndBoundsWork" classname="ai.opennomi.app.AudioDraftRegressionTest" time="0.001" />
+  <testcase name="finalPauseAndResyncRejectOldResultsEvenWhenNextUtteranceIsIdentical" classname="ai.opennomi.app.AudioDraftRegressionTest" time="0.0" />
+  <testcase name="revisedNegationRejectsAnInFlightOrDisplayedPreview" classname="ai.opennomi.app.AudioDraftRegressionTest" time="0.001" />
+  </testsuite>
