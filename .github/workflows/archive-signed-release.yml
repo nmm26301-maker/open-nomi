@@ -76,3 +76,11 @@ jobs:
           path: /tmp/opennomi-remote-readback/backups/releases/${{ steps.recipe.outputs.version }}/
           if-no-files-found: error
           retention-days: 7
+
+      - name: Publish verified single APK download
+        uses: actions/upload-artifact@v4
+        with:
+          name: opennomi-${{ steps.recipe.outputs.version }}-signed-apk
+          path: /tmp/opennomi-github-restored/OpenNomi-${{ steps.recipe.outputs.version }}.apk
+          if-no-files-found: error
+          retention-days: 90
