@@ -13,4 +13,10 @@ Primary sources:
 - https://huggingface.co/tencent/Hy-MT2-1.8B-GGUF
 - https://github.com/ggml-org/llama.cpp
 
-Pending: Android builds, actual model tests and signed release validation.
+Validation passed for source `a804be881cd8bbd496e38c4c0178d9070094ea99` in [Android CI](https://github.com/nmm26301-maker/open-nomi/actions/runs/39881492665): 201 unit tests, release lint, and 26 instrumentation checks on each of API 29 and API 33. Both devices downloaded the actual pinned model, streamed complete UTF-8, preserved the four authored semantic probes, cancelled then translated uncached input, reloaded weights offline, rendered the real text result, and translated audio captured from a separate player UID into a visible background overlay. Pause/resume and stop cleanup were checked.
+
+API 29 emulator: first text chunk 3482–4655 ms, completed authored sentences 3991–5332 ms; background captured speech first streamed text 29730 ms and first final caption 40755 ms after player launch. These are recorded observations, not phone performance guarantees; a first chunk may contain only punctuation. Real-time lag remains possible.
+
+API 33 emulator: first text chunk 3270–4741 ms, completed authored sentences 3825–6307 ms; background captured speech first streamed text 22410 ms and first final caption 50342 ms after player launch. These are recorded observations, not phone performance guarantees; a first chunk may contain only punctuation. Real-time lag remains possible.
+
+The Linux native probe passed in [CI](https://github.com/nmm26301-maker/open-nomi/actions/runs/39832756341); its first `Hello world.` output remained English. The small sample set does not establish general translation accuracy. Standard Q4 weights replace the unusable 1.25-bit attempt; the 440 MB variant remains unsupported. Real-phone, Bluetooth and broad-language validation remain unfinished. Actual reports and screenshots are under `backups/releases/0.65.0/validation/`.

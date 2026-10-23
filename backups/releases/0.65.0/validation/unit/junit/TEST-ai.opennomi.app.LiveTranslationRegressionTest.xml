@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="ai.opennomi.app.LiveTranslationRegressionTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-23T01:05:58" hostname="runnervm8k3b6" time="0.01">
+  <properties />
+  <testcase name="configResetDiscardsCacheAndRetryDelay" classname="ai.opennomi.app.LiveTranslationRegressionTest" time="0.001" />
+  <testcase name="ttsStartsEvenWithoutPrecedingSttButCannotWakePausedSession" classname="ai.opennomi.app.LiveTranslationRegressionTest" time="0.001" />
+  <testcase name="mixedChinesePageKeepsForeignSubtitleInsteadOfSkippingEntirePage" classname="ai.opennomi.app.LiveTranslationRegressionTest" time="0.008" />
+  <testcase name="latestSubtitleSurvivesInFlightRequestWithoutBuildingBacklog" classname="ai.opennomi.app.LiveTranslationRegressionTest" time="0.0" />
+  <testcase name="englishAndKoreanAreForeignButChineseNumbersAreAlreadyChinese" classname="ai.opennomi.app.LiveTranslationRegressionTest" time="0.0" />
+  <testcase name="voiceFramesDoNotEnterSilentTranslationOrFinishedTurn" classname="ai.opennomi.app.LiveTranslationRegressionTest" time="0.0" />
+  <testcase name="retryRetainsLatestSubtitleAndRecoversAfterDelay" classname="ai.opennomi.app.LiveTranslationRegressionTest" time="0.0" />
+  <testcase name="japaneseKanaIsNotDiscardedAsMostlyChinese" classname="ai.opennomi.app.LiveTranslationRegressionTest" time="0.0" />
+  </testsuite>

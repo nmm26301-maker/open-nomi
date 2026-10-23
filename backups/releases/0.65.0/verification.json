@@ -1,0 +1,92 @@
+{
+  "version": "0.65.0",
+  "source_commit": "a804be881cd8bbd496e38c4c0178d9070094ea99",
+  "workflow_url": "https://github.com/nmm26301-maker/open-nomi/actions/runs/39881492665",
+  "release_build": "passed",
+  "release_lint": "passed",
+  "junit": {
+    "api-29": {
+      "tests": 26,
+      "failures": 0,
+      "errors": 0
+    },
+    "api-33": {
+      "tests": 26,
+      "failures": 0,
+      "errors": 0
+    },
+    "unit": {
+      "tests": 201,
+      "failures": 0,
+      "errors": 0
+    }
+  },
+  "junit_system_streams_removed": 52,
+  "report_note": "JUnit outcomes and timings retained; system streams removed to avoid SDK logs and ephemeral tokens.",
+  "actual_quality_data": [
+    "validation/quality-api-29.json",
+    "validation/quality-api-33.json"
+  ],
+  "actual_preview_data": [
+    "validation/preview-api-29.json",
+    "validation/preview-api-33.json"
+  ],
+  "actual_hymt_data": [
+    "validation/hymt-quality-api-29.json",
+    "validation/hymt-video-api-29.json",
+    "validation/hymt-quality-api-33.json",
+    "validation/hymt-video-api-33.json"
+  ],
+  "rendered_screenshots": [
+    "validation/hymt-workspace-api-29.png",
+    "validation/hymt-background-api-29.png",
+    "validation/background-subtitles-api-29.png",
+    "validation/background-preview-api-29.png",
+    "validation/hymt-workspace-api-33.png",
+    "validation/hymt-background-api-33.png",
+    "validation/background-subtitles-api-33.png",
+    "validation/background-preview-api-33.png"
+  ],
+  "model_sha256": "dc5f44fcf1fa496ee7ad725982c0c8c553a4de00259b53af84c4b89fb0c06699",
+  "model_bytes": 1133080448,
+  "model_variant": "Hy-MT2-1.8B-Q4_K_M",
+  "speech_recognition_changed": false,
+  "real_phone_validated": false,
+  "bluetooth_validated": false,
+  "apk_sha256": "21c3970c50d2f1a5ba813a368dd4c90c5be644bdab5ea186fb596c1c8c99ce42",
+  "apk_bytes": 96245142,
+  "certificate_sha256": "8132825a68acba5653aba326b84e301bb65b28664af0d0727d7a5f5b41ad1b8e",
+  "signing_v2": true,
+  "signing_v3": true,
+  "zipalign_16k": "passed",
+  "encrypted_signing_backup_sha256": "0691bf97e096b598a71537e6f828423b94a2ba77a2039e81f4caeda267afb790",
+  "signing_keystore_sha256": "4c29ceb350a65fdf5f441fe0bf3290a7840af092fdb158764c0c6f9f0ac99ff4",
+  "github_readback": "pending",
+  "signed_apk_delivered": false,
+  "scope": "Actual verified official model download, streaming translation, negation/direction/price/Japanese probes, cancellation with uncached reuse, offline reload, visible workspace and separate-UID background player; emulator only. No general latency or accuracy improvement claim.",
+  "apk_inspection": {
+    "manifest": {
+      "manifest": {
+        "versionCode": 65,
+        "versionName": "0.65.0",
+        "compileSdkVersion": 35,
+        "compileSdkVersionCodename": "15",
+        "package": "com.opennomi.android",
+        "platformBuildVersionCode": 35,
+        "platformBuildVersionName": 15
+      },
+      "uses-sdk": {
+        "minSdkVersion": 26,
+        "targetSdkVersion": 35
+      }
+    },
+    "abis": [
+      "arm64-v8a"
+    ],
+    "hymt_native_load_alignments": [
+      16384,
+      16384,
+      16384
+    ]
+  }
+}

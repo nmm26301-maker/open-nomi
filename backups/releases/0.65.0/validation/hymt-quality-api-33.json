@@ -1,0 +1,38 @@
+{
+  "model_sha256": "dc5f44fcf1fa496ee7ad725982c0c8c553a4de00259b53af84c4b89fb0c06699",
+  "scope": "Actual on-device Hy-MT2; emulator only",
+  "translations": [
+    {
+      "source": "Do not open the door.",
+      "translated": "不要打开门。",
+      "first_chunk_ms": 4741,
+      "total_ms": 6307,
+      "semantic_checks_pass": true
+    },
+    {
+      "source": "Turn left, not right.",
+      "translated": "左转，不是右转。",
+      "first_chunk_ms": 3312,
+      "total_ms": 4419,
+      "semantic_checks_pass": true
+    },
+    {
+      "source": "The ticket costs 25 dollars.",
+      "translated": "这张票价格为25美元。",
+      "first_chunk_ms": 3529,
+      "total_ms": 4427,
+      "semantic_checks_pass": true
+    },
+    {
+      "source": "会議は明日です。",
+      "translated": "会议在明天。",
+      "first_chunk_ms": 3270,
+      "total_ms": 3825,
+      "semantic_checks_pass": true
+    }
+  ],
+  "caller_cancel_ms": 17,
+  "after_cancel": "门被关上了。",
+  "offline_reload": "会议在明天，不是今天。",
+  "ui_stage": "visible_chinese"
+}

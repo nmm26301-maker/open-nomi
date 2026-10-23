@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="ai.opennomi.app.FishAudioRegressionTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-23T01:05:57" hostname="runnervm8k3b6" time="0.754">
+  <properties />
+  <testcase name="sendsOfficialJsonContractAndReturnsBinaryUnchanged" classname="ai.opennomi.app.FishAudioRegressionTest" time="0.455" />
+  <testcase name="preservesLongChineseAndEmojiRepliesWhenSplitting" classname="ai.opennomi.app.FishAudioRegressionTest" time="0.003" />
+  <testcase name="rejectsEmptyJsonAndOversizedAudio" classname="ai.opennomi.app.FishAudioRegressionTest" time="0.137" />
+  <testcase name="rejectsServiceErrorsWithoutLeakingBodyOrRetrying" classname="ai.opennomi.app.FishAudioRegressionTest" time="0.07" />
+  <testcase name="cancellingReplyCancelsPendingHttp" classname="ai.opennomi.app.FishAudioRegressionTest" time="0.061" />
+  <testcase name="credentialsAndInsecureAddressesFailBeforeSending" classname="ai.opennomi.app.FishAudioRegressionTest" time="0.001" />
+  <testcase name="blankVoiceUsesProviderDefaultAndV1BaseIsAccepted" classname="ai.opennomi.app.FishAudioRegressionTest" time="0.012" />
+  <testcase name="doesNotForwardSecretOnRedirect" classname="ai.opennomi.app.FishAudioRegressionTest" time="0.015" />
+  </testsuite>

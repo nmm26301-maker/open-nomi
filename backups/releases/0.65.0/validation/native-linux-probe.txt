@@ -1,0 +1,20 @@
+SOURCE: Hello world.
+TRANSLATED: Hello world。
+FIRST_MS: 389
+TOTAL_MS: 389
+SOURCE: Do not open the door.
+TRANSLATED: 不要打开门。
+FIRST_MS: 383
+TOTAL_MS: 411
+SOURCE: Turn left, not right.
+TRANSLATED: 左转，不是右转。
+FIRST_MS: 363
+TOTAL_MS: 472
+SOURCE: The ticket costs 25 dollars.
+TRANSLATED: 票价为25美元。
+FIRST_MS: 381
+TOTAL_MS: 463
+SOURCE: The meeting is tomorrow, not today.
+TRANSLATED: 会议在明天，不是今天。
+FIRST_MS: 390
+TOTAL_MS: 500

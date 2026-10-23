@@ -1,0 +1,121 @@
+{
+  "scope": "Public JFK excerpt and six authored English sentences; emulator only",
+  "reference": "and so my fellow americans ask not what your country can do for you ask what you can do for your country",
+  "timing_note": "Decode speed and audio position of first segment; not end-to-end latency",
+  "speech": [
+    {
+      "mode": "FAST",
+      "recognized": "and so my fellow americans ask not what the our country can do for you ask what you can do for your country",
+      "segments": [
+        "and so my fellow americans ask not what",
+        "the our country can do for you ask what you can do for your country"
+      ],
+      "word_errors": 2,
+      "reference_words": 22,
+      "wer": 0.09090909090909091,
+      "audio_ms": 11000,
+      "decode_ms": 1583,
+      "decode_real_time_factor": 0.1439090909090909,
+      "first_segment_audio_ms": 5600,
+      "model": "en"
+    },
+    {
+      "mode": "COMPLETE",
+      "recognized": "and so my fellow americans ask not what your country can do for you and what you can do for your country",
+      "segments": [
+        "and so my fellow americans ask not what your country can do for you",
+        "and what you can do for your country"
+      ],
+      "word_errors": 1,
+      "reference_words": 22,
+      "wer": 0.045454545454545456,
+      "audio_ms": 11000,
+      "decode_ms": 1445,
+      "decode_real_time_factor": 0.13136363636363638,
+      "first_segment_audio_ms": 7600,
+      "model": "en"
+    },
+    {
+      "mode": "FAST",
+      "recognized": "and so my fellow america ask not what your country can do for you ask what you can do for your country",
+      "segments": [
+        "and so my fellow america ask not what your",
+        "country can do for you ask what you can do for your country"
+      ],
+      "word_errors": 1,
+      "reference_words": 22,
+      "wer": 0.045454545454545456,
+      "audio_ms": 11000,
+      "decode_ms": 8808,
+      "decode_real_time_factor": 0.8007272727272727,
+      "first_segment_audio_ms": 5900,
+      "model": "en-wide"
+    },
+    {
+      "mode": "COMPLETE",
+      "recognized": "and so my fellow america ask not what your country can do for you ask what you can do for your country",
+      "segments": [
+        "and so my fellow america ask not what your country can do for you",
+        "ask what you can do for your country"
+      ],
+      "word_errors": 1,
+      "reference_words": 22,
+      "wer": 0.045454545454545456,
+      "audio_ms": 11000,
+      "decode_ms": 8180,
+      "decode_real_time_factor": 0.7436363636363637,
+      "first_segment_audio_ms": 7900,
+      "model": "en-wide"
+    }
+  ],
+  "translation": [
+    {
+      "source": "Do not open the door.",
+      "translated": "不要打开门。",
+      "warm_translate_ms": 30,
+      "raw_model_output": "不要打开门。",
+      "model_input": "Do not open the door.",
+      "semantic_checks_pass": true
+    },
+    {
+      "source": "The ticket costs 25 dollars.",
+      "translated": "门票费用25美元。",
+      "warm_translate_ms": 28,
+      "raw_model_output": "门票费用25美元。",
+      "model_input": "The ticket costs 25 dollars.",
+      "semantic_checks_pass": true
+    },
+    {
+      "source": "The meeting is tomorrow, not today.",
+      "translated": "会议是明天，不是今天。",
+      "warm_translate_ms": 35,
+      "raw_model_output": "会议是明天，不是今天。",
+      "model_input": "The meeting is tomorrow, not today.",
+      "semantic_checks_pass": true
+    },
+    {
+      "source": "Turn left, not right.",
+      "translated": "转到左边。 不要转向右边。",
+      "warm_translate_ms": 29,
+      "raw_model_output": "左转，不对。",
+      "model_input": "turn to the left. Do not turn to the right.",
+      "semantic_checks_pass": true
+    },
+    {
+      "source": "Go right, not left.",
+      "translated": "走向右边。 不要去左边。",
+      "warm_translate_ms": 29,
+      "raw_model_output": "右转，否。",
+      "model_input": "go to the right. Do not go to the left.",
+      "semantic_checks_pass": true
+    },
+    {
+      "source": "Move up, not down.",
+      "translated": "向上移动。 不要向下移动。",
+      "warm_translate_ms": 29,
+      "raw_model_output": "向上移动，不要下来。",
+      "model_input": "move up. Do not move down.",
+      "semantic_checks_pass": true
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="ai.opennomi.app.PhoneTranslationCacheRegressionTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-23T01:05:58" hostname="runnervm8k3b6" time="0.002">
+  <properties />
+  <testcase name="exactSuccessfulRepeatReusesItsTranslation" classname="ai.opennomi.app.PhoneTranslationCacheRegressionTest" time="0.0" />
+  <testcase name="blanksAndOversizedInputsOrOutputsCannotEnterMemory" classname="ai.opennomi.app.PhoneTranslationCacheRegressionTest" time="0.001" />
+  <testcase name="evictionPreservesRecentlyReadResultsWithinItsBound" classname="ai.opennomi.app.PhoneTranslationCacheRegressionTest" time="0.0" />
+  <testcase name="aDifferentLanguageOrPunctuationCannotReuseTheResult" classname="ai.opennomi.app.PhoneTranslationCacheRegressionTest" time="0.0" />
+  <testcase name="aLateTranslationCannotRepopulateClearedSessionMemory" classname="ai.opennomi.app.PhoneTranslationCacheRegressionTest" time="0.0" />
+  <testcase name="endingTheSessionClearsPreviouslyStoredSpeech" classname="ai.opennomi.app.PhoneTranslationCacheRegressionTest" time="0.0" />
+  </testsuite>

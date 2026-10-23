@@ -1,0 +1,32 @@
+[
+  {
+    "id": 12471625650,
+    "name": "opennomi-065-ui-smoke-api-29",
+    "size_in_bytes": 1376083,
+    "digest": "sha256:6f4f8733c2c3de049949449f43cfdbc9800e9ed5c7274e9f180ea0ddb3682c4d"
+  },
+  {
+    "id": 12471525982,
+    "name": "opennomi-065-ui-smoke-api-33",
+    "size_in_bytes": 1521978,
+    "digest": "sha256:0bf3c2ba95c8d544560443ead5285b4ea555718beaa9d7021a9bf36bbbd44042"
+  },
+  {
+    "id": 12471022322,
+    "name": "opennomi-065-check-reports",
+    "size_in_bytes": 122254,
+    "digest": "sha256:6f1fdc8d8b851a97e3ba714295003040fc725ea1cb0765558c0b2190fd4e7642"
+  },
+  {
+    "id": 12470618824,
+    "name": "opennomi-065-apk-parts",
+    "size_in_bytes": 70206885,
+    "digest": "sha256:c616a1ac774c8b6b61fb6e82dc5c4c3b6bdf2c9d60ad2ab8bb16714e359aab75"
+  },
+  {
+    "id": 12470483900,
+    "name": "opennomi-065-unsigned-and-signing-tools",
+    "size_in_bytes": 20660272,
+    "digest": "sha256:28468531b549c646d24763f54bd2f0d56853d4975b49a815c0cf63bb8eff4f28"
+  }
+]

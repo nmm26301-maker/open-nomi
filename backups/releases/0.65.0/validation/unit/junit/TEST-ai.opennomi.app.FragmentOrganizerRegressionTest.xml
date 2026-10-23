@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="ai.opennomi.app.FragmentOrganizerRegressionTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-23T01:05:58" hostname="runnervm8k3b6" time="0.002">
+  <properties />
+  <testcase name="realStructuredSummaryRetainsItsTitleAndDeduplicatesTags" classname="ai.opennomi.app.FragmentOrganizerRegressionTest" time="0.002" />
+  <testcase name="incompleteSummaryCannotBeSavedAsSuccess" classname="ai.opennomi.app.FragmentOrganizerRegressionTest" time="0.0" />
+  </testsuite>
