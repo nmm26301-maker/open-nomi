@@ -1,4 +1,8 @@
-# OpenNomi Android 0.64.0
+# OpenNomi Android 0.65.0
+
+[下载 0.65.0 签名安装包](https://github.com/nmm26301-maker/open-nomi/actions/runs/39883650516/artifacts/12472001038)：登录 GitHub 后下载 ZIP，解压安装其中的 APK。
+
+0.65 新增 Hy-MT2 1.8B Q4_K_M 本机翻译，可用于视频字幕、文字与画面翻译；原生流式译文同步到后台浮层，暂停或停止后丢弃迟到片段。首次下载约 1.13 GB，支持续传与官方文件导入，之后离线可用。保留 Google 和在线引擎。语音识别不变，手机速度与泛化准确率仍需真机验证。见 [Hy-MT2 接入与实测](docs/hymt2-integration.md)。
 
 0.64 在英语手机翻译的快显模式中，先显示稳定片段的临时中文，并在后台浮层优先展示；完整语句继续按原流程确认，临时译文明确标注可能改写，不进入近期译文。开始收音前预热翻译，正式译文积压或手机处理较慢时减少预览。详见 [0.64 临时译文与验证](docs/translation-0.64-work.md)。
 
@@ -26,7 +30,7 @@
 
 ## 安装身份与签名
 
-0.64.0 沿用 0.53–0.63 的包名和发布签名，可覆盖升级。新版包名为 `com.opennomi.android`，版本代码 64，使用用户保留的新发布签名。它与旧版 `com.opennomi.android.voicetest` 并行安装，不会覆盖或清除旧版。新安装需重新授予权限、绑定设备、填写服务配置；旧版的本机聊天记忆、登录和设置不会自动迁移。不要为了安装新版卸载旧版。
+0.65.0 沿用 0.53–0.64 的包名和发布签名，可覆盖升级。新版包名为 `com.opennomi.android`，版本代码 65，使用用户保留的新发布签名。它与旧版 `com.opennomi.android.voicetest` 并行安装，不会覆盖或清除旧版。新安装需重新授予权限、绑定设备、填写服务配置；旧版的本机聊天记忆、登录和设置不会自动迁移。不要为了安装新版卸载旧版。
 
 签名私钥和密码只在外部签名步骤使用，源码与 Actions 日志不包含这些凭据。加密备份见本仓库 `backups/signing/new-signing-20261012/`，每版安装包和恢复校验文件归档于 `backups/releases/<版本>/`；恢复凭据单独保存，禁止提交仓库。没有原私钥时不能生成旧包名的覆盖升级包。
 
@@ -51,9 +55,12 @@
 
 ```sh
 python3 scripts/restore-build-assets.py
+python3 scripts/prepare-hymt2.py
 gradle :app:assembleRelease :app:testReleaseUnitTest :app:lintRelease
 node --test airi-native-voice.test.cjs
 ```
+
+Hy-MT2 原生构建需要 NDK `27.2.12479018` 和 CMake `3.22.1`；`prepare-hymt2.py` 恢复固定提交的 llama.cpp，运行时模型由手机单独下载。
 
 发布签名由外部 Gradle 属性 OPENNOMI_KEYSTORE、OPENNOMI_STORE_PASSWORD、OPENNOMI_KEY_ALIAS、OPENNOMI_KEY_PASSWORD 提供，源码不含密钥。
 
@@ -69,6 +76,6 @@ node --test airi-native-voice.test.cjs
 
 ## 完整发布备份
 
-最新 [0.63.0 完整签名备份](backups/releases/0.63.0/) 已保存全部 APK 分片、清单、恢复脚本和签名密码的加密副本；已从 GitHub 全新克隆回读还原，确认与交付 APK 逐字节一致，并验证加密备份恢复出的密钥、密码和证书与签名输入一致。见 [回读验证](backups/releases/0.63.0/github-readback-verification.json)。
+最新 [0.65.0 完整签名备份](backups/releases/0.65.0/) 已保存全部 APK 分片、清单、恢复脚本和签名密码的加密副本；已从 GitHub 全新克隆回读还原，确认与签名 APK 逐字节一致，并验证加密备份恢复出的密钥、密码和证书与签名输入一致。见 [回读验证](backups/releases/0.65.0/github-readback-verification.json)。
 
 0.53.0 的已签名 APK、逐片与完整校验清单、恢复脚本，以及本版所需签名和密码的加密副本已归档到 [backups/releases/0.53.0](backups/releases/0.53.0/)。统一签名备份在 [backups/signing/new-signing-20261012](backups/signing/new-signing-20261012/)。解密钥匙单独保存，不提交仓库。

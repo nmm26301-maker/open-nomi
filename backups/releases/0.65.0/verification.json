@@ -61,7 +61,7 @@
   "zipalign_16k": "passed",
   "encrypted_signing_backup_sha256": "0691bf97e096b598a71537e6f828423b94a2ba77a2039e81f4caeda267afb790",
   "signing_keystore_sha256": "4c29ceb350a65fdf5f441fe0bf3290a7840af092fdb158764c0c6f9f0ac99ff4",
-  "github_readback": "pending",
+  "github_readback": "passed",
   "signed_apk_delivered": false,
   "scope": "Actual verified official model download, streaming translation, negation/direction/price/Japanese probes, cancellation with uncached reuse, offline reload, visible workspace and separate-UID background player; emulator only. No general latency or accuracy improvement claim.",
   "apk_inspection": {
@@ -88,5 +88,14 @@
       16384,
       16384
     ]
-  }
+  },
+  "github_readback_proof": "github-readback-verification.json",
+  "archive_workflow_run_id": 39883175460,
+  "signed_apk_download_available": true,
+  "chat_attachment_status": "upload timed out; outcome unconfirmed; not retried",
+  "single_apk_download_url": "https://github.com/nmm26301-maker/open-nomi/actions/runs/39883650516/artifacts/12472001038",
+  "single_apk_artifact_id": 12472001038,
+  "single_apk_artifact_sha256": "46fdced450f361ebf56402b186c838cc2542682878a66042a365ba97d935e605",
+  "single_apk_workflow_run_id": 39883650516,
+  "single_apk_download_compared_byte_for_byte": true
 }

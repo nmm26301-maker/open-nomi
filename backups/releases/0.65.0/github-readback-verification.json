@@ -1,0 +1,19 @@
+{
+  "repository": "nmm26301-maker/open-nomi",
+  "fetched_commit": "fb67771623de08423dbd4cc00c2010dc83a4630a",
+  "release_version": "0.65.0",
+  "from_fresh_github_clone": true,
+  "apk_sha256": "21c3970c50d2f1a5ba813a368dd4c90c5be644bdab5ea186fb596c1c8c99ce42",
+  "manifest_sha256": "9579ecc1d0150ad197d1926c8511576dc7a7fe1c8b59cd9fa27ad6e5829fba67",
+  "verified_parts": 131,
+  "workflow_run_id": "39883175460",
+  "verified_at_utc": "2026-10-23T01:18:10.235508+00:00",
+  "encrypted_signing_backup_restored": true,
+  "recovered_signing_files_match_originals": true,
+  "archive_workflow_run_id": 39883175460,
+  "readback_artifact_id": 12471253272,
+  "readback_artifact_sha256": "55d968e552107fc77781c7cdcc216ac21d197dc2d096170542d97f6681da3ca3",
+  "byte_identical_to_signed_apk": true,
+  "single_apk_artifact_id": 12472001038,
+  "single_apk_download_matches_signed_apk": true
+}
