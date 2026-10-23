@@ -1,0 +1,125 @@
+{
+  "version": "0.66.0",
+  "source_commit": "909ac469c06274a4b5ec2c214959bb043fb97f24",
+  "workflow_url": "https://github.com/nmm26301-maker/open-nomi/actions/runs/39965335976",
+  "release_build": "passed",
+  "release_lint": "passed",
+  "junit": {
+    "api-33": {
+      "tests": 26,
+      "failures": 0,
+      "errors": 0
+    },
+    "unit": {
+      "tests": 201,
+      "failures": 0,
+      "errors": 0
+    },
+    "api-29": {
+      "tests": 26,
+      "failures": 0,
+      "errors": 0
+    }
+  },
+  "apk_sha256": "4ef3807981e4f1608468d2c543ab8614c3eb8cee832f9065d65234bb6f74a673",
+  "apk_bytes": 96245142,
+  "certificate_sha256": "8132825a68acba5653aba326b84e301bb65b28664af0d0727d7a5f5b41ad1b8e",
+  "signing_v2": true,
+  "signing_v3": true,
+  "zipalign_16k": "passed",
+  "real_phone_validated": false,
+  "bluetooth_validated": false,
+  "github_readback": "passed",
+  "signed_apk_delivered": true,
+  "junit_system_streams_removed": 52,
+  "apk_inspection": {
+    "manifest": {
+      "manifest": {
+        "versionCode": 66,
+        "versionName": "0.66.0",
+        "compileSdkVersion": 35,
+        "compileSdkVersionCodename": "15",
+        "package": "com.opennomi.android",
+        "platformBuildVersionCode": 35,
+        "platformBuildVersionName": 15
+      },
+      "uses-sdk": {
+        "minSdkVersion": 26,
+        "targetSdkVersion": 35
+      }
+    },
+    "abis": [
+      "arm64-v8a"
+    ],
+    "hymt_load_alignments": [
+      16384,
+      16384,
+      16384
+    ]
+  },
+  "native_probe": {
+    "workflow_url": "https://github.com/nmm26301-maker/open-nomi/actions/runs/39965336258",
+    "source_commit": "909ac469c06274a4b5ec2c214959bb043fb97f24",
+    "semantic_pairs": 6,
+    "cancellation_invalidates_cache": true,
+    "literal_output_match_required": false,
+    "scope": "CI host, not phone performance"
+  },
+  "current_text_only_prompt": true,
+  "asr_changed": false,
+  "delivery_status": "saved",
+  "device_checks": {
+    "29": {
+      "cancelled_download_preserved": true,
+      "corrupt_download_removed_offline": true,
+      "complete_download_installed_offline": true,
+      "current_text_context_checks": [
+        {
+          "source": "Do not open the door.",
+          "previous": "The ticket costs 25 dollars.",
+          "translated": "不要打开门。",
+          "semantic_checks_pass": true
+        },
+        {
+          "source": "Do open the door.",
+          "previous": "The train arrives tomorrow. The ticket costs 25 dollars.",
+          "translated": "打开门。",
+          "semantic_checks_pass": true
+        }
+      ],
+      "model_sha256": "dc5f44fcf1fa496ee7ad725982c0c8c553a4de00259b53af84c4b89fb0c06699",
+      "offline_reload": "会议在明天，不是今天。"
+    },
+    "33": {
+      "cancelled_download_preserved": true,
+      "corrupt_download_removed_offline": true,
+      "complete_download_installed_offline": true,
+      "current_text_context_checks": [
+        {
+          "source": "Do not open the door.",
+          "previous": "The ticket costs 25 dollars.",
+          "translated": "不要打开门。",
+          "semantic_checks_pass": true
+        },
+        {
+          "source": "Do open the door.",
+          "previous": "The train arrives tomorrow. The ticket costs 25 dollars.",
+          "translated": "打开门。",
+          "semantic_checks_pass": true
+        }
+      ],
+      "model_sha256": "dc5f44fcf1fa496ee7ad725982c0c8c553a4de00259b53af84c4b89fb0c06699",
+      "offline_reload": "会议在明天，不是今天。"
+    }
+  },
+  "github_archive_commit": "612ab8ccca233536174b9e1093ce776e917a318f",
+  "signed_apk_download_available": true,
+  "signed_apk_artifact_url": "https://github.com/nmm26301-maker/open-nomi/actions/runs/39968112073/artifacts/12508355392",
+  "signing_backup_round_trip": "passed",
+  "screenshots_visually_checked": [
+    "hymt-workspace-api-29",
+    "hymt-background-api-29",
+    "hymt-workspace-api-33",
+    "hymt-background-api-33"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "repository": "nmm26301-maker/open-nomi",
+  "fetched_commit": "612ab8ccca233536174b9e1093ce776e917a318f",
+  "release_version": "0.66.0",
+  "from_fresh_github_clone": true,
+  "apk_sha256": "4ef3807981e4f1608468d2c543ab8614c3eb8cee832f9065d65234bb6f74a673",
+  "manifest_sha256": "b9aaa351081d980f137cdee028a8723e51fd7e0f8ba7969e0b22504ab82bf191",
+  "verified_parts": 131,
+  "workflow_run_id": "39968112073",
+  "verified_at_utc": "2026-10-23T14:16:41.311924+00:00"
+}

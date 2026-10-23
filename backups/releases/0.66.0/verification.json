@@ -29,7 +29,7 @@
   "zipalign_16k": "passed",
   "real_phone_validated": false,
   "bluetooth_validated": false,
-  "github_readback": "pending",
+  "github_readback": "passed",
   "signed_apk_delivered": true,
   "junit_system_streams_removed": 52,
   "apk_inspection": {
@@ -111,5 +111,15 @@
       "model_sha256": "dc5f44fcf1fa496ee7ad725982c0c8c553a4de00259b53af84c4b89fb0c06699",
       "offline_reload": "会议在明天，不是今天。"
     }
-  }
+  },
+  "github_archive_commit": "612ab8ccca233536174b9e1093ce776e917a318f",
+  "signed_apk_download_available": true,
+  "signed_apk_artifact_url": "https://github.com/nmm26301-maker/open-nomi/actions/runs/39968112073/artifacts/12508355392",
+  "signing_backup_round_trip": "passed",
+  "screenshots_visually_checked": [
+    "hymt-workspace-api-29",
+    "hymt-background-api-29",
+    "hymt-workspace-api-33",
+    "hymt-background-api-33"
+  ]
 }
