@@ -33,15 +33,15 @@ class HyMtVideoSmokeTest {
             if(android.os.Build.VERSION.SDK_INT>=33)device.executeShellCommand("pm grant ${app.packageName} android.permission.POST_NOTIFICATIONS")
             device.executeShellCommand("appops set ${app.packageName} SYSTEM_ALERT_WINDOW allow")
             manager.setStreamVolume(AudioManager.STREAM_MUSIC,manager.getStreamMaxVolume(AudioManager.STREAM_MUSIC),0)
-            ActivityScenario.launch<WorkspaceActivity>(Intent(app,WorkspaceActivity::class.java).putExtra("tab","translation")).use {
-                withTimeout(20000){while(true){
+            ActivityScenario.launch<WorkspaceActivity>(Intent(app,WorkspaceActivity::class.java).putExtra("tab","translation").putExtra("translation-mode","video")).use {
+                report.put("ui_stage","start_button");withTimeout(20000){while(true){
                     val start=device.findObject(By.text("开启无字幕视频字幕"))
                     if(start!=null && start.visibleBounds.height()>0){start.click();break}
-                    device.findObjects(By.scrollable(true)).firstOrNull{it.visibleBounds.height()>it.visibleBounds.width()}?.scroll(Direction.DOWN,.4f);delay(150)
+                    device.swipe(device.displayWidth/10,device.displayHeight*4/5,device.displayWidth/10,device.displayHeight/3,30);delay(150)
                 }}
-                val grant=device.wait(Until.findObject(By.res("android:id/button1")),10000);assertNotNull(grant);grant.click()
-                withTimeout(180000){while(!ScreenState.state.value.audio || !ScreenState.state.value.status.contains("已就绪"))delay(100)}
-                val started=SystemClock.elapsedRealtime()
+                report.put("ui_stage","projection_permission");val grant=device.wait(Until.findObject(By.res("android:id/button1")),10000);assertNotNull(grant);grant.click()
+                report.put("ui_stage","capture_ready");withTimeout(180000){while(!ScreenState.state.value.audio || !ScreenState.state.value.status.contains("已就绪"))delay(100)}
+                report.put("ui_stage","native_stream");val started=SystemClock.elapsedRealtime()
                 device.executeShellCommand("am start -n ai.opennomi.playbackfixture/.PlaybackFixtureActivity --ez natural true")
                 var first=-1L
                 withTimeout(180000){while(ScreenState.state.value.captionHistory.isEmpty()) {

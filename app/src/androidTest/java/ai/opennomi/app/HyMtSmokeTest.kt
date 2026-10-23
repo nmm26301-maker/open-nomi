@@ -61,22 +61,24 @@ class HyMtSmokeTest {
             }finally{offline.close()}
             cfg.phoneTranslation=true;cfg.hyMtTranslation=true
             ActivityScenario.launch<WorkspaceActivity>(Intent(app,WorkspaceActivity::class.java).putExtra("tab","translation").putExtra("translation-mode","text")).use{scenario->
-                withTimeout(15000){while(!device.hasObject(By.text("Hy-MT2 离线")))delay(100)}
-                withTimeout(15000){while(!device.hasObject(By.clazz("android.widget.EditText"))){device.findObjects(By.scrollable(true)).firstOrNull()?.scroll(Direction.DOWN,.3f);delay(100)}}
+                report.put("ui_stage","provider");withTimeout(15000){while(!device.hasObject(By.text("Hy-MT2 离线")))delay(100)}
+                report.put("ui_stage","input")
+                withTimeout(15000){while(!device.hasObject(By.clazz("android.widget.EditText"))){device.swipe(device.displayWidth/10,device.displayHeight*4/5,device.displayWidth/10,device.displayHeight/3,30);delay(100)}}
                 val input=device.findObject(By.clazz("android.widget.EditText"));assertNotNull(input);input.click();input.text="Do not open the door."
                 device.pressBack()
-                withTimeout(15000){while(!device.hasObject(By.text("翻译为中文"))){device.findObjects(By.scrollable(true)).firstOrNull()?.scroll(Direction.DOWN,.3f);delay(100)}}
-                val button=device.findObject(By.text("翻译为中文"));assertNotNull(button);button.click()
+                withTimeout(15000){while(!device.hasObject(By.text("翻译为中文"))){device.swipe(device.displayWidth/10,device.displayHeight*4/5,device.displayWidth/10,device.displayHeight/3,30);delay(100)}}
+                report.put("ui_stage","submit");val button=device.findObject(By.text("翻译为中文"));assertNotNull(button);button.click()
                 val expected=samples.getJSONObject(0).getString("translated")
                 withTimeout(90000){while(!device.hasObject(By.text(expected))) {
-                    device.findObjects(By.scrollable(true)).firstOrNull()?.scroll(Direction.DOWN,.3f);delay(200)
+                    device.swipe(device.displayWidth/10,device.displayHeight*4/5,device.displayWidth/10,device.displayHeight/3,30);delay(200)
                 }}
-                val output=File(app.getExternalFilesDir(null),"hymt-workspace.png")
+                report.put("ui_stage","visible_chinese");val output=File(app.getExternalFilesDir(null),"hymt-workspace.png")
                 scenario.onActivity{activity->val view=activity.window.decorView;val bitmap=android.graphics.Bitmap.createBitmap(view.width,view.height,android.graphics.Bitmap.Config.ARGB_8888)
                     try{view.draw(android.graphics.Canvas(bitmap));output.outputStream().use{assertTrue(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,it))}}finally{bitmap.recycle()}}
                 device.executeShellCommand("cp ${output.absolutePath} /data/local/tmp/hymt-workspace.png")
             }
         }finally {
+            runCatching{device.dumpWindowHierarchy(File(app.getExternalFilesDir(null),"hymt-ui.xml"))}
             engine.close();ScreenAssistant.hyMtTranslator.close();cfg.phoneTranslation=oldPhone;cfg.hyMtTranslation=oldHy
             if(wifi=="1")device.executeShellCommand("svc wifi enable")
             if(data=="1")device.executeShellCommand("svc data enable")
