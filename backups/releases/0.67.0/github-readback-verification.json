@@ -1,0 +1,51 @@
+{
+  "version": "0.67.0",
+  "source_commit": "b26879ad2bd34089536a7152c8257f20a16636e5",
+  "archive_workflow_url": "https://github.com/nmm26301-maker/open-nomi/actions/runs/40000043899",
+  "fetched_commit": "2c4e9cd913cc72e3ddb2d7f377d6e0a7fb29cb7b",
+  "from_fresh_github_clone": true,
+  "parts_verified": 131,
+  "apk_sha256": "e60ba2701a249ab4252f47e1d3c7b0983329a915f4e5f15d8e3e1144e35a0ec5",
+  "apk_bytes": 96245142,
+  "byte_identical_to_local_signed_apk": true,
+  "encrypted_backup_recovery_matches_original_signing_inputs": true,
+  "readback_artifact": {
+    "id": 12521038322,
+    "name": "opennomi-0.67.0-github-readback",
+    "size_in_bytes": 71031747,
+    "url": "https://api.github.com/repos/nmm26301-maker/open-nomi/actions/artifacts/12521038322",
+    "archive_download_url": "https://api.github.com/repos/nmm26301-maker/open-nomi/actions/artifacts/12521038322/zip",
+    "expired": false,
+    "created_at": "2026-10-23T18:03:05Z",
+    "expires_at": "2026-10-30T18:03:01Z",
+    "updated_at": "2026-10-23T18:03:05Z",
+    "digest": "sha256:7520b30de5725bcda5049f6333b9cd5ca122d90c46c81859bdb0c0914288390b",
+    "workflow_run": {
+      "id": 40000043899,
+      "repository_id": 1404196115,
+      "head_repository_id": 1404196115,
+      "head_branch": "main",
+      "head_sha": "12b6c0d4a84451dc7bef665ad5265e9c188984cb"
+    }
+  },
+  "single_apk_artifact": {
+    "id": 12521253064,
+    "name": "opennomi-0.67.0-signed-apk",
+    "size_in_bytes": 70254900,
+    "url": "https://api.github.com/repos/nmm26301-maker/open-nomi/actions/artifacts/12521253064",
+    "archive_download_url": "https://api.github.com/repos/nmm26301-maker/open-nomi/actions/artifacts/12521253064/zip",
+    "expired": false,
+    "created_at": "2026-10-23T18:03:09Z",
+    "expires_at": "2027-01-21T18:02:37Z",
+    "updated_at": "2026-10-23T18:03:09Z",
+    "digest": "sha256:7dab8fce92e50ea3f8c3c0b13bf504dc77136a9aa9f3f956e3969ac4c2ce742a",
+    "workflow_run": {
+      "id": 40000043899,
+      "repository_id": 1404196115,
+      "head_repository_id": 1404196115,
+      "head_branch": "main",
+      "head_sha": "12b6c0d4a84451dc7bef665ad5265e9c188984cb"
+    }
+  },
+  "single_apk_matches_signed_apk": true
+}

@@ -1,6 +1,8 @@
-# OpenNomi Android 0.66.0
+# OpenNomi Android 0.67.0
 
-[下载 0.66.0 签名安装包](https://github.com/nmm26301-maker/open-nomi/actions/runs/39968112073/artifacts/12508355392)：登录 GitHub 后下载 ZIP，解压安装其中的 APK。
+[下载 0.67.0 签名安装包](https://github.com/nmm26301-maker/open-nomi/actions/runs/40000043899/artifacts/12521253064)：登录 GitHub 后下载 ZIP，解压安装其中的 APK。
+
+0.67 已加载 Hy-MT2 的连续翻译跳过重复准备；加载和推理串行执行，避免释放时序导致空句柄。完整本地模型可断网恢复校验标记，安装失败保留有效下载。单测、Release lint、API 29/33 实测通过。见 [0.67 优化与回归](docs/translation-0.67-work.md)。
 
 0.66 复用 Hy-MT2 相同提示词前缀，减少连续翻译的重复计算；仅翻译当前识别文本，避免前段内容干扰。修复完整下载文件离线安装、损坏临时文件清理和取消保留。201 项单测、Release lint、API 29/33 各 26 项实测通过，保留后台中文字幕。真机速度与广泛准确率仍待验证。见 [0.66 优化与实测](docs/translation-0.66-work.md)。
 
@@ -32,7 +34,7 @@
 
 ## 安装身份与签名
 
-0.65.0 沿用 0.53–0.64 的包名和发布签名，可覆盖升级。新版包名为 `com.opennomi.android`，版本代码 66，使用用户保留的新发布签名。它与旧版 `com.opennomi.android.voicetest` 并行安装，不会覆盖或清除旧版。新安装需重新授予权限、绑定设备、填写服务配置；旧版的本机聊天记忆、登录和设置不会自动迁移。不要为了安装新版卸载旧版。
+0.65.0 沿用 0.53–0.64 的包名和发布签名，可覆盖升级。新版包名为 `com.opennomi.android`，版本代码 67，使用用户保留的新发布签名。它与旧版 `com.opennomi.android.voicetest` 并行安装，不会覆盖或清除旧版。新安装需重新授予权限、绑定设备、填写服务配置；旧版的本机聊天记忆、登录和设置不会自动迁移。不要为了安装新版卸载旧版。
 
 签名私钥和密码只在外部签名步骤使用，源码与 Actions 日志不包含这些凭据。加密备份见本仓库 `backups/signing/new-signing-20261012/`，每版安装包和恢复校验文件归档于 `backups/releases/<版本>/`；恢复凭据单独保存，禁止提交仓库。没有原私钥时不能生成旧包名的覆盖升级包。
 
@@ -78,6 +80,6 @@ Hy-MT2 原生构建需要 NDK `27.2.12479018` 和 CMake `3.22.1`；`prepare-hymt
 
 ## 完整发布备份
 
-最新 [0.66.0 完整签名备份](backups/releases/0.66.0/) 已保存全部 APK 分片、清单、恢复脚本和签名密码的加密副本；已从 GitHub 全新克隆回读还原，确认与签名 APK 逐字节一致，并验证加密备份恢复出的密钥、密码和证书与签名输入一致。见 [回读验证](backups/releases/0.66.0/github-readback-verification.json)。
+最新 [0.67.0 完整签名备份](backups/releases/0.67.0/) 已保存全部 APK 分片、清单、恢复脚本和签名密码的加密副本；已从 GitHub 全新克隆回读还原，确认与签名 APK 逐字节一致，并验证加密备份恢复出的密钥、密码和证书与签名输入一致。见 [回读验证](backups/releases/0.67.0/github-readback-verification.json)。
 
 0.53.0 的已签名 APK、逐片与完整校验清单、恢复脚本，以及本版所需签名和密码的加密副本已归档到 [backups/releases/0.53.0](backups/releases/0.53.0/)。统一签名备份在 [backups/signing/new-signing-20261012](backups/signing/new-signing-20261012/)。解密钥匙单独保存，不提交仓库。
