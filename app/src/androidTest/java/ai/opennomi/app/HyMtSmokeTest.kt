@@ -27,6 +27,8 @@ class HyMtSmokeTest {
         val data=device.executeShellCommand("settings get global mobile_data").trim()
         val cfg=ScreenAssistant.settings();val oldPhone=cfg.phoneTranslation;val oldHy=cfg.hyMtTranslation
         try {
+            InstrumentationRegistry.getInstrumentation().runOnMainSync{ScreenShareService.instance?.stopSelf()}
+            withTimeout(10000){while(ScreenState.state.value.active || ScreenShareService.instance!=null)delay(100)}
             withTimeout(1200000){engine.prepare(app,true)}
             assertTrue(HyMtModel.ready(app));assertEquals(HyMtModel.BYTES,HyMtModel.file(app).length())
             val probes=listOf(
