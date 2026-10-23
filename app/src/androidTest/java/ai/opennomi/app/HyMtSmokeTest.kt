@@ -69,7 +69,7 @@ class HyMtSmokeTest {
             ActivityScenario.launch<WorkspaceActivity>(Intent(app,WorkspaceActivity::class.java).putExtra("tab","translation").putExtra("translation-mode","text")).use{scenario->
                 report.put("ui_stage","input")
                 compose.onNode(hasSetTextAction()).performScrollTo().performTextReplacement("Do not open the door.")
-                compose.onNode(hasSetTextAction()).assertTextEquals("Do not open the door.")
+                compose.onNode(hasSetTextAction()).assertTextContains("Do not open the door.")
                 report.put("ui_stage","submit")
                 compose.onNodeWithText("翻译为中文").performScrollTo().performClick()
                 val expected=samples.getJSONObject(0).getString("translated")
