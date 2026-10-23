@@ -1,0 +1,58 @@
+{
+  "model_sha256": "dc5f44fcf1fa496ee7ad725982c0c8c553a4de00259b53af84c4b89fb0c06699",
+  "scope": "Actual on-device Hy-MT2; emulator only",
+  "translations": [
+    {
+      "source": "Do not open the door.",
+      "translated": "不要打开门。",
+      "first_chunk_ms": 2976,
+      "total_ms": 3638,
+      "semantic_checks_pass": true
+    },
+    {
+      "source": "Turn left, not right.",
+      "translated": "左转，不是右转。",
+      "first_chunk_ms": 781,
+      "total_ms": 1543,
+      "semantic_checks_pass": true
+    },
+    {
+      "source": "The ticket costs 25 dollars.",
+      "translated": "这张票价格为25美元。",
+      "first_chunk_ms": 885,
+      "total_ms": 1511,
+      "semantic_checks_pass": true
+    },
+    {
+      "source": "会議は明日です。",
+      "translated": "会议在明天。",
+      "first_chunk_ms": 799,
+      "total_ms": 1202,
+      "semantic_checks_pass": true
+    }
+  ],
+  "context_checks": [
+    {
+      "source": "Do not open the door.",
+      "previous": "The ticket costs 25 dollars.",
+      "translated": "不要打开门。",
+      "semantic_checks_pass": true
+    },
+    {
+      "source": "Do open the door.",
+      "previous": "The train arrives tomorrow. The ticket costs 25 dollars.",
+      "translated": "打开门。",
+      "semantic_checks_pass": true
+    }
+  ],
+  "caller_cancel_ms": 1,
+  "after_cancel": "门被关上了。",
+  "release_then_translate": "向右转，不是向左转。",
+  "cancelled_download_preserved": true,
+  "corrupt_download_removed_offline": true,
+  "valid_download_preserved_after_install_failure": true,
+  "complete_download_installed_offline": true,
+  "offline_reload": "会议在明天，不是今天。",
+  "installed_model_marker_recovered_offline": true,
+  "ui_stage": "visible_chinese"
+}

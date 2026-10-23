@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="ai.opennomi.app.AudioCaptionRegressionTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-23T17:05:49" hostname="runnervm8k3b6" time="0.087">
+  <properties />
+  <testcase name="cancellingDisplayDiscardsOldTextAndItsDeadline" classname="ai.opennomi.app.AudioCaptionRegressionTest" time="0.049" />
+  <testcase name="liveResetCannotShowAResultFromThePreviousSession" classname="ai.opennomi.app.AudioCaptionRegressionTest" time="0.0" />
+  <testcase name="firstSubtitleAppearsImmediately" classname="ai.opennomi.app.AudioCaptionRegressionTest" time="0.006" />
+  <testcase name="aFullDisplayQueueAppliesBackpressureInsteadOfReplacingUnreadText" classname="ai.opennomi.app.AudioCaptionRegressionTest" time="0.0" />
+  <testcase name="recentVideoTextSurvivesPauseButIsClearedWhenSharingEnds" classname="ai.opennomi.app.AudioCaptionRegressionTest" time="0.019" />
+  <testcase name="readingTimeAccountsForChineseAndSupplementaryCharacters" classname="ai.opennomi.app.AudioCaptionRegressionTest" time="0.002" />
+  <testcase name="pausingVideoKeepsTheShareAndHistoryWithoutFallingBackToOcrTranslation" classname="ai.opennomi.app.AudioCaptionRegressionTest" time="0.0" />
+  <testcase name="liveTranslationNeverWaitsForUnreadCaptionsAndTheLatestResultHasABoundedDelay" classname="ai.opennomi.app.AudioCaptionRegressionTest" time="0.007" />
+  <testcase name="aBurstKeepsEverySubtitleAndRepeatedSpeechInDisplayOrder" classname="ai.opennomi.app.AudioCaptionRegressionTest" time="0.0" />
+  <testcase name="aCaptureFailurePreservesItsExplanationAndCompletedHistoryWhileDisablingTranslation" classname="ai.opennomi.app.AudioCaptionRegressionTest" time="0.0" />
+  <testcase name="longCaptionsHaveABoundedDwellAndBlankTranslationsAreRejected" classname="ai.opennomi.app.AudioCaptionRegressionTest" time="0.002" />
+  </testsuite>

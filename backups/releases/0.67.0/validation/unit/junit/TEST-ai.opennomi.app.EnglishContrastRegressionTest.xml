@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="ai.opennomi.app.EnglishContrastRegressionTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-23T17:05:50" hostname="runnervm8k3b6" time="0.017">
+  <properties />
+  <testcase name="questionsNegativeCommandsAndNonDirectionalMeaningRemainUntouched" classname="ai.opennomi.app.EnglishContrastRegressionTest" time="0.004" />
+  <testcase name="aSharedImperativeIsRestoredForDirectionsWithoutChangingTheirOrder" classname="ai.opennomi.app.EnglishContrastRegressionTest" time="0.013" />
+  </testsuite>

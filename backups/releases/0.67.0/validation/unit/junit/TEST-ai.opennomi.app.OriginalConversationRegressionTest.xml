@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="ai.opennomi.app.OriginalConversationRegressionTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-23T17:05:51" hostname="runnervm8k3b6" time="0.004">
+  <properties />
+  <testcase name="shortEndpointEndsOnceAndNeverEndsSilenceBeforeSpeech" classname="ai.opennomi.app.OriginalConversationRegressionTest" time="0.003" />
+  <testcase name="repeatedResponseEventsDoNotDuplicateDisplayedText" classname="ai.opennomi.app.OriginalConversationRegressionTest" time="0.001" />
+  </testsuite>

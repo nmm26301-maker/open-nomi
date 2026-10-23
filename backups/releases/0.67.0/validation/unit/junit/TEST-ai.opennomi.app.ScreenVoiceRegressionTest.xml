@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="ai.opennomi.app.ScreenVoiceRegressionTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-23T17:05:53" hostname="runnervm8k3b6" time="0.003">
+  <properties />
+  <testcase name="largeScreenAndQuestionsAreBoundedBeforeTransmission" classname="ai.opennomi.app.ScreenVoiceRegressionTest" time="0.003" />
+  <testcase name="normalChatSkipsScreenModelButDeicticQuestionsUseIt" classname="ai.opennomi.app.ScreenVoiceRegressionTest" time="0.0" />
+  <testcase name="contextPreservesUserQuestionAndMarksPageTextAsUntrustedData" classname="ai.opennomi.app.ScreenVoiceRegressionTest" time="0.0" />
+  </testsuite>
