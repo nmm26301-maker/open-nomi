@@ -23,6 +23,7 @@ object HyMtModel {
     private val client=OkHttpClient.Builder().connectTimeout(20,TimeUnit.SECONDS).readTimeout(30,TimeUnit.SECONDS)
         .callTimeout(25,TimeUnit.MINUTES).followSslRedirects(false).build()
     @Volatile private var call:Call?=null
+    private class InvalidChecksum:IllegalStateException("Hy-MT2 校验失败，文件不完整或不是指定的官方模型")
     fun cancel(){call?.cancel()}
     fun file(context:Context)=File(context.filesDir,"hymt2/$FILE")
     private fun marker(context:Context)=File(file(context).parentFile,"verified.sha256")
@@ -34,7 +35,7 @@ object HyMtModel {
         check(path.length()==BYTES){"Hy-MT2 文件大小不符，请选择官方 Q4_K_M 模型（约 1.13 GB）"}
         val digest=MessageDigest.getInstance("SHA-256")
         path.inputStream().use{input->val buffer=ByteArray(262144);while(true){check(active()){"已取消模型校验"};val n=input.read(buffer);if(n<0)break;digest.update(buffer,0,n)}}
-        check(digest.digest().joinToString(""){"%02x".format(it)}==SHA256){"Hy-MT2 校验失败，文件不完整或不是指定的官方模型"}
+        if(digest.digest().joinToString(""){"%02x".format(it)}!=SHA256)throw InvalidChecksum()
     }
     private fun install(context:Context,staging:File,active:()->Boolean):File {
         verify(staging,active)
@@ -45,11 +46,18 @@ object HyMtModel {
         return path
     }
     private fun installDownload(context:Context,staging:File,active:()->Boolean):File {
-        return try{install(context,staging,active)}catch(e:Exception){if(staging.length()==BYTES && active())staging.delete();throw e}
+        return try{install(context,staging,active)}catch(e:InvalidChecksum){if(active())staging.delete();throw e}
     }
     @Synchronized fun prepare(context:Context,cellular:Boolean,active:()->Boolean,progress:(String)->Unit):File {
         if(ready(context))return file(context)
         val path=file(context);check(path.parentFile!!.let{it.isDirectory || it.mkdirs()}){"无法创建 Hy-MT2 目录"}
+        if(path.isFile && path.length()==BYTES) {
+            progress("正在重新校验本地 Hy-MT2，无需重新下载")
+            try{verify(path,active)}catch(e:InvalidChecksum){if(active()){path.delete();marker(context).delete()};throw e}
+            check(active()){"已取消模型校验"}
+            marker(context).writeText("$SHA256\n${path.lastModified()}")
+            return path
+        }
         val staging=File(path.parentFile,"$FILE.download")
         if(staging.length()>BYTES)staging.delete()
         if(staging.length()==BYTES) {

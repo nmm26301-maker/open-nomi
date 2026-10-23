@@ -65,6 +65,10 @@ class HyMtSmokeTest {
             report.put("caller_cancel_ms",SystemClock.elapsedRealtime()-cancelAt)
             val after=withTimeout(90000){engine.translate(app,"The door is closed.",true)}
             assertTrue(after.any{it in '\u4e00'..'\u9fff'});report.put("after_cancel",after)
+            engine.release()
+            val restarted=withTimeout(90000){engine.translate(app,"Turn right, not left.",true)}
+            assertTrue(restarted.contains("右") && restarted.contains("左") && (restarted.contains("不") || restarted.contains("非")))
+            report.put("release_then_translate",restarted)
             engine.close()
             device.executeShellCommand("svc wifi disable");device.executeShellCommand("svc data disable")
             val network=app.getSystemService(android.net.ConnectivityManager::class.java)
@@ -85,6 +89,12 @@ class HyMtSmokeTest {
                 assertTrue("Complete corrupt download must fail checksum before any network request",invalid?.message.orEmpty().contains("校验失败"))
                 assertFalse("Corrupt completed download must not trap future retries",corrupt.exists())
                 report.put("cancelled_download_preserved",true).put("corrupt_download_removed_offline",true)
+                android.system.Os.link(downloaded.absolutePath,corrupt.absolutePath)
+                assertTrue(HyMtModel.file(badContext).mkdir())
+                val installFailure=withContext(Dispatchers.IO){runCatching{HyMtModel.prepare(badContext,false,{true},{})}.exceptionOrNull()}
+                assertTrue(installFailure?.message.orEmpty().contains("安装失败"))
+                assertTrue("Valid completed download must survive an installation failure",corrupt.isFile && corrupt.length()==HyMtModel.BYTES)
+                report.put("valid_download_preserved_after_install_failure",true)
             }finally{badRoot.deleteRecursively()}
             val offline=HyMtTranslator()
             try {
@@ -93,6 +103,10 @@ class HyMtSmokeTest {
                 val result=withTimeout(90000){offline.translate(app,"The meeting is tomorrow, not today.")}
                 assertTrue(result.contains("明天") && result.contains("今天"));report.put("offline_reload",result)
             }finally{offline.close()}
+            File(HyMtModel.file(app).parentFile,"verified.sha256").delete()
+            withContext(Dispatchers.IO){HyMtModel.prepare(app,false,{true},{})}
+            assertTrue("Missing verification marker must recover from local model while offline",HyMtModel.ready(app))
+            report.put("installed_model_marker_recovered_offline",true)
             cfg.phoneTranslation=true;cfg.hyMtTranslation=true
             ActivityScenario.launch<WorkspaceActivity>(Intent(app,WorkspaceActivity::class.java).putExtra("tab","translation").putExtra("translation-mode","text")).use{scenario->
                 report.put("ui_stage","input")

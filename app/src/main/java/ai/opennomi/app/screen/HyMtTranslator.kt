@@ -4,6 +4,7 @@ import android.content.Context
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.io.File
 import java.util.concurrent.Executors
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -35,20 +36,30 @@ class HyMtTranslator {
             finally{synchronized(lock){if(activeRequest==id)activeRequest=0}}
         }
     }
-    suspend fun prepare(context:Context,cellular:Boolean=false) {
+    private suspend fun modelFile(context:Context,cellular:Boolean):File {
+        if(synchronized(lock){handle!=0L})return HyMtModel.file(context.applicationContext)
         val job=currentCoroutineContext()[Job]!!
         _status.value="正在准备 Hy-MT2 离线翻译模型"
         val cancellation=job.invokeOnCompletion{if(job.isCancelled)HyMtModel.cancel()}
         val model=try{withContext(Dispatchers.IO){HyMtModel.prepare(context.applicationContext,cellular,{job.isActive},{_status.value=it})}}
             finally{cancellation.dispose()}
         currentCoroutineContext().ensureActive()
+        return model
+    }
+    /** Worker-only: loading and the operation share one queue entry, so release cannot split them. */
+    private fun loadedHandle(model:File):Long {
+        if(synchronized(lock){handle}==0L) {
+            _status.value="正在加载 Hy-MT2，请就绪后播放视频"
+            val loaded=HyMtNative.open(model.absolutePath.toByteArray(Charsets.UTF_8),Runtime.getRuntime().availableProcessors().coerceAtMost(4))
+            check(loaded!=0L){"Hy-MT2 加载失败"}
+            synchronized(lock){handle=loaded}
+        }
+        return synchronized(lock){handle}
+    }
+    suspend fun prepare(context:Context,cellular:Boolean=false) {
+        val model=modelFile(context,cellular)
         runNative {
-            if(synchronized(lock){handle}==0L) {
-                _status.value="正在加载 Hy-MT2，请就绪后播放视频"
-                val loaded=HyMtNative.open(model.absolutePath.toByteArray(Charsets.UTF_8),Runtime.getRuntime().availableProcessors().coerceAtMost(4))
-                check(loaded!=0L){"Hy-MT2 加载失败"}
-                synchronized(lock){handle=loaded}
-            }
+            loadedHandle(model)
             _status.value="Hy-MT2 已就绪 · 本机离线翻译"
         }
     }
@@ -57,10 +68,12 @@ class HyMtTranslator {
         val key=text.trim()
         cache.cached("hymt2",key)?.let{return it}
         val epoch=cache.epoch()
-        prepare(context,cellular)
-        return withTimeout(90000) {runNative {
+        val model=modelFile(context,cellular)
+        return withTimeout(90000) {val operation=currentCoroutineContext();runNative {
+            val current=loadedHandle(model)
+            operation.ensureActive()
             _status.value="Hy-MT2 正在本机翻译"
-            val result=HyMtNative.translate(synchronized(lock){handle},instruction.toByteArray(Charsets.UTF_8),object:HyMtNative.Sink {
+            val result=HyMtNative.translate(current,instruction.toByteArray(Charsets.UTF_8),object:HyMtNative.Sink {
                 override fun onBytes(value:ByteArray){partial?.invoke(String(value,Charsets.UTF_8))}
             }).toString(Charsets.UTF_8).trim()
             check(result.isNotBlank()){"Hy-MT2 未返回译文"}
