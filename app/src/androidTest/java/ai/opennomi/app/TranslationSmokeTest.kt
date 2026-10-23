@@ -16,6 +16,9 @@ import okhttp3.mockwebserver.*
 import org.json.JSONObject
 import org.junit.Assert.*
 import org.junit.Test
+import org.junit.Rule
+import androidx.compose.ui.test.*
+import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import org.junit.runner.RunWith
 import java.io.File
 import java.io.FileOutputStream
@@ -23,6 +26,7 @@ import java.util.concurrent.TimeUnit
 
 @RunWith(AndroidJUnit4::class)
 class TranslationSmokeTest {
+    @get:Rule val compose=createEmptyComposeRule()
     @Test fun realPhoneModelDownloadsTranslatesAndReloadsWithoutNetwork() = runBlocking<Unit> {
         val context=ApplicationProvider.getApplicationContext<NomiApplication>()
         val device=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
@@ -52,34 +56,19 @@ class TranslationSmokeTest {
     }
     @Test fun translationPageWorksWithoutVisionKeysAndShowsActualChineseResult() = runBlocking<Unit> {
         val context=ApplicationProvider.getApplicationContext<NomiApplication>()
-        val cfg=ScreenAssistant.settings();val phone=cfg.phoneTranslation;val source=cfg.translationSource;val cellular=cfg.translationCellular
+        val cfg=ScreenAssistant.settings();val phone=cfg.phoneTranslation;val hy=cfg.hyMtTranslation;val source=cfg.translationSource;val cellular=cfg.translationCellular
         val device=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         try {
-            cfg.phoneTranslation=true;cfg.translationSource="en";cfg.translationCellular=true
+            cfg.phoneTranslation=true;cfg.hyMtTranslation=false;cfg.translationSource="en";cfg.translationCellular=true
             assertFalse(cfg.modelReady());assertTrue(cfg.apiKey.isBlank())
             withTimeout(240000){ScreenAssistant.phoneTranslator.prepare("en",true)}
             ActivityScenario.launch<WorkspaceActivity>(Intent(context,WorkspaceActivity::class.java).putExtra("tab","translation")).use { scenario ->
-                val mode=device.wait(Until.findObject(By.text("文字翻译")),10000)
-                assertNotNull(mode);mode.click()
-                withTimeout(20000) {
-                    while(!device.hasObject(By.text("翻译为中文"))) {
-                        try{device.findObjects(By.scrollable(true)).firstOrNull{it.visibleBounds.height()>it.visibleBounds.width()}?.scroll(Direction.DOWN,.5f)}
-                        catch(_:StaleObjectException){}
-                        delay(200)
-                    }
-                }
-                assertNotNull(device.findObject(By.text("翻译为中文")))
-                val field=device.findObject(By.clazz("android.widget.EditText"));assertNotNull(field)
-                field.text="Hello world."
-                scenario.onActivity{it.getSystemService(InputMethodManager::class.java).hideSoftInputFromWindow(it.window.decorView.windowToken,0)}
-                device.findObject(By.text("翻译为中文")).click()
-                // The production page dismisses input focus and brings the real result into view.
-                // Do not drag through the editable field while waiting for the model callback.
-                withTimeout(30000){while(!device.hasObject(By.textContains("世界"))){
-                    delay(300)
-                }}
-                assertNotNull(device.findObject(By.textContains("世界")))
-                assertNotNull(device.findObject(By.text("由 Google 翻译")))
+                compose.onNodeWithText("文字翻译").performClick()
+                compose.onNode(hasSetTextAction()).performScrollTo().performTextReplacement("Hello world.")
+                compose.onNodeWithText("翻译为中文").performScrollTo().performClick()
+                compose.waitUntil(30000){compose.onAllNodesWithText("世界",substring=true).fetchSemanticsNodes().isNotEmpty()}
+                compose.onNodeWithText("世界",substring=true).performScrollTo().assertIsDisplayed()
+                compose.onNodeWithText("由 Google 翻译").assertIsDisplayed()
                 val output=File(context.getExternalFilesDir(null),"translation-workspace.png")
                 // Render our own synthetic test page; retain production FLAG_SECURE.
                 // UiDevice screenshots can return null for protected windows.
@@ -94,7 +83,7 @@ class TranslationSmokeTest {
                 assertTrue(output.length()>0)
                 device.executeShellCommand("cp ${output.absolutePath} /data/local/tmp/translation-workspace.png")
             }
-        } finally {cfg.phoneTranslation=phone;cfg.translationSource=source;cfg.translationCellular=cellular}
+        } finally {cfg.phoneTranslation=phone;cfg.hyMtTranslation=hy;cfg.translationSource=source;cfg.translationCellular=cellular}
     }
     @Test fun configuredLibreServiceReceivesARealTranslateRequestAndReturnsChinese() = runBlocking<Unit> {
         val cfg=ScreenAssistant.settings();val phone=cfg.phoneTranslation;val libre=cfg.libre;val key=cfg.libreKey
@@ -113,3 +102,4 @@ class TranslationSmokeTest {
         } finally {cfg.phoneTranslation=phone;cfg.libre=libre;cfg.libreKey=key;server.shutdown()}
     }
 }
+

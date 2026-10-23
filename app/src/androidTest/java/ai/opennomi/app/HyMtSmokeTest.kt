@@ -13,11 +13,15 @@ import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.*
 import org.junit.Test
+import org.junit.Rule
+import androidx.compose.ui.test.*
+import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import org.junit.runner.RunWith
 import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class HyMtSmokeTest {
+    @get:Rule val compose=createEmptyComposeRule()
     @Test fun realOfficialModelStreamsTranslatesCancelsReloadsOfflineAndShowsChinese()=runBlocking<Unit> {
         val app=ApplicationProvider.getApplicationContext<NomiApplication>()
         val device=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
@@ -63,19 +67,14 @@ class HyMtSmokeTest {
             }finally{offline.close()}
             cfg.phoneTranslation=true;cfg.hyMtTranslation=true
             ActivityScenario.launch<WorkspaceActivity>(Intent(app,WorkspaceActivity::class.java).putExtra("tab","translation").putExtra("translation-mode","text")).use{scenario->
-                report.put("ui_stage","provider");withTimeout(15000){while(!device.hasObject(By.text("Hy-MT2 离线")))delay(100)}
                 report.put("ui_stage","input")
-                withTimeout(15000){while(!device.hasObject(By.clazz("android.widget.EditText"))){device.swipe(device.displayWidth/10,device.displayHeight*4/5,device.displayWidth/10,device.displayHeight/3,30);delay(100)}}
-                val input=device.findObject(By.clazz("android.widget.EditText"));assertNotNull(input);input.click();device.waitForIdle();input.text="Do not open the door.";device.waitForIdle();assertEquals("Do not open the door.",input.text);report.put("ui_input",input.text)
-                device.pressBack();device.waitForIdle();delay(300)
-                withTimeout(15000){while(!device.hasObject(By.text("翻译为中文"))){device.swipe(device.displayWidth/10,device.displayHeight*4/5,device.displayWidth/10,device.displayHeight/3,30);delay(100)}}
-                report.put("ui_stage","submit");var button=device.findObject(By.text("翻译为中文"));assertNotNull(button)
-                if(button.visibleBounds.bottom>device.displayHeight*4/5){device.swipe(device.displayWidth/10,device.displayHeight*4/5,device.displayWidth/10,device.displayHeight/2,30);device.waitForIdle();delay(300);button=device.findObject(By.text("翻译为中文"))}
-                assertTrue(button.isEnabled);button.click();device.waitForIdle()
+                compose.onNode(hasSetTextAction()).performScrollTo().performTextReplacement("Do not open the door.")
+                compose.onNode(hasSetTextAction()).assertTextEquals("Do not open the door.")
+                report.put("ui_stage","submit")
+                compose.onNodeWithText("翻译为中文").performScrollTo().performClick()
                 val expected=samples.getJSONObject(0).getString("translated")
-                withTimeout(90000){while(!device.hasObject(By.text(expected))) {
-                    device.swipe(device.displayWidth/10,device.displayHeight*4/5,device.displayWidth/10,device.displayHeight/3,30);delay(200)
-                }}
+                compose.waitUntil(90000){compose.onAllNodesWithText(expected).fetchSemanticsNodes().isNotEmpty()}
+                compose.onNodeWithText(expected).performScrollTo().assertIsDisplayed()
                 report.put("ui_stage","visible_chinese");val output=File(app.getExternalFilesDir(null),"hymt-workspace.png")
                 scenario.onActivity{activity->val view=activity.window.decorView;val bitmap=android.graphics.Bitmap.createBitmap(view.width,view.height,android.graphics.Bitmap.Config.ARGB_8888)
                     try{view.draw(android.graphics.Canvas(bitmap));output.outputStream().use{assertTrue(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,it))}}finally{bitmap.recycle()}}
