@@ -89,12 +89,18 @@ class HyMtSmokeTest {
                 assertTrue("Complete corrupt download must fail checksum before any network request",invalid?.message.orEmpty().contains("校验失败"))
                 assertFalse("Corrupt completed download must not trap future retries",corrupt.exists())
                 report.put("cancelled_download_preserved",true).put("corrupt_download_removed_offline",true)
-                android.system.Os.link(downloaded.absolutePath,corrupt.absolutePath)
-                assertTrue(HyMtModel.file(badContext).mkdir())
-                val installFailure=withContext(Dispatchers.IO){runCatching{HyMtModel.prepare(badContext,false,{true},{})}.exceptionOrNull()}
-                assertTrue(installFailure?.message.orEmpty().contains("安装失败"))
-                assertTrue("Valid completed download must survive an installation failure",corrupt.isFile && corrupt.length()==HyMtModel.BYTES)
-                report.put("valid_download_preserved_after_install_failure",true)
+                val blocked=File(downloaded.parentFile,"blocked-install").apply{mkdirs()}
+                val blockedContext=object:android.content.ContextWrapper(app){override fun getFilesDir():File=blocked}
+                val valid=File(HyMtModel.file(blockedContext).parentFile,"${HyMtModel.FILE}.download")
+                valid.parentFile!!.mkdirs()
+                assertTrue(downloaded.renameTo(valid))
+                try {
+                    assertTrue(HyMtModel.file(blockedContext).mkdir())
+                    val installFailure=withContext(Dispatchers.IO){runCatching{HyMtModel.prepare(blockedContext,false,{true},{})}.exceptionOrNull()}
+                    assertTrue(installFailure?.message.orEmpty().contains("安装失败"))
+                    assertTrue("Valid completed download must survive an installation failure",valid.isFile && valid.length()==HyMtModel.BYTES)
+                    report.put("valid_download_preserved_after_install_failure",true)
+                }finally{assertTrue("Restore actual model fixture",valid.renameTo(downloaded));blocked.deleteRecursively()}
             }finally{badRoot.deleteRecursively()}
             val offline=HyMtTranslator()
             try {
