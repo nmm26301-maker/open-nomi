@@ -54,7 +54,7 @@ class HyMtTranslator {
     }
     suspend fun translate(context:Context,text:String,cellular:Boolean=false,previous:String="",partial:((String)->Unit)?=null):String {
         val instruction=HyMtPrompt.create(text,previous)
-        val key=previous.takeLast(160)+"\n"+text.trim()
+        val key=text.trim()
         cache.cached("hymt2",key)?.let{return it}
         val epoch=cache.epoch()
         prepare(context,cellular)
@@ -72,3 +72,4 @@ class HyMtTranslator {
     fun release() {cancel();worker.execute{val old=synchronized(lock){val value=handle;handle=0L;value};if(old!=0L)HyMtNative.close(old);cache.clear()}}
     suspend fun close() {cancel();runNative {val old=synchronized(lock){val value=handle;handle=0L;value};if(old!=0L)HyMtNative.close(old);cache.clear()}}
 }
+

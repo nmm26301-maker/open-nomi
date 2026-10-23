@@ -11,11 +11,12 @@ class HyMtRegressionTest {
         assertTrue(prompt.endsWith(source));assertTrue(prompt.contains("只需要输出翻译后的结果"))
         assertFalse(prompt.contains("system"))
     }
-    @Test fun previousSpeechIsBoundedAndMarkedAsBackground() {
-        val context="old ".repeat(200)+"recent phrase"
-        val prompt=HyMtPrompt.create("current phrase",context)
-        assertTrue(prompt.contains(context.takeLast(160)))
-        assertFalse(prompt.contains(context));assertTrue(prompt.endsWith("【待翻译文本】\ncurrent phrase"))
+    @Test fun previousSpeechCannotContaminateOrChangeCurrentTranslationInput() {
+        val context="old ".repeat(200)+"The ticket costs 25 dollars. Do not open the door."
+        val prompt=HyMtPrompt.create("Do open the door.",context)
+        assertEquals(HyMtPrompt.create("Do open the door."),prompt)
+        assertFalse(prompt.contains("25"));assertFalse(prompt.contains("Do not"))
+        assertFalse(prompt.contains("背景信息"));assertTrue(prompt.endsWith("Do open the door."))
     }
     @Test fun emptyOrOversizedInputIsRejectedInsteadOfSilentlyTruncated() {
         for(input in listOf(" ","x".repeat(1001))) {
@@ -32,3 +33,4 @@ class HyMtRegressionTest {
         assertTrue(rows.any{it.text=="不要开门"})
     }
 }
+

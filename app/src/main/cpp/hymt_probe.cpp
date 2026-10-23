@@ -38,17 +38,6 @@ int main(int argc, char ** argv) {
             std::cout << "SOURCE: " << input << "\nTRANSLATED: " << result << "\nFIRST_MS: " << first << "\nTOTAL_MS: " << total
                       << "\nREUSED_TOKENS: " << reused << "\nINPUT_TOKENS: " << engine.lastInputTokens() << "\nCOLD_TOTAL_MS: " << cold_total << "\nCOLD_MATCH: " << (result == expected ? "true" : "false") << "\nSEMANTIC_CHECKS: true" << std::endl;
         }
-        for (const auto & background : {"The ticket costs 25 dollars.", "The train arrives tomorrow. The ticket costs 25 dollars."}) {
-            const auto instruction = std::string("请结合背景信息将以下文本翻译为中文，注意只输出待翻译文本的译文，不要重复背景或额外解释：\n\n【背景信息】\n") + background + "\n\n【待翻译文本】\nDo not open the door.";
-            const auto actual = engine.translate(instruction, {});
-            HyMtCore cold(argv[1], 4);
-            const auto expected = cold.translate(instruction, {});
-            std::cout << "CONTEXT_WARM: " << actual << "\nCONTEXT_COLD: " << expected << "\nCONTEXT_REUSED_TOKENS: " << engine.lastReusedTokens() << std::endl;
-            if (!meaningMatches("Do not open the door.", actual) || !meaningMatches("Do not open the door.", expected) ||
-                actual.find("25") != std::string::npos || expected.find("25") != std::string::npos)
-                throw std::runtime_error("Background must not replace or contaminate current input");
-        }
-        std::cout << "ROLLING_CONTEXT_CHECKS: true" << std::endl;
         engine.resetCancel();
         bool cancelled = false;
         try { engine.translate("将以下文本翻译为中文，注意只需要输出翻译后的结果，不要额外解释：\n\nDo not open the door. The ticket costs 25 dollars. The meeting is tomorrow, not today.",
