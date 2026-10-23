@@ -15,6 +15,7 @@ collect_quality() {
 }
 collect_hymt() {
   collect_quality
+  for name in hymt-ui hymt-video-ui; do adb pull "/data/local/tmp/$name.xml" "ui-captures/$name.xml" || true; done
   for name in hymt-quality hymt-video; do
     if adb pull "/data/local/tmp/$name.json" "ui-captures/$name.json"; then
       cat "ui-captures/$name.json"

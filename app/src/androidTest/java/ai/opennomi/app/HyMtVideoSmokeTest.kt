@@ -38,7 +38,7 @@ class HyMtVideoSmokeTest {
             ActivityScenario.launch<WorkspaceActivity>(Intent(app,WorkspaceActivity::class.java).putExtra("tab","translation").putExtra("translation-mode","video")).use {
                 report.put("ui_stage","start_button");withTimeout(20000){while(true){
                     val start=device.findObject(By.text("开启无字幕视频字幕"))
-                    if(start!=null && start.visibleBounds.height()>0){start.click();break}
+                    if(start!=null && start.visibleBounds.height()>40 && start.visibleBounds.bottom<device.displayHeight*4/5){device.waitForIdle();delay(300);device.findObject(By.text("开启无字幕视频字幕")).click();break}
                     device.swipe(device.displayWidth/10,device.displayHeight*4/5,device.displayWidth/10,device.displayHeight/3,30);delay(150)
                 }}
                 report.put("before_grant_active",ScreenState.state.value.active).put("before_grant_audio",ScreenState.state.value.audio).put("before_grant_package",device.currentPackageName)
@@ -84,6 +84,8 @@ class HyMtVideoSmokeTest {
                 assertEquals(approved,ScreenState.state.value.session);report.put("resume_same_session",true)
             }
         }finally {
+            report.put("final_package",device.currentPackageName).put("final_status",ScreenState.state.value.status)
+            runCatching{val ui=File(app.getExternalFilesDir(null),"hymt-video-ui.xml");device.dumpWindowHierarchy(ui);device.executeShellCommand("cp ${ui.absolutePath} /data/local/tmp/hymt-video-ui.xml")}
             InstrumentationRegistry.getInstrumentation().runOnMainSync{ScreenShareService.instance?.stopSelf()}
             withTimeout(10000){while(ScreenState.state.value.active)delay(100)}
             delay(500);assertEquals("",ScreenState.state.value.captionDraft);assertTrue(ScreenState.state.value.captionHistory.isEmpty())

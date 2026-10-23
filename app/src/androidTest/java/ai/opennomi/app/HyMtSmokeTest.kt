@@ -64,10 +64,12 @@ class HyMtSmokeTest {
                 report.put("ui_stage","provider");withTimeout(15000){while(!device.hasObject(By.text("Hy-MT2 离线")))delay(100)}
                 report.put("ui_stage","input")
                 withTimeout(15000){while(!device.hasObject(By.clazz("android.widget.EditText"))){device.swipe(device.displayWidth/10,device.displayHeight*4/5,device.displayWidth/10,device.displayHeight/3,30);delay(100)}}
-                val input=device.findObject(By.clazz("android.widget.EditText"));assertNotNull(input);input.click();input.text="Do not open the door."
-                device.pressBack()
+                val input=device.findObject(By.clazz("android.widget.EditText"));assertNotNull(input);input.click();device.waitForIdle();input.text="Do not open the door.";device.waitForIdle();assertEquals("Do not open the door.",input.text);report.put("ui_input",input.text)
+                device.pressBack();device.waitForIdle();delay(300)
                 withTimeout(15000){while(!device.hasObject(By.text("翻译为中文"))){device.swipe(device.displayWidth/10,device.displayHeight*4/5,device.displayWidth/10,device.displayHeight/3,30);delay(100)}}
-                report.put("ui_stage","submit");val button=device.findObject(By.text("翻译为中文"));assertNotNull(button);button.click()
+                report.put("ui_stage","submit");var button=device.findObject(By.text("翻译为中文"));assertNotNull(button)
+                if(button.visibleBounds.bottom>device.displayHeight*4/5){device.swipe(device.displayWidth/10,device.displayHeight*4/5,device.displayWidth/10,device.displayHeight/2,30);device.waitForIdle();delay(300);button=device.findObject(By.text("翻译为中文"))}
+                assertTrue(button.isEnabled);button.click();device.waitForIdle()
                 val expected=samples.getJSONObject(0).getString("translated")
                 withTimeout(90000){while(!device.hasObject(By.text(expected))) {
                     device.swipe(device.displayWidth/10,device.displayHeight*4/5,device.displayWidth/10,device.displayHeight/3,30);delay(200)
@@ -78,7 +80,7 @@ class HyMtSmokeTest {
                 device.executeShellCommand("cp ${output.absolutePath} /data/local/tmp/hymt-workspace.png")
             }
         }finally {
-            runCatching{device.dumpWindowHierarchy(File(app.getExternalFilesDir(null),"hymt-ui.xml"))}
+            runCatching{val ui=File(app.getExternalFilesDir(null),"hymt-ui.xml");device.dumpWindowHierarchy(ui);device.executeShellCommand("cp ${ui.absolutePath} /data/local/tmp/hymt-ui.xml")}
             engine.close();ScreenAssistant.hyMtTranslator.close();cfg.phoneTranslation=oldPhone;cfg.hyMtTranslation=oldHy
             if(wifi=="1")device.executeShellCommand("svc wifi enable")
             if(data=="1")device.executeShellCommand("svc data enable")
