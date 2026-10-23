@@ -50,6 +50,14 @@ class HyMtSmokeTest {
                 samples.put(row)
                 assertTrue("Real Hy-MT2 semantic probe failed: $row",row.getBoolean("semantic_checks_pass"))
             }
+            val contextChecks=JSONArray();report.put("context_checks",contextChecks)
+            for((source,previous) in listOf("Do not open the door." to "The ticket costs 25 dollars.","Do open the door." to "The train arrives tomorrow. The ticket costs 25 dollars.")) {
+                val translated=withTimeout(90000){engine.translate(app,source,true,previous=previous)}
+                assertTrue(translated.contains("门") && translated.contains("开"));assertFalse(translated.contains("25"))
+                if(source.contains("not"))assertTrue(translated.contains("不") || translated.contains("别"))
+                else assertFalse(translated.contains("不") || translated.contains("别") || translated.contains("没"))
+                contextChecks.put(JSONObject().put("source",source).put("previous",previous).put("translated",translated).put("semantic_checks_pass",true))
+            }
             val firstToken=CompletableDeferred<Unit>()
             val long=async{engine.translate(app,"Do not open the door. ".repeat(35),true,partial={firstToken.complete(Unit)})}
             withTimeout(60000){firstToken.await()}
