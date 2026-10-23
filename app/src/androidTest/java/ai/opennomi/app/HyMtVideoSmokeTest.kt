@@ -26,6 +26,8 @@ class HyMtVideoSmokeTest {
         val manager=app.getSystemService(AudioManager::class.java);val volume=manager.getStreamVolume(AudioManager.STREAM_MUSIC)
         val report=JSONObject().put("model_sha256",HyMtModel.SHA256).put("fixture","Pinned public JFK recording; separate player UID")
         try {
+            InstrumentationRegistry.getInstrumentation().runOnMainSync{ScreenShareService.instance?.stopSelf()}
+            withTimeout(10000){while(ScreenState.state.value.active || ScreenShareService.instance!=null)delay(100)}
             cfg.phoneTranslation=true;cfg.hyMtTranslation=true;cfg.translationCellular=true;cfg.playbackModel="en";cfg.subtitleTiming=SubtitleTiming.FAST.name;cfg.subtitleOverlay=true
             withContext(Dispatchers.IO){PlaybackModels.prepare(app,PlaybackModels.selected("en"),true)}
             withTimeout(1200000){ScreenAssistant.prepareTranslation("en",true)}
@@ -39,7 +41,8 @@ class HyMtVideoSmokeTest {
                     if(start!=null && start.visibleBounds.height()>0){start.click();break}
                     device.swipe(device.displayWidth/10,device.displayHeight*4/5,device.displayWidth/10,device.displayHeight/3,30);delay(150)
                 }}
-                report.put("ui_stage","projection_permission");val grant=device.wait(Until.findObject(By.res("android:id/button1")),10000);assertNotNull(grant);grant.click()
+                report.put("before_grant_active",ScreenState.state.value.active).put("before_grant_audio",ScreenState.state.value.audio).put("before_grant_package",device.currentPackageName)
+                report.put("ui_stage","projection_permission");val grant=device.wait(Until.findObject(By.res("android:id/button1")),10000);assertNotNull("Fresh capture must request projection permission; package=${device.currentPackageName}, active=${ScreenState.state.value.active}, audio=${ScreenState.state.value.audio}, status=${ScreenState.state.value.status}",grant);grant.click()
                 report.put("ui_stage","capture_ready");withTimeout(180000){while(!ScreenState.state.value.audio || !ScreenState.state.value.status.contains("已就绪"))delay(100)}
                 report.put("ui_stage","native_stream");val started=SystemClock.elapsedRealtime()
                 device.executeShellCommand("am start -n ai.opennomi.playbackfixture/.PlaybackFixtureActivity --ez natural true")
