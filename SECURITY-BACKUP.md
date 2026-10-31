@@ -5,7 +5,7 @@
 ## 已确认
 - README 当前记录 Android 0.67.0，功能与安装说明位于仓库。
 - `backups/releases/0.67.0/` 有 131 个 APK 分块、GitHub clone readback 验证记录；记录的 APK SHA-256 为 `e60ba2701a249ab4252f47e1d3c7b0983329a915f4e5f15d8e3e1144e35a0ec5`，大小 96,245,142 字节，历史记录称与原签名 APK 逐字节一致。
-- `backups/signing/new-signing-20261012/` 有加密的新签名备份和恢复脚本；但文档明确该签名是**新生成的，不是原签名**，不能直接覆盖安装旧签名版本。
+- `backups/signing/new-signing-20261012/` 有加密的新签名备份和恢复脚本；该密文已镜像到 [Zizai 私人备份](https://github.com/nmm26301-maker/Zizai/blob/main/backups/security-audit-2026-11-01/OpenNomi/OpenNomi-new-signing.enc.json)。文档明确该签名是**新生成的，不是原签名**，不能直接覆盖安装旧签名版本。
 - 另一个名为 `opennomi` 的空仓库不应被当作此项目的备份。
 
 ## 待补齐
